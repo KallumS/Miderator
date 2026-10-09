@@ -169,3 +169,18 @@ and a Good Idea tune overlapping by a tick read as chords, so the tune and
 the chords swapped and the piccolo and glockenspiel were thinned - seen in
 Miderator's window, fixed by naming first (the test failed before). The
 full orchestra in the window: all 28 parts filled, nothing thinned. 93 core tests, 15 app tests.
+
+## Then: where generated music goes, simplified (0041)
+
+Trying 0040 the user found the placement confusing and set four cases:
+nothing chosen shares an idea across every part; bars of one part take all
+of it (first read as "one bar = where it starts", corrected by the user to
+"one bar = one bar of it"); bars of several parts share it. `insertWhole`
+puts all of a result into one part - thinned, then put in its register - and
+no part is added any more: a line with nowhere to go is named. An older app
+test that put chords into the caret's violin with nothing chosen now chooses
+the violin's bars. Mistake: an interrupted tool call had in fact written its
+tests, so they went in twice - caught by counting `TEST` lines. Miderator's
+branch had been merged and deleted on GitHub; its new commit was moved onto
+`main`. In the window, nothing chosen in a full orchestra: all 28 parts
+filled from bar 1. 95 core tests, 16 app tests.

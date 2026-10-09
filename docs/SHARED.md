@@ -19,6 +19,7 @@ update the commit below.
 | `5291bdc` | 2026-10-09: smooth following and `SmoothClock` in `Follow.h`, `Layout::playheadX` in `Engrave.*`, their tests (0034). Merged into Noterator's main |
 | `c6f4c8d` | 2026-10-09: `fitToPolyphony` in `Generators.*` and its tests (0036). On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 | `4c3f3ba` | 2026-10-09: `Orchestrate.*` (new, listed in the sync script and `CMakeLists.txt`), `insertIntoRange` handing several parts to it, `TestOrchestrate.cpp` (0040). On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
+| `42ba147` | 2026-10-09: `insertWhole` and no added parts in `Generators.*` and `Orchestrate.*`, the Generate tab's "Into" line, their tests (0041). On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 
 ## Shared
 
