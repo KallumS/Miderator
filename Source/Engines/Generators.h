@@ -49,6 +49,7 @@ struct InsertReport
     Selection newNotes;
     std::vector<uint32_t> newParts;
     std::vector<uint32_t> thinnedParts;   // parts given fewer notes than the result had, to suit the instrument
+    std::vector<std::string> unplaced;    // lines no chosen part could take ("Drums" with no kit), left out
 };
 
 // The most notes a line sounds at once.
@@ -72,10 +73,18 @@ GeneratedResult fitToSpan (const GeneratedResult& result, Tick span);
 // gives the extra notes to no one.
 std::vector<std::vector<Note>> spreadChords (const std::vector<Note>& notes, int lines);
 
-// Drops a result into a span of bars across chosen parts. One part takes it
-// as insertResult would; several share it out by what each instrument is
-// (Orchestrate.h, decision 0040). Only the parts that receive music are
-// cleared.
+// All of a result in one part (decision 0041): its lines together, thinned
+// to the notes the instrument plays at once (the top ones, the bottom for a
+// bass), then moved into its register. Drums go only to a drum kit, and a
+// kit takes only drums; a line that fits neither is reported, not placed.
+// `span` 0 keeps the result's own length; otherwise it fills the span.
+InsertReport insertWhole (Score& score, const GeneratedResult& result, uint32_t partId, Tick at, Tick span,
+                          const InsertOptions& options = {});
+
+// Drops a result into [from, to) across chosen parts. One part takes all of
+// it (insertWhole); several share it out by what each instrument is
+// (Orchestrate.h, decision 0040). No part is ever added. Only the parts that
+// receive music are cleared.
 InsertReport insertIntoRange (Score& score, const GeneratedResult& result, const std::vector<uint32_t>& parts,
                               Tick from, Tick to, const InsertOptions& options = {});
 

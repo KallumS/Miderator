@@ -647,24 +647,13 @@ InsertReport orchestrate (Score& score, const GeneratedResult& fitted, const std
         }
     }
 
-    // Whatever found no chosen part goes where it would have gone anyway.
-    GeneratedResult leftover;
-    leftover.length = fitted.length;
-    if (melody != nullptr && ! usedTune) leftover.parts.push_back (*melody);
-    if (second != nullptr && ! usedSecond) leftover.parts.push_back (*second);
-    if (bass != nullptr && ! usedBass) leftover.parts.push_back (*bass);
-    if (chords != nullptr && ! usedChords && ! usedTune && ! usedBass) leftover.parts.push_back (*chords);
-    if (drums != nullptr && ! usedDrums) leftover.parts.push_back (*drums);
-    for (const auto* gp : others) leftover.parts.push_back (*gp);
-    if (! leftover.parts.empty())
-    {
-        InsertOptions o = options;
-        if (const auto* p = parts.empty() ? nullptr : score.partById (parts.front())) o.contextInstrument = p->instrument;
-        const auto more = insertResult (score, leftover, 0, from, o);
-        report.newNotes.insert (more.newNotes.begin(), more.newNotes.end());
-        report.newParts = more.newParts;
-        report.thinnedParts.insert (report.thinnedParts.end(), more.thinnedParts.begin(), more.thinnedParts.end());
-    }
+    // Whatever found no chosen part is left out and named: no part is added.
+    if (melody != nullptr && ! usedTune) report.unplaced.push_back (melody->name);
+    if (second != nullptr && ! usedSecond) report.unplaced.push_back (second->name);
+    if (bass != nullptr && ! usedBass) report.unplaced.push_back (bass->name);
+    if (chords != nullptr && ! usedChords && ! usedTune && ! usedBass) report.unplaced.push_back (chords->name);
+    if (drums != nullptr && ! usedDrums) report.unplaced.push_back (drums->name);
+    for (const auto* gp : others) report.unplaced.push_back (gp->name);
     score.fitBars();
     return report;
 }

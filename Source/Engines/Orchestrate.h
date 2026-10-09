@@ -76,7 +76,7 @@ std::vector<std::vector<Note>> voiceInner (const std::vector<Harmony>& harmony, 
                                            const std::vector<Note>& source);
 
 // Shares a result made to fit [from, to) across the chosen parts. Lines it
-// has no place for go where insertResult puts them.
+// has no place for are named in the report's `unplaced`; no part is added.
 InsertReport orchestrate (Score& score, const GeneratedResult& fitted, const std::vector<uint32_t>& parts,
                           Tick from, Tick to, const InsertOptions& options);
 

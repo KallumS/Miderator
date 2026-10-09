@@ -114,9 +114,11 @@ void GeneratorPanel::rebuildSettings()
 
 void GeneratorPanel::changeListenerCallback (juce::ChangeBroadcaster*)
 {
+    // Nothing chosen: shared across every part from the caret's bar (0041).
     juce::String into = "Into: ";
-    if (const auto* p = controller.caretPartPtr())
-        into += juce::String (p->name) + ", from bar " + juce::String (controller.score.barAt (controller.caret) + 1);
+    const juce::String bar = ", from bar " + juce::String (controller.score.barAt (controller.caret) + 1);
+    if (controller.score.parts.size() > 1) into += "every part" + bar;
+    else if (const auto* p = controller.caretPartPtr()) into += juce::String (p->name) + bar;
     if (controller.range.active() && (! needsSelection() || current == "midi-variator"))
     {
         into = "Into: " + controller.rangeText();

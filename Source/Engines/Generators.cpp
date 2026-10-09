@@ -133,17 +133,45 @@ std::vector<std::vector<Note>> spreadChords (const std::vector<Note>& notes, int
     return out;
 }
 
+InsertReport insertWhole (Score& score, const GeneratedResult& result, uint32_t partId, Tick at, Tick span,
+                          const InsertOptions& options)
+{
+    InsertReport report;
+    const auto* p = score.partById (partId);
+    if (p == nullptr) return report;
+    const auto& inst = instrumentById (p->instrument);
+    const auto source = span > 0 ? fitToSpan (result, span) : result;
+    std::vector<Note> notes;
+    for (const auto& gp : source.parts)
+    {
+        if (gp.notes.empty()) continue;
+        if (gp.drums != inst.drums) { report.unplaced.push_back (gp.name); continue; }
+        notes.insert (notes.end(), gp.notes.begin(), gp.notes.end());
+    }
+    if (notes.empty()) return report;
+    // Thinned first, so the register is chosen for the line that is played.
+    if (options.fitPolyphony)
+    {
+        int dropped = 0;
+        notes = fitToPolyphony (notes, inst, &dropped);
+        if (dropped > 0) report.thinnedParts.push_back (partId);
+    }
+    if (options.fitToInstrument) notes = fitToInstrument (notes, inst);
+    const Tick length = span > 0 ? span : source.length;
+    const auto ids = pasteNotes (score, partId, at, notes, length, options.replace);
+    report.newNotes.insert (ids.begin(), ids.end());
+    score.fitBars();
+    return report;
+}
+
 InsertReport insertIntoRange (Score& score, const GeneratedResult& result, const std::vector<uint32_t>& parts,
                               Tick from, Tick to, const InsertOptions& options)
 {
     const auto fitted = fitToSpan (result, to - from);
     InsertOptions o = options;
     o.replace = true;
-    if (parts.size() <= 1)
-    {
-        if (const auto* p = parts.empty() ? nullptr : score.partById (parts.front())) o.contextInstrument = p->instrument;
-        return insertResult (score, fitted, parts.empty() ? 0 : parts.front(), from, o);
-    }
+    if (parts.empty()) return {};
+    if (parts.size() == 1) return insertWhole (score, fitted, parts.front(), from, 0, o);
 
     // Several parts: shared out by what each instrument is (decision 0040).
     return orchestrate (score, fitted, parts, from, to, o);

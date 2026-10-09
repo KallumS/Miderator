@@ -201,3 +201,48 @@ TEST ("orchestrate: a tune whose notes overlap by a hair is still the tune, not 
     for (size_t i = 0; i < v1.size(); ++i) CHECK_EQ (pcOf (v1[i].pitch), pcOf (76 + static_cast<int> (i)));
     CHECK_EQ (partOf (s, "glock").notes.size(), size_t (4));
 }
+
+TEST ("orchestrate: one chosen part takes all of the idea, and no part is added")
+{
+    // A tune over chords, into a violin alone: one line, the top, in its
+    // register; nothing put anywhere else.
+    GeneratedResult r = blockChords ({ { 48, 55, 64 }, { 53, 57, 65 } });
+    GeneratedPart m; m.name = "Melody";
+    for (int i = 0; i < 8; ++i) { Note n; n.start = i * PPQ; n.length = PPQ; n.pitch = 72 + (i % 3); m.notes.push_back (n); }
+    r.parts.insert (r.parts.begin(), m);
+    auto s = ensemble ({ "vln1", "vc" });
+    insertIntoRange (s, r, { s.parts[0].id }, 0, s.barStart (2));
+    CHECK_EQ (s.parts.size(), size_t (2));
+    CHECK (partOf (s, "vc").notes.empty());
+    const auto& v = partOf (s, "vln1").notes;
+    CHECK_EQ (v.size(), size_t (8));                          // the tune, the top line
+    CHECK_EQ (polyphonyOf (v), 1);
+    for (const auto& n : v) CHECK (n.pitch >= 72);
+
+    // One bar chosen: one bar of it.
+    auto one = ensemble ({ "vln1" });
+    insertIntoRange (one, r, { one.parts[0].id }, 0, one.barStart (1));
+    for (const auto& n : one.parts[0].notes) CHECK (n.end() <= one.barStart (1));
+
+    // A piano takes all of it.
+    auto p = ensemble ({ "pno" });
+    insertWhole (p, r, p.parts[0].id, 0, 0);
+    CHECK_EQ (p.parts[0].notes.size(), size_t (14));
+}
+
+TEST ("orchestrate: drums with no kit chosen are named, not given a part of their own")
+{
+    GeneratedResult r = blockChords ({ { 48, 55, 64 } });
+    GeneratedPart d; d.name = "Drums"; d.drums = true;
+    for (int i = 0; i < 4; ++i) { Note n; n.start = i * PPQ; n.length = PPQ / 2; n.pitch = 36; d.notes.push_back (n); }
+    r.parts.push_back (d);
+    auto s = ensemble ({ "vln1", "vla", "vc" });
+    const auto report = insertIntoRange (s, r, idsOf (s), 0, s.barStart (1));
+    CHECK_EQ (s.parts.size(), size_t (3));
+    CHECK (std::find (report.unplaced.begin(), report.unplaced.end(), std::string ("Drums")) != report.unplaced.end());
+    // And into a kit alone, only the drums.
+    auto k = ensemble ({ "kit" });
+    const auto kr = insertIntoRange (k, r, { k.parts[0].id }, 0, k.barStart (1));
+    CHECK_EQ (k.parts[0].notes.size(), size_t (4));
+    CHECK (std::find (kr.unplaced.begin(), kr.unplaced.end(), std::string ("Chords")) != kr.unplaced.end());
+}
