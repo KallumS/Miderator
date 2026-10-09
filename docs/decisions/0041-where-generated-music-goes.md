@@ -3,7 +3,8 @@
 - **Date:** 2026-10-09
 - **Status:** Accepted (Noterator and Miderator alike). Replaces how 0019 and
   0040 place a result with nothing chosen or one part chosen; 0040's sharing
-  is unchanged.
+  is unchanged. Refined by 0042: a single line goes to one part, and bars
+  are filled once.
 
 ## Context
 

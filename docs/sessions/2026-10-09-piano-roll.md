@@ -184,3 +184,15 @@ tests, so they went in twice - caught by counting `TEST` lines. Miderator's
 branch had been merged and deleted on GitHub; its new commit was moved onto
 `main`. In the window, nothing chosen in a full orchestra: all 28 parts
 filled from bar 1. 95 core tests, 16 app tests.
+
+## Then: one line to one part; bars filled once (0042)
+
+The user asked that a single line (a melody, a motif) never be shared out,
+and that chosen bars be filled once - cut where they end, the rest left
+empty, never repeated. `isSingleLine` and `Controller::lineTarget` (the
+caret's part, among the chosen ones if bars are chosen); `fitToSpan` no
+longer repeats - its test was changed first and failed, and an older test
+that expected a two-bar idea twice in four bars now expects it once. A tune
+with a second voice splits, the upper parts the tune. The Generate tab's
+"Into" line was too long for "Baritone Saxophone" and was shortened. In the
+window: a motif with nothing chosen went into Violin I alone. 96 core tests, 17 app tests.

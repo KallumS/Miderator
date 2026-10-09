@@ -86,6 +86,7 @@ decisions; 0026 on are Miderator's.
 | [0039](decisions/0039-undo-sound-input-and-look-into-file.md) | Undo, Redo, Sound, the input mode and the look move into the File menu. Both apps. |
 | [0040](decisions/0040-generated-music-orchestrated-across-chosen-parts.md) | Generated music shared across the chosen parts by instrument: each section the whole harmony, tune on top, bass below doubled an octave down, chord between, voice-led (`Orchestrate.*`). Both apps. |
 | [0041](decisions/0041-where-generated-music-goes.md) | Nothing chosen: shared across every part; bars of one part: all of it there; bars of several: shared across them. No part is ever added. Both apps. |
+| [0042](decisions/0042-a-single-line-to-one-part-and-a-span-filled-once.md) | A single line (melody, motif) goes to one part, never shared; chosen bars are filled once, cut or left empty, never repeated. Both apps. |
 | [0035](decisions/0035-space-plays-from-the-start.md) | Space plays from bar 1, Shift+Space and Play from the caret; |◀ and ▶| (Home, End) go to the start and the end of the music. Both apps. |
 | [0034](decisions/0034-follow-scrolls-smoothly.md) | Following scrolls smoothly by default, the playhead a third of the way across, on a steady clock read once a frame for both views; turning pages is a choice in the Play menu. |
 | [0010](decisions/0010-verify-by-rendering.md) | Drawing changes are checked by rendering them to PNG (`MideratorRender`). |

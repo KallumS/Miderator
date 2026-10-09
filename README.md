@@ -29,7 +29,8 @@ Noterator's, and the two open each other's projects.
   other notes to the ones between, each moving as little as it can - choose a
   whole orchestra and every part plays. Choose nothing and it is
   shared across every part from the cursor's bar; choose bars of one part and
-  all of it goes there. Every instrument gets only what it can play: a
+  all of it goes there. A tune on its own goes to one part, and chosen bars
+  are filled once - never repeated, never past their end. Every instrument gets only what it can play: a
   violin never gets chords, only their top line.
 - **Starting Blocks as a toolbox.** Pick a chord, arpeggio, run or interval;
   every degree of the key is a button. Click one to see and hear it, Insert
