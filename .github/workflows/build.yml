@@ -1,0 +1,85 @@
+# Builds Miderator for macOS (an Apple silicon app in a .dmg, ready to download from
+# the run's Artifacts) and runs the tests on Linux and macOS.
+#
+# Pushing a tag that starts with "v" (v0.1.0) also publishes a GitHub Release
+# with the .dmg attached, which is the easiest place to download it from.
+
+name: Build
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tests:
+    name: Tests (Linux)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build lua5.4 libasound2-dev libfreetype-dev libfontconfig1-dev \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev libgl1-mesa-dev
+      - name: Generators, outside the app
+        run: lua5.4 tools/try_generators.lua
+      - name: Core tests
+        run: |
+          cmake -B build-core -G Ninja -DMIDERATOR_BUILD_APP=OFF -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-core
+          ctest --test-dir build-core --output-on-failure
+      - name: The app and the renderer compile
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --target Miderator MideratorRender MideratorAppTests
+      - name: App tests (controller, export, audio)
+        run: ./build/MideratorAppTests_artefacts/Release/MideratorAppTests
+      - name: Render the tracks and the piano roll
+        run: |
+          ./build/MideratorRender_artefacts/Release/MideratorRender demo piano-roll-dark.png
+          ./build/MideratorRender_artefacts/Release/MideratorRender demo piano-roll-light.png light 4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: piano-roll
+          path: piano-roll-*.png
+
+  macos:
+    name: macOS app
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ninja
+        run: brew install ninja
+      - name: Configure
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64
+      - name: Build
+        run: cmake --build build --target Miderator MideratorTests MideratorAppTests
+      - name: Tests
+        run: ctest --test-dir build --output-on-failure -V
+      - name: Package
+        run: |
+          APP="build/Miderator_artefacts/Release/Miderator.app"
+          lipo -info "$APP/Contents/MacOS/Miderator"
+          # An ad-hoc signature: enough for an Apple silicon Mac to run it.
+          # (No Apple Developer ID yet, so the first launch needs right-click > Open.)
+          codesign --force --deep --sign - "$APP"
+          mkdir -p dmg
+          cp -R "$APP" dmg/
+          ln -s /Applications dmg/Applications
+          cp docs/INSTALL-MAC.txt "dmg/Read me first.txt"
+          hdiutil create -volname "Miderator" -srcfolder dmg -ov -format UDZO Miderator-macOS.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Miderator-macOS
+          path: Miderator-macOS.dmg
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Miderator-macOS.dmg
