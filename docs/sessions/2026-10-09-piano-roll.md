@@ -106,4 +106,4 @@ roll get the same playhead each frame. Playback was seen in the container
 for the first time, through a silent PulseAudio sink: at the default zoom
 the music moves about a pixel a frame (measured from a 60 fps recording:
 mostly 1, sometimes 0 or 2 where Xvfb's frames fall), and in page mode it
-turns a page twice in 14 seconds, as it should. 83 core tests.
+turns a page twice in 14 seconds, as it should. 82 core tests.
