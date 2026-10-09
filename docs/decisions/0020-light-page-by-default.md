@@ -1,7 +1,7 @@
 # 0020 - A light page by default; dark on request
 
 - **Date:** 2026-10-07
-- **Status:** Accepted - replaces the default chosen in 0015
+- **Status:** Accepted - replaces the default chosen in 0015 (Noterator). In Miderator, replaced by [0031](0031-dark-by-default.md)
 
 ## Context
 

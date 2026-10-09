@@ -1,8 +1,13 @@
-# Noterator's architecture, and the decisions behind it
+# Miderator's architecture, and the decisions behind it
 
 One page for the whole shape of the app and every big decision in it. Each
 decision has its own record in [`decisions/`](decisions/README.md), with the
 reasoning and what it costs; this page is the map.
+
+Miderator is Noterator with a piano roll (0026): everything under `Source/Core`
+but `Roll.*`, the engines and the generator bridge are Noterator's files,
+shared byte for byte ([`SHARED.md`](SHARED.md)). 0001-0025 are Noterator's
+decisions; 0026 on are Miderator's.
 
 ## The shape
 
@@ -14,35 +19,37 @@ reasoning and what it costs; this page is the map.
   Source/Engines/   LuaEngine  ---  Generators (context in, results placed)
                           |
                           v
-  Source/Core/      Score  <-- Edit (every change)        Instruments (one table), Templates
-   (no JUCE)          |                                     |
-                      +--> Engrave --> Layout (staff spaces) |
-                      +--> Detect  --> chord and key lanes  <-+
+  Source/Core/      Score  <-- Edit, Roll (every change)     Instruments (one table), Templates
+   (no JUCE)          |                                        |
+                      +--> Roll::check --> what each instrument cannot play
+                      +--> Detect  --> chord and key lanes   <-+
                       +--> Perform --> MIDI events <-- AutoCC
-                      +--> MidiFile, ScoreFile, MusicXml (own Xml reader/writer)
+                      +--> MidiFile, ScoreFile, MusicXml (via Engrave, unseen)
                           |
                           v
-  Source/App/       Controller (owns the score, undo, selection, caret)
-   (JUCE)             |-- ScoreView + ScoreRenderer (Bravura)  -- the page
+  Source/App/       Controller (owns the score, undo, selection, caret, grid, tools)
+   (JUCE)             |-- Workspace: ArrangeView (tracks) over PianoRollView, one Timeline
                       |-- Toolbar; Generate, Blocks, Parts, Score panels; status line
                       |-- AudioEngine (a rack of Apple GM Audio Units / built-in synths)
                       `-- Exporter (MIDI, WAV, MusicXML)
 ```
 
 - **The score is MIDI.** Parts of notes in ticks (960 a quarter), sounding
-  pitch. Nothing about the notation is stored.
-- **The page is derived.** `Engrave` turns the score into a layout in staff
-  spaces; `ScoreRenderer` inks it. The same renderer draws PNGs with no window.
-- **The music core has no JUCE** (`Source/Core`, `Source/Engines`), so 65 tests
-  build and run in seconds. `NoteratorAppTests` covers the JUCE side.
+  pitch. A piano roll draws exactly that.
+- **The view is derived.** Nothing about the tracks or the roll is stored;
+  the grid, the tool and the zoom are choices in the window.
+- **The music core has no JUCE** (`Source/Core`, `Source/Engines`), so 74 tests
+  build and run in seconds. `MideratorAppTests` covers the JUCE side.
 - **One controller.** Every window piece reads the `Controller` and asks it for
-  changes; it keeps undo, re-engraves, re-detects and re-sends to playback.
+  changes; it keeps undo, re-checks the instruments, re-detects and re-sends
+  to playback. A drag is shown by the view and asked for once.
 
 ## The decisions
 
 ### What the app is
 | | |
 | --- | --- |
+| [0026](decisions/0026-miderator-is-noterator-with-a-piano-roll.md) | Noterator with a piano roll, in its own repository; the music code is Noterator's files, shared byte for byte. |
 | [0001](decisions/0001-a-juce-app-not-a-reascript.md) | A standalone JUCE 8 app, not a ReaScript: it owns its window, files and audio, and can host instruments. |
 | [0012](decisions/0012-apple-silicon-only-built-by-ci.md) | Apple silicon only; GitHub Actions builds, tests and packages the Mac app, because nothing here can. |
 
@@ -65,20 +72,25 @@ reasoning and what it costs; this page is the map.
 | [0025](decisions/0025-generators-named-for-what-they-do.md) | In the app: Generate Notes (Good Idea), Suggest Notes (Suggester), Vary Notes (Variator); code keeps the engines' names. |
 | [0019](decisions/0019-bars-can-be-chosen-and-filled.md) | Bars chosen by dragging; Good Idea fills them exactly, tune on top, bass below, chords between; Variator replaces them. |
 
-### The page
+### The screen
 | | |
 | --- | --- |
-| [0004](decisions/0004-one-set-of-columns-in-a-galley.md) | Every staff shares one set of columns per bar, in one long scrolling system (a galley). |
-| [0009](decisions/0009-bravura-not-drawn-glyphs.md) | Bravura draws every symbol, calibrated so a notehead is one staff space. |
-| [0010](decisions/0010-verify-by-rendering.md) | Engraving changes are checked by rendering them to PNG. |
+| [0027](decisions/0027-tracks-above-a-piano-roll-below.md) | The tracks above, one part's piano roll below, sharing one proportional timeline. Replaces 0004 here. |
+| [0028](decisions/0028-notes-drawn-with-the-mouse-on-a-grid.md) | Select, drag, stretch, copy, draw with the mouse on a grid counted from each bar line; step input from a MIDI keyboard. Replaces 0016 here. |
+| [0030](decisions/0030-a-velocity-lane-and-quantise.md) | A velocity lane under the roll; quantise and duplicate. |
+| [0032](decisions/0032-warnings-read-from-the-notes.md) | What an instrument cannot play is read from the notes, shown in the roll and the tracks. |
+| [0010](decisions/0010-verify-by-rendering.md) | Drawing changes are checked by rendering them to PNG (`MideratorRender`). |
 | [0014](decisions/0014-chords-and-keys-read-from-the-score.md) | Chord lane: ScaleView's names on beat-by-beat segments, only real harmony named. Key lane: Suggester's finder, the signature breaking ties. |
-| [0015](decisions/0015-the-house-scheme-and-a-dark-page.md) | The family's colour scheme (its dark-page default replaced by 0020). |
-| [0020](decisions/0020-light-page-by-default.md) | Black on white by default; Dark page on request, remembered. |
+| [0015](decisions/0015-the-house-scheme-and-a-dark-page.md) | The family's colour scheme. |
+| [0031](decisions/0031-dark-by-default.md) | Dark by default, as a DAW is; Light on request, remembered. Replaces 0020 here. |
+
+Noterator's page decisions - one set of columns in a galley (0004), Bravura
+(0009), a light page (0020) - are kept for the record; only 0004's columns
+still matter, inside MusicXML export.
 
 ### Input and sound
 | | |
 | --- | --- |
-| [0016](decisions/0016-step-input-with-the-keys-people-know.md) | Step-time input with MuseScore's keys; letters start in the instrument's register; MIDI keys write chords. |
 | [0007](decisions/0007-one-performance-and-the-macs-own-orchestra.md) | One performance feeds playback, WAV and .mid; sound from Apple's General MIDI Audio Unit, a built-in synth elsewhere. |
 | [0008](decisions/0008-general-midi-gets-two-cc-lanes.md) | General MIDI gets AutoCC's CC7 and CC11; a .mid gets all four lanes. |
 | [0023](decisions/0023-a-synth-per-sixteen-channels.md) | A synth per sixteen channels (up to four), so every part of a big score has a channel and a sound of its own. |
@@ -88,6 +100,7 @@ reasoning and what it costs; this page is the map.
 | | |
 | --- | --- |
 | [0021](decisions/0021-musicxml-in-and-out.md) | MusicXML import (.musicxml, .xml, .mxl) and export, in the core with its own XML parser; export written from the layout. |
+| [0029](decisions/0029-the-engraver-stays-for-musicxml.md) | The engraver stays, unseen, only to write MusicXML; the music font goes. |
 
 ## Borrowed from the family, unchanged
 
@@ -97,12 +110,13 @@ reasoning and what it costs; this page is the map.
 | `Source/Core/ScaleModel.h` | ScaleView's scales, spelling and chord naming |
 | `Detect.cpp` key finder | Midi Suggester's `detectKey`, weights as they stand |
 | `AutoCC.cpp` | AutoCC.jsfx's presets and envelope |
-| `Engrave.cpp` rules | Starting Blocks Notation's engraver, ported and grown |
+| `Engrave.cpp` rules | Starting Blocks Notation's engraver, ported and grown (for MusicXML) |
+| Everything in [`SHARED.md`](SHARED.md) | Noterator, at the commit recorded there |
 | `Theme.*` | The house colour scheme |
 
 ## Where it goes next
 
-Roughly in order: a page view; dynamics, articulations and slurs (with
-articulation switching for sample libraries); drawable CC lanes seeded by
-AutoCC; VST3 and CLAP instruments per part and SoundFonts through the Mac's
-synth; real-time MIDI recording; Windows.
+Roughly in order: drawable CC lanes under the roll, seeded by AutoCC;
+articulations and articulation switching for sample libraries; VST3 and CLAP
+instruments per part and SoundFonts through the Mac's synth; real-time MIDI
+recording; Windows.

@@ -76,6 +76,7 @@ struct Mini
     const std::set<uint32_t>* selected = nullptr;
     const std::set<uint32_t>* sounding = nullptr;
     const roll::Warnings* warnings = nullptr;
+    float tallest = 6.0f;            // a note's height at most, in pixels
 };
 void miniNotes (juce::Graphics& g, juce::Rectangle<float> area, const std::vector<Note>& notes,
                 const std::function<float (Tick)>& xOf, const theme::RollColours& c, const Mini& opts);

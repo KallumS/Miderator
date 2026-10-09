@@ -142,7 +142,7 @@ void miniNotes (juce::Graphics& g, juce::Rectangle<float> area, const std::vecto
     // At least an octave tall, centred on the music.
     if (hi - lo < 12) { const int mid = (lo + hi) / 2; lo = mid - 6; hi = lo + 12; }
     const float rowH = area.getHeight() / static_cast<float> (hi - lo + 1);
-    const float h = std::clamp (rowH, 2.0f, 6.0f);
+    const float h = std::clamp (rowH, 2.0f, std::max (2.0f, opts.tallest));
     const float x0 = area.getX(), x1 = area.getRight();
     for (const auto& n : notes)
     {

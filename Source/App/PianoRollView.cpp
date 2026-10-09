@@ -63,18 +63,22 @@ const Note* PianoRollView::noteAt (juce::Point<float> p, int* zone) const
     const auto* pt = part();
     if (pt == nullptr) return nullptr;
     const Note* found = nullptr;
-    // The last drawn is on top.
-    for (const auto& n : pt->notes)
+    // Short notes are hard to hit: every note can be caught a few pixels
+    // either side, and at least eight pixels tall. The last drawn is on top.
+    auto grab = [this] (const Note& n)
     {
-        auto r = noteRect (n.start, n.end(), n.pitch);
-        if (r.getHeight() < 8.0f) r = r.withSizeKeepingCentre (r.getWidth(), 8.0f);
-        if (r.contains (p)) found = &n;
-    }
+        auto r = noteRect (n.start, n.end(), n.pitch).expanded (3.0f, 0.0f);
+        return r.getHeight() < 8.0f ? r.withSizeKeepingCentre (r.getWidth(), 8.0f) : r;
+    };
+    for (const auto& n : pt->notes)
+        if (grab (n).contains (p)) found = &n;
     if (found != nullptr && zone != nullptr)
     {
+        // The last quarter of a note (two to seven pixels) and just past it
+        // stretch its end; the first four pixels of a long one, its start.
         const auto r = noteRect (found->start, found->end(), found->pitch);
-        const float edge = std::clamp (r.getWidth() * 0.25f, 3.0f, 7.0f);
-        *zone = p.x > r.getRight() - edge ? 1 : (r.getWidth() >= 18.0f && p.x < r.getX() + 4.0f) ? -1 : 0;
+        const float edge = std::clamp (r.getWidth() * 0.25f, 2.0f, 7.0f);
+        *zone = p.x >= r.getRight() - edge ? 1 : (r.getWidth() >= 18.0f && p.x < r.getX() + 4.0f) ? -1 : 0;
     }
     return found;
 }

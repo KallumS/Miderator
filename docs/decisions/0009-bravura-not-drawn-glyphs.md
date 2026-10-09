@@ -2,7 +2,7 @@
 
 - **Date:** 2026-10-07
 
-- **Status:** Accepted. Departs from Starting Blocks Notation's 0004 on purpose.
+- **Status:** Accepted. Departs from Starting Blocks Notation's 0004 on purpose (Noterator). Miderator draws no notation and carries no music font: see [0029](0029-the-engraver-stays-for-musicxml.md)
 
 ## Context
 

@@ -2,7 +2,7 @@
 
 - **Date:** 2026-10-07
 
-- **Status:** Accepted. Starting Blocks Notation's 0011, carried over.
+- **Status:** Accepted. Starting Blocks Notation's 0011, carried over. In Miderator, `MideratorRender` draws the tracks and the piano roll instead
 
 ## Context
 

@@ -1,7 +1,7 @@
 # 0016 - Step-time input, with the keys notation users already know
 
 - **Date:** 2026-10-07
-- **Status:** Accepted
+- **Status:** Accepted (Noterator). In Miderator, replaced by [0028](0028-notes-drawn-with-the-mouse-on-a-grid.md)
 
 ## Context
 

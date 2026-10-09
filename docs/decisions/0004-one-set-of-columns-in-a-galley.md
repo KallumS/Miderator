@@ -1,7 +1,7 @@
 # 0004 - One set of columns for every staff, in one long system
 
 - **Date:** 2026-10-07
-- **Status:** Accepted
+- **Status:** Accepted (Noterator). In Miderator the screen is a piano roll: see [0027](0027-tracks-above-a-piano-roll-below.md); the columns still shape MusicXML export
 
 ## Context
 

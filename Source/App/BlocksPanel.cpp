@@ -110,7 +110,9 @@ public:
         g.fillRect (xOf (end) - 1.0f, area.getY(), 1.0f, area.getHeight());
         std::vector<Note> notes;
         for (const auto& p : score.parts) notes.insert (notes.end(), p.notes.begin(), p.notes.end());
-        paint::miniNotes (g, area.reduced (0.0f, 2.0f), notes, xOf, c, {});
+        paint::Mini mini;
+        mini.tallest = 12.0f;
+        paint::miniNotes (g, area.reduced (0.0f, 2.0f).withTrimmedBottom (12.0f), notes, xOf, c, mini);
         // The notes' names, low to high, under it all.
         const auto ctx = keyContext (score.keys.front().root, score.keys.front().scale);
         std::vector<int> pitches;
