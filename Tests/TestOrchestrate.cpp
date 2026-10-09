@@ -246,3 +246,31 @@ TEST ("orchestrate: drums with no kit chosen are named, not given a part of thei
     CHECK_EQ (k.parts[0].notes.size(), size_t (4));
     CHECK (std::find (kr.unplaced.begin(), kr.unplaced.end(), std::string ("Chords")) != kr.unplaced.end());
 }
+
+TEST ("orchestrate: a single line is never shared out; a tune and a second voice are split")
+{
+    GeneratedResult tune;
+    GeneratedPart m; m.name = "Melody";
+    for (int i = 0; i < 4; ++i) { Note n; n.start = i * PPQ; n.length = PPQ + 5; n.pitch = 72 + i; m.notes.push_back (n); }
+    tune.parts = { m };
+    tune.length = 4 * PPQ;
+    CHECK (isSingleLine (tune));                              // legato, but one line
+    auto withChords = blockChords ({ { 48, 55, 64 } });
+    CHECK (! isSingleLine (withChords));
+    withChords.parts.push_back (m);
+    CHECK (! isSingleLine (withChords));
+
+    // A tune and a second voice across a quartet: the top two the tune, the
+    // bottom two the second voice.
+    GeneratedPart second; second.name = "Second voice";
+    for (const auto& n : m.notes) { Note t = n; t.pitch -= 4; second.notes.push_back (t); }
+    auto two = tune;
+    two.parts.push_back (second);
+    CHECK (! isSingleLine (two));
+    auto s = ensemble ({ "vln1", "vln2", "vla", "vc" });
+    insertIntoRange (s, two, idsOf (s), 0, s.barStart (1));
+    CHECK_EQ (pcOf (firstNote (partOf (s, "vln1"))->pitch), 0);
+    CHECK_EQ (pcOf (firstNote (partOf (s, "vln2"))->pitch), 0);
+    CHECK_EQ (pcOf (firstNote (partOf (s, "vla"))->pitch), 8);
+    CHECK_EQ (pcOf (firstNote (partOf (s, "vc"))->pitch), 8);
+}

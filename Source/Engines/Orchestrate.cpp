@@ -158,8 +158,11 @@ std::vector<Assignment> planOrchestra (const Score& score, const std::vector<uin
 
         if (! layers.harmony && ! layers.bass)
         {
-            // A tune and nothing else: everyone plays it, in octaves.
-            for (auto& r : roles) r = layers.melody ? Layer::melody : Layer::none;
+            // A tune and nothing else: everyone plays it, in octaves - the
+            // lower half the second voice, where there is one.
+            for (size_t i = 0; i < n; ++i)
+                roles[i] = ! layers.melody ? Layer::none
+                         : (layers.second && n >= 2 && i >= (n + 1) / 2) ? Layer::second : Layer::melody;
         }
         else if (n == 1)
         {

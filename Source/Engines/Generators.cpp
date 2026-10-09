@@ -91,18 +91,18 @@ GeneratedResult fitToSpan (const GeneratedResult& result, Tick span)
         for (const auto& p : result.parts)
             for (const auto& n : p.notes) len = std::max (len, n.end());
     if (len <= 0) return out;
+    // Played once: cut where the span ends, the rest of a longer span left
+    // empty (decision 0042).
     for (auto& p : out.parts)
     {
         const auto source = p.notes;
         p.notes.clear();
-        for (Tick offset = 0; offset < span; offset += len)
-            for (auto n : source)
-            {
-                n.start += offset;
-                if (n.start >= span) continue;
-                n.length = std::min (n.length, span - n.start);
-                p.notes.push_back (n);
-            }
+        for (auto n : source)
+        {
+            if (n.start >= span) continue;
+            n.length = std::min (n.length, span - n.start);
+            p.notes.push_back (n);
+        }
     }
     out.length = span;
     return out;
@@ -131,6 +131,21 @@ std::vector<std::vector<Note>> spreadChords (const std::vector<Note>& notes, int
         i = j;
     }
     return out;
+}
+
+bool isSingleLine (const GeneratedResult& result)
+{
+    int lines = 0;
+    for (const auto& gp : result.parts)
+    {
+        if (gp.notes.empty()) continue;
+        if (gp.drums) return false;
+        std::string n = gp.name;
+        std::transform (n.begin(), n.end(), n.begin(), [] (unsigned char ch) { return static_cast<char> (std::tolower (ch)); });
+        if (n.find ("chord") != std::string::npos || polyphonyOf (gp.notes) > 2) return false;
+        ++lines;
+    }
+    return lines == 1;
 }
 
 InsertReport insertWhole (Score& score, const GeneratedResult& result, uint32_t partId, Tick at, Tick span,

@@ -114,14 +114,18 @@ void GeneratorPanel::rebuildSettings()
 
 void GeneratorPanel::changeListenerCallback (juce::ChangeBroadcaster*)
 {
-    // Nothing chosen: shared across every part from the caret's bar (0041).
+    // Nothing chosen: chords shared across every part from the caret's bar
+    // (0041), a single line into the caret's part (0042).
     juce::String into = "Into: ";
-    const juce::String bar = ", from bar " + juce::String (controller.score.barAt (controller.caret) + 1);
-    if (controller.score.parts.size() > 1) into += "every part" + bar;
-    else if (const auto* p = controller.caretPartPtr()) into += juce::String (p->name) + bar;
+    const juce::String bar = "from bar " + juce::String (controller.score.barAt (controller.caret) + 1);
+    const auto* line = controller.score.partById (controller.lineTarget());
+    const juce::String lineName = line != nullptr ? juce::String (line->name) : juce::String();
+    if (controller.score.parts.size() > 1) into += bar + " - chords to every part, one line to " + lineName;
+    else into += lineName + ", " + bar;
     if (controller.range.active() && (! needsSelection() || current == "midi-variator"))
     {
         into = "Into: " + controller.rangeText();
+        if (! needsSelection() && controller.range.parts.size() > 1) into += " - one line to " + lineName;
         if (needsSelection())
             into = controller.selection.empty() ? juce::String ("There is no music in the chosen bars to vary")
                  : controller.rangeText() + "  |  the variation replaces it";

@@ -519,6 +519,50 @@ TEST ("app: nothing chosen shares an idea across every part; one part's bars tak
     for (const auto& n : e.score.parts[0].notes) CHECK (n.end() <= e.score.barStart (4));
 }
 
+TEST ("app: a single line goes into one part, with nothing chosen or bars of several parts chosen")
+{
+    auto motif = [] (Controller& c)
+    {
+        auto ctx = c.generatorContext (false);
+        c.lua.reset ("good-idea");
+        for (const auto& st : c.lua.settings ("good-idea", ctx))
+            for (size_t i = 0; i < st.names.size(); ++i)
+                if (st.id == "kind" && st.names[i] == "Motif") c.lua.set ("good-idea", st.id, static_cast<int> (i), ctx);
+        auto out = c.lua.generate ("good-idea", c.generatorContext (false), 4, 1);
+        c.lua.reset ("good-idea");
+        return out;
+    };
+    auto withNotes = [] (const Controller& c)
+    {
+        std::vector<size_t> parts;
+        for (size_t i = 0; i < c.score.parts.size(); ++i) if (! c.score.parts[i].notes.empty()) parts.push_back (i);
+        return parts;
+    };
+
+    // Nothing chosen, the caret in the viola: the viola alone.
+    Controller c (audio());
+    c.newScore ("String Quartet");
+    c.setCaret (c.score.parts[2].id, 0);
+    const auto out = motif (c);
+    CHECK (! out.results.empty());
+    if (out.results.empty()) return;
+    CHECK (isSingleLine (out.results.front()));
+    c.insertGenerated (out.results.front(), false, "good-idea");
+    CHECK (withNotes (c) == (std::vector<size_t> { 2 }));
+
+    // Bars of all four chosen, the caret in the cello: the cello alone.
+    Controller d (audio());
+    d.newScore ("String Quartet");
+    d.setCaret (d.score.parts[3].id, 0);
+    d.selectRange (0, 1, 0, 3);
+    d.setCaret (d.score.parts[3].id, 0);
+    const auto two = motif (d);
+    if (two.results.empty()) return;
+    d.insertGenerated (two.results.front(), false, "good-idea");
+    CHECK (withNotes (d) == (std::vector<size_t> { 3 }));
+    for (const auto& n : d.score.parts[3].notes) CHECK (n.end() <= d.score.barStart (2));
+}
+
 int main (int argc, char** argv)
 {
     juce::ScopedJuceInitialiser_GUI init;

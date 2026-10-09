@@ -116,6 +116,9 @@ public:
     // in either order; the notes in them become the selection.
     void selectRange (int a, int b, int fromPart, int toPart);
     // "Bars 2-5, Violin I to Cello", for whatever shows the range.
+    // The part a single line of music goes to (decision 0042): the caret's,
+    // or with bars chosen the caret's among them, else the top one.
+    uint32_t lineTarget() const;
     juce::String rangeText() const;
     // The bars the range or the selection covers, or the caret's bar.
     std::pair<int, int> selectedBars() const;

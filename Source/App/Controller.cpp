@@ -756,6 +756,14 @@ GeneratorContext Controller::generatorContext (bool withSelection) const
     return ctx;
 }
 
+uint32_t Controller::lineTarget() const
+{
+    if (! range.active()) return caretPart;
+    for (auto id : range.parts)
+        if (id == caretPart) return id;
+    return range.parts.front();
+}
+
 Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, const std::string& generatorId,
                         InsertReport& report) const
 {
@@ -769,7 +777,9 @@ Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, 
         const Tick from = s.barStart (range.first), to = s.barStart (range.last + 1);
         if (! fromSelection)
         {
-            report = insertIntoRange (s, r, range.parts, from, to, base);
+            // Shared across the chosen parts - or, a single line, into one (0042).
+            const auto parts = isSingleLine (r) ? std::vector<uint32_t> { lineTarget() } : range.parts;
+            report = insertIntoRange (s, r, parts, from, to, base);
             return from;
         }
         if (generatorId == "midi-variator" && ! selection.empty())
@@ -797,9 +807,11 @@ Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, 
         }
         // Nothing chosen: shared across every part (decision 0041), from the
         // caret's bar so an idea always starts on a downbeat, all of it.
+        // A single line goes into the caret's part alone (decision 0042).
         const Tick at = s.barStart (s.barAt (caret));
         std::vector<uint32_t> all;
-        for (const auto& p : s.parts) all.push_back (p.id);
+        if (isSingleLine (r)) all.push_back (lineTarget());
+        else for (const auto& p : s.parts) all.push_back (p.id);
         report = insertIntoRange (s, r, all, at, at + std::max<Tick> (r.length, PPQ), base);
         return at;
     }

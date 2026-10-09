@@ -63,8 +63,8 @@ int polyphonyOf (const std::vector<Note>& notes);
 InsertReport insertResult (Score& score, const GeneratedResult& result, uint32_t targetPartId, Tick at,
                            const InsertOptions& options = {});
 
-// A result made to last exactly `span`: repeated until it fills it, cut where
-// it ends (decision 0019).
+// A result made to last exactly `span`: cut where the span ends, and played
+// once where the span is longer - the rest left empty (decisions 0019, 0042).
 GeneratedResult fitToSpan (const GeneratedResult& result, Tick span);
 
 // A line of chords dealt out to `lines` parts, one note each, top note to the
@@ -78,6 +78,11 @@ std::vector<std::vector<Note>> spreadChords (const std::vector<Note>& notes, int
 // bass), then moved into its register. Drums go only to a drum kit, and a
 // kit takes only drums; a line that fits neither is reported, not placed.
 // `span` 0 keeps the result's own length; otherwise it fills the span.
+// One line of music and nothing else - a melody, a motif: it goes to one
+// part, never shared out (decision 0042). Chords, a tune with chords or two
+// lines are shared; so are drums, which go to a kit.
+bool isSingleLine (const GeneratedResult& result);
+
 InsertReport insertWhole (Score& score, const GeneratedResult& result, uint32_t partId, Tick at, Tick span,
                           const InsertOptions& options = {});
 
