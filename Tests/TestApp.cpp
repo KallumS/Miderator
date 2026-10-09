@@ -578,3 +578,47 @@ int main (int argc, char** argv)
     std::printf ("%d tests passed\n", ran);
     return 0;
 }
+
+TEST ("app: an audition plays every note on a piano, Generate Notes in place and Blocks alone")
+{
+    Controller c (audio());
+    c.newScore ("String Quartet");
+    const auto violin = c.score.parts[0].id;
+    c.setCaret (violin, 0);
+    c.selectRange (0, 3, 0, 0);                                       // bars 1-4 of the violin alone
+    auto ctx = c.generatorContext (false);
+    c.lua.reset ("good-idea");
+    for (const auto& st : c.lua.settings ("good-idea", ctx))
+        for (size_t i = 0; i < st.names.size(); ++i)
+            if ((st.id == "kind" && st.names[i] == "Phrase") || (st.id == "content" && st.names[i] == "Chords"))
+                c.lua.set ("good-idea", st.id, static_cast<int> (i), ctx);
+    const auto out = c.lua.generate ("good-idea", c.generatorContext (false), 3, 1);
+    c.lua.reset ("good-idea");
+    CHECK (! out.results.empty());
+    if (out.results.empty()) return;
+    const auto& idea = out.results.front();
+    Tick from = 0, to = 0;
+    const auto heard = c.auditionScore (idea, false, "good-idea", from, to);
+    CHECK_EQ (from, Tick (0));
+    CHECK_EQ (to, c.score.barStart (4));
+    int pianos = 0, most = 0;
+    for (const auto& p : heard.parts)
+    {
+        if (p.instrument == "pno") { ++pianos; most = std::max (most, polyphonyOf (p.notes)); }
+        else for (const auto& n : p.notes) CHECK (n.end() <= from || n.start >= to);   // the parts it goes to: silent
+    }
+    CHECK_EQ (pianos, 1);
+    CHECK_EQ (most, polyphonyOf (idea.parts.front().notes));          // the chords whole, not one note
+
+    // A chord block from the toolbox, the caret on the violin: a piano, all of it.
+    c.select ({});
+    c.lua.reset ("starting-blocks");
+    const auto blocks = c.lua.generate ("starting-blocks", c.generatorContext (false), 1, 0);
+    CHECK (! blocks.results.empty());
+    if (blocks.results.empty()) return;
+    const auto alone = c.auditionAlone (blocks.results.front());
+    CHECK_EQ (alone.parts.size(), size_t (1));
+    if (alone.parts.empty()) return;
+    CHECK_EQ (alone.parts[0].instrument, std::string ("pno"));
+    CHECK (polyphonyOf (alone.parts[0].notes) > 1);
+}

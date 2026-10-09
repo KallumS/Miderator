@@ -66,7 +66,7 @@ gets undone.
 | `Source/App/AudioEngine.*`, `Exporter.*` | Playback through a rack of synths, one per 16 channels (0023), previews, MIDI input; MIDI, MusicXML and WAV export (0007). |
 | `Source/App/GeneratorPanel.*`, `BlocksPanel.*`, `SettingsList.*` | The Generate tab (0017), the Blocks toolbox (0018, 0024) with a small piano-roll preview, and the settings menus both draw from an adapter. |
 | `Source/App/Panels.*`, `MainComponent.*`, `Theme.*` | Toolbar, Parts tab, status line, keys and menus (File holds New, Open, Save, Export, Undo, the song's settings, Sound, Step input and Light, 0037-0039), colours (both looks in `theme::rollColours`). |
-| `Tests/Test*.cpp` | Core tests (96), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (17). |
+| `Tests/Test*.cpp` | Core tests (97), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (18). |
 | `tools/` | `RenderRoll.cpp` (MideratorRender, PNGs of the real views), `try_generators.lua`, `sync_engines.sh`, `sync_from_noterator.sh`. |
 
 ## Working in it
@@ -142,7 +142,8 @@ tools/sync_from_noterator.sh ../Noterator --check
 - **Every generated line is fitted to the part it lands in** (0036,
   `fitToPolyphony`, shared): no more notes at once than the instrument
   plays. New ways of placing a result keep `InsertOptions::fitPolyphony`
-  on; only Blocks turn it off.
+  on; only Blocks turn it off. An audition is never fitted: every note on
+  a piano, drums on a kit (0043, `addAudition`).
 - **Who plays what across chosen parts is decided in `orchestrate`** (0040,
   shared): by section and by each instrument's best register, never by
   score order.
@@ -174,12 +175,12 @@ feature but notation, velocity lane, quantise, step input, light and dark,
 and Follow - the view scrolls smoothly with the music as it plays, or turns
 a page at a time (0033, 0034) - merged into `main` in both repositories,
 not yet tried by the user on their Mac. Then Space from bar 1, Shift+Space
-from the caret, and buttons to the start and the end (0035), on the branch
-`ccr-ac8da7d9-3sbl5x` in both, with generated music fitted to what each
+from the caret, and buttons to the start and the end (0035), merged into `main` in both, with generated music fitted to what each
 instrument can play (0036), a File button (0037) that also holds what
 was the Score tab, Undo, Sound, Step input and Light (0038, 0039), and
 generated music orchestrated across the chosen parts, or every part
-with nothing chosen, a single line to one part (0040-0042). Not built yet, roughly in the order
+with nothing chosen, a single line to one part (0040-0042); then auditions that
+play every note on a piano (0043), on the branch `ccr-ac8da7d9-3sbl5x`. Not built yet, roughly in the order
 the user is likely to want them: drawable CC lanes; articulations; VST3/CLAP
 instruments and SoundFonts; real-time recording; Windows. Known rough edges
 are in the latest session log's "Not done yet".

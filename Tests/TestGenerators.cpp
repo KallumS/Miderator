@@ -442,3 +442,46 @@ TEST ("generators: Generate Notes' chord phrases never give a string part two no
     e.reset ("good-idea");
     CHECK_EQ (results, 12);
 }
+
+TEST ("generators: an audition is every note on a piano, drums on a kit, cut where it ends")
+{
+    Score s;
+    Part vn;
+    vn.id = s.newId();
+    vn.instrument = "vln1";
+    vn.solo = true;
+    s.parts.push_back (vn);
+    GeneratedResult r;
+    r.length = 8 * PPQ;
+    GeneratedPart chords;
+    chords.name = "Chords";
+    for (int bar = 0; bar < 2; ++bar)
+        for (int pitch : { 60, 64, 67, 71 })
+            { Note n; n.start = bar * 4 * PPQ; n.length = 4 * PPQ; n.pitch = pitch; chords.notes.push_back (n); }
+    GeneratedPart melody;
+    melody.name = "Melody";
+    for (int i = 0; i < 8; ++i) { Note n; n.start = i * PPQ; n.length = PPQ; n.pitch = 96 + i; melody.notes.push_back (n); }
+    GeneratedPart kit;
+    kit.name = "Drums";
+    kit.drums = true;
+    { Note n; n.start = 0; n.length = PPQ / 4; n.pitch = 36; kit.notes.push_back (n); }
+    r.parts = { chords, melody, kit };
+
+    addAudition (s, r, 4 * PPQ, 6 * PPQ);   // from bar 2, a bar and a half of it
+    CHECK_EQ (s.parts.size(), size_t (3));
+    if (s.parts.size() != 3) return;
+    CHECK (s.parts[0].notes.empty());       // the violin is left alone
+    const auto& piano = s.parts[1];
+    CHECK_EQ (piano.instrument, std::string ("pno"));
+    CHECK (piano.solo);                      // heard, with the violin soloed
+    CHECK_EQ (polyphonyOf (piano.notes), 5); // the chord and the tune, not thinned
+    CHECK_EQ (piano.notes.size(), size_t (8 + 6));
+    for (const auto& n : piano.notes)
+    {
+        CHECK (n.start >= 4 * PPQ);
+        CHECK (n.end() <= 10 * PPQ);
+        CHECK (n.pitch >= 60);               // not moved into any register
+    }
+    CHECK_EQ (s.parts[2].instrument, std::string ("kit"));
+    CHECK_EQ (s.parts[2].notes.size(), size_t (1));
+}

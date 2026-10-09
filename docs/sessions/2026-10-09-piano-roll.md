@@ -196,3 +196,18 @@ that expected a two-bar idea twice in four bars now expects it once. A tune
 with a second voice splits, the upper parts the tune. The Generate tab's
 "Into" line was too long for "Baritone Saxophone" and was shortened. In the
 window: a motif with nothing chosen went into Violin I alone. 96 core tests, 17 app tests.
+
+## Then: auditions play every note, on a piano (0043)
+
+After merging 0042 the user found that auditioning Generate Notes and the
+Blocks preview played one note at a time, and asked for every note, always
+on a piano. The cause was 0036: the audition played the result as placed,
+fitted to each part (chords into a violin, one note), and the Blocks preview
+was fitted to the caret's violin though the block itself goes in unthinned.
+`addAudition` (shared) adds the result as it was made - every note on a
+piano, drums on a kit, soloed if anything is - and `Controller::auditionScore`
+plays it where it would go, the parts it replaces silent there;
+`auditionAlone` plays a block on its own. The app test failed with the old
+audition put back. In Miderator's window, the Blocks preview with the caret
+on Violin I shows the whole C major chord again. The branch was restarted
+from `main` after the user merged 0042. 97 core tests, 18 app tests.

@@ -21,6 +21,7 @@ update the commit below.
 | `4c3f3ba` | 2026-10-09: `Orchestrate.*` (new, listed in the sync script and `CMakeLists.txt`), `insertIntoRange` handing several parts to it, `TestOrchestrate.cpp` (0040). On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 | `42ba147` | 2026-10-09: `insertWhole` and no added parts in `Generators.*` and `Orchestrate.*`, the Generate tab's "Into" line, their tests (0041). On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 | `b824612` | 2026-10-09: `isSingleLine`, `fitToSpan` filling once, a tune and second voice split in `Orchestrate.*`, the Generate tab's "Into" line, their tests (0042). On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
+| `271bbc7` | 2026-10-09: `addAudition`, every note of a result on a piano for an audition, and its test (0043). On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 
 ## Shared
 

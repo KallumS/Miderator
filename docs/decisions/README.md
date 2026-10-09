@@ -56,3 +56,4 @@ piano roll changed say so at the top. 0026 on are Miderator's own.
 | [0040](0040-generated-music-orchestrated-across-chosen-parts.md) | Generated music is orchestrated across the chosen parts (both apps) | Accepted |
 | [0041](0041-where-generated-music-goes.md) | Where generated music goes: every part, one part, or the parts chosen (both apps) | Accepted |
 | [0042](0042-a-single-line-to-one-part-and-a-span-filled-once.md) | A single line goes to one part; chosen bars are filled once (both apps) | Accepted |
+| [0043](0043-an-audition-plays-every-note-on-a-piano.md) | An audition plays every note, on a piano | Accepted |

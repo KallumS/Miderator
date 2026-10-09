@@ -67,6 +67,13 @@ InsertReport insertResult (Score& score, const GeneratedResult& result, uint32_t
 // once where the span is longer - the rest left empty (decisions 0019, 0042).
 GeneratedResult fitToSpan (const GeneratedResult& result, Tick span);
 
+// A result as it is auditioned (decision 0043): every note of every line, on
+// a piano, the drums on a kit, from `at` and cut at `at + length` (0: all of
+// it). The parts are added to `score` and soloed if anything else is, so
+// they are always heard. Nothing is fitted to an instrument: an audition is
+// the music as it was made.
+void addAudition (Score& score, const GeneratedResult& result, Tick at, Tick length);
+
 // A line of chords dealt out to `lines` parts, one note each, top note to the
 // first: the plainest orchestration of block chords. A chord with fewer notes
 // than parts doubles its lowest note in the parts left over; one with more
