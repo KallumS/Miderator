@@ -83,6 +83,8 @@ decisions; 0026 on are Miderator's.
 | [0036](decisions/0036-one-note-at-a-time-for-one-note-instruments.md) | Every generated line is fitted to the part it lands in: no more notes at once than the instrument plays - the top line kept, or the bottom for a bass. Blocks go in as they are. Shared with Noterator. |
 | [0037](decisions/0037-a-file-menu-button.md) | New, Open, Save and Export under one File button. Both apps. |
 | [0038](decisions/0038-the-score-tab-moves-into-file.md) | The Score tab's settings move into the File menu; the tab is gone. Both apps. |
+| [0039](decisions/0039-undo-sound-input-and-look-into-file.md) | Undo, Redo, Sound, the input mode and the look move into the File menu. Both apps. |
+| [0040](decisions/0040-generated-music-orchestrated-across-chosen-parts.md) | Generated music shared across the chosen parts by instrument: each section the whole harmony, tune on top, bass below doubled an octave down, chord between, voice-led (`Orchestrate.*`). Both apps. |
 | [0035](decisions/0035-space-plays-from-the-start.md) | Space plays from bar 1, Shift+Space and Play from the caret; |◀ and ▶| (Home, End) go to the start and the end of the music. Both apps. |
 | [0034](decisions/0034-follow-scrolls-smoothly.md) | Following scrolls smoothly by default, the playhead a third of the way across, on a steady clock read once a frame for both views; turning pages is a choice in the Play menu. |
 | [0010](decisions/0010-verify-by-rendering.md) | Drawing changes are checked by rendering them to PNG (`MideratorRender`). |

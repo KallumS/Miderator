@@ -52,3 +52,5 @@ piano roll changed say so at the top. 0026 on are Miderator's own.
 | [0036](0036-one-note-at-a-time-for-one-note-instruments.md) | Generated music gives an instrument no more notes at once than it plays (both apps) | Accepted |
 | [0037](0037-a-file-menu-button.md) | New, Open, Save and Export under one File button (both apps) | Accepted |
 | [0038](0038-the-score-tab-moves-into-file.md) | The Score tab's settings move into the File menu (both apps) | Accepted |
+| [0039](0039-undo-sound-input-and-look-into-file.md) | Undo, Redo, Sound, the input mode and the look move into the File menu (both apps) | Accepted |
+| [0040](0040-generated-music-orchestrated-across-chosen-parts.md) | Generated music is orchestrated across the chosen parts (both apps) | Accepted |

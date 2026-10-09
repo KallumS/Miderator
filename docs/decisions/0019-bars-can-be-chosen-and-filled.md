@@ -1,7 +1,7 @@
 # 0019 - Bars can be chosen on the page, and generated music fills them
 
 - **Date:** 2026-10-07
-- **Status:** Accepted
+- **Status:** Accepted; how a result is shared across the chosen parts replaced by 0040
 
 ## Context
 

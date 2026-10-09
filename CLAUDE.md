@@ -55,6 +55,7 @@ gets undone.
 | `Source/Core/Xml.*`, `MusicXml.*` | MusicXML in and out with our own small XML reader/writer (0021). |
 | `Source/Engines/LuaEngine.*` | The embedded Lua host. Speaks only to the adapters. No JUCE. |
 | `Source/Engines/Generators.*` | A generator's context, fitting to an instrument, placing a result (0011). |
+| `Source/Engines/Orchestrate.*` | A result shared across chosen parts by instrument: sections, tune, bass and its octave, voice-led inner parts (0040). Shared. |
 | `Engines/<app>/` | The family's engines, **copied unchanged** (0003), embedded at build time. |
 | `Engines/adapters/` | The only Lua written for the apps: one adapter per engine, protocol in `common.lua`. Shared with Noterator. |
 | `Source/App/Controller.*` | Owns the score, undo, selection, caret, grid and tools; every window piece asks it. |
@@ -64,8 +65,8 @@ gets undone.
 | `Source/App/PianoRollView.*` | One part's piano roll: keys, range bracket, notes, the mouse rules (0028), the velocity lane (0030). |
 | `Source/App/AudioEngine.*`, `Exporter.*` | Playback through a rack of synths, one per 16 channels (0023), previews, MIDI input; MIDI, MusicXML and WAV export (0007). |
 | `Source/App/GeneratorPanel.*`, `BlocksPanel.*`, `SettingsList.*` | The Generate tab (0017), the Blocks toolbox (0018, 0024) with a small piano-roll preview, and the settings menus both draw from an adapter. |
-| `Source/App/Panels.*`, `MainComponent.*`, `Theme.*` | Toolbar, Parts tab, status line, keys and menus (File holds New, Open, Save, Export and the song's settings, 0037, 0038), colours (both looks in `theme::rollColours`). |
-| `Tests/Test*.cpp` | Core tests (86), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (15). |
+| `Source/App/Panels.*`, `MainComponent.*`, `Theme.*` | Toolbar, Parts tab, status line, keys and menus (File holds New, Open, Save, Export, Undo, the song's settings, Sound, Step input and Light, 0037-0039), colours (both looks in `theme::rollColours`). |
+| `Tests/Test*.cpp` | Core tests (93), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (15). |
 | `tools/` | `RenderRoll.cpp` (MideratorRender, PNGs of the real views), `try_generators.lua`, `sync_engines.sh`, `sync_from_noterator.sh`. |
 
 ## Working in it
@@ -139,6 +140,9 @@ tools/sync_from_noterator.sh ../Noterator --check
   `fitToPolyphony`, shared): no more notes at once than the instrument
   plays. New ways of placing a result keep `InsertOptions::fitPolyphony`
   on; only Blocks turn it off.
+- **Who plays what across chosen parts is decided in `orchestrate`** (0040,
+  shared): by section and by each instrument's best register, never by
+  score order.
 - **Selecting notes clears the chosen bars** (`select`, `selectAll`, dragging,
   pasting, drawing). Code that sets `selection` directly must decide whether
   `range` still holds.
@@ -169,8 +173,9 @@ a page at a time (0033, 0034) - merged into `main` in both repositories,
 not yet tried by the user on their Mac. Then Space from bar 1, Shift+Space
 from the caret, and buttons to the start and the end (0035), on the branch
 `ccr-ac8da7d9-3sbl5x` in both, with generated music fitted to what each
-instrument can play (0036) and a File button (0037) that also holds what
-was the Score tab (0038). Not built yet, roughly in the order
+instrument can play (0036), a File button (0037) that also holds what
+was the Score tab, Undo, Sound, Step input and Light (0038, 0039), and
+generated music orchestrated across the chosen parts (0040). Not built yet, roughly in the order
 the user is likely to want them: drawable CC lanes; articulations; VST3/CLAP
 instruments and SoundFonts; real-time recording; Windows. Known rough edges
 are in the latest session log's "Not done yet".

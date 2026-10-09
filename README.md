@@ -23,8 +23,11 @@ Noterator's, and the two open each other's projects.
   is played in the Velocity lane underneath.
 - **Generators built in.** Drag across some bars in the tracks, choose a
   generator, press Generate, click a result to hear it, press Insert: the
-  music fills exactly those bars, the tune on top, the bass at the bottom,
-  the chords shared out between. Every instrument gets only what it can play: a
+  music fills exactly those bars. Choose several parts and it is
+  orchestrated: in each section the tune goes to the top instrument, the bass
+  to the bottom one (the double bass an octave under the cellos), the chord's
+  other notes to the ones between, each moving as little as it can - choose a
+  whole orchestra and every part plays. Every instrument gets only what it can play: a
   violin never gets chords, only their top line.
 - **Starting Blocks as a toolbox.** Pick a chord, arpeggio, run or interval;
   every degree of the key is a button. Click one to see and hear it, Insert
@@ -55,7 +58,7 @@ Noterator's, and the two open each other's projects.
   (with all four AutoCC lanes, for sample libraries), as MusicXML for
   Dorico, Sibelius, MuseScore or Finale, or as WAV audio. Open or drop in a
   MIDI or MusicXML file to bring one in.
-- **Dark**, as a DAW is, or light if you prefer (the **Light** button).
+- **Dark**, as a DAW is, or light if you prefer (**File** > **Light piano roll and tracks**).
 
 ![The light look, with the Blocks toolbox](docs/piano-roll-light.png)
 
@@ -89,12 +92,12 @@ It needs a Mac with Apple silicon (M1 or later).
 | Change notes | drag to move, drag an end to stretch, **Alt**-drag to copy; **Up/Down** a semitone, **Shift+Up/Down** an octave; **Delete** |
 | The grid | **1-6** a bar down to 1/32, **T** triplets, **Snap** on or off, **Q** quantise |
 | Velocity | drag across the Velocity lane under the roll |
-| Play it in | **R** for Step input, then play a MIDI keyboard |
+| Play it in | **R** (or **File** > **Step input**), then play a MIDI keyboard |
 | Hear | **Space** plays from bar 1; **Shift+Space** (or **Play**) plays from the caret - click the bar numbers or a note to move it |
 | Start and end | **\|◀** beside Play (or **Home**) goes back to bar 1; **▶\|** (or **End**) to the end of the music |
 | Follow the music | **Follow** (or **F**) scrolls along with the music as it plays, the playhead a third of the way across; switch it off to keep the view still. To turn a page at a time instead: **Play** menu, **Turn a Page at a Time** |
 | Take it out | **File** > **Export**: the song or the chosen bars as MIDI, MusicXML or WAV |
-| Undo | **Cmd+Z**, **Shift+Cmd+Z** |
+| Undo | **Cmd+Z**, **Shift+Cmd+Z**, or **File** > **Undo** |
 | All the keys | **H** |
 
 The **Parts** tab adds and removes instruments, and shows what each one can
