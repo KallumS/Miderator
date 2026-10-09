@@ -34,6 +34,7 @@ Source/Core/Templates.cpp Source/Core/Templates.h
 Source/Core/Xml.cpp Source/Core/Xml.h
 Source/Engines/EmbeddedLua.h
 Source/Engines/Generators.cpp Source/Engines/Generators.h
+Source/Engines/Orchestrate.cpp Source/Engines/Orchestrate.h
 Source/Engines/LuaEngine.cpp Source/Engines/LuaEngine.h
 Source/App/AudioEngine.h
 Source/App/Exporter.cpp Source/App/Exporter.h
@@ -41,7 +42,7 @@ Source/App/GeneratorPanel.cpp Source/App/GeneratorPanel.h
 Source/App/SettingsList.cpp Source/App/SettingsList.h
 Source/App/BlocksPanel.h
 Tests/Check.h Tests/TestMain.cpp Tests/TestScore.cpp Tests/TestEngrave.cpp Tests/TestDetect.cpp
-Tests/TestMidi.cpp Tests/TestGenerators.cpp Tests/TestMusicXml.cpp Tests/TestTemplates.cpp Tests/TestFollow.cpp
+Tests/TestMidi.cpp Tests/TestGenerators.cpp Tests/TestMusicXml.cpp Tests/TestTemplates.cpp Tests/TestFollow.cpp Tests/TestOrchestrate.cpp
 cmake/EmbedLua.cmake
 tools/try_generators.lua tools/sync_engines.sh
 Engines/VENDORED.md

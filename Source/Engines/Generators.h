@@ -72,10 +72,10 @@ GeneratedResult fitToSpan (const GeneratedResult& result, Tick span);
 // gives the extra notes to no one.
 std::vector<std::vector<Note>> spreadChords (const std::vector<Note>& notes, int lines);
 
-// Drops a result into a span of bars across chosen parts, top part first:
-// the tune goes to the top part, the bass to the bottom, chords to the parts
-// between - whole, where one of them can play chords, spread one note each
-// where none can. Only the parts that receive music are cleared.
+// Drops a result into a span of bars across chosen parts. One part takes it
+// as insertResult would; several share it out by what each instrument is
+// (Orchestrate.h, decision 0040). Only the parts that receive music are
+// cleared.
 InsertReport insertIntoRange (Score& score, const GeneratedResult& result, const std::vector<uint32_t>& parts,
                               Tick from, Tick to, const InsertOptions& options = {});
 
