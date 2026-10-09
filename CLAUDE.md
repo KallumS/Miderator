@@ -65,7 +65,7 @@ gets undone.
 | `Source/App/AudioEngine.*`, `Exporter.*` | Playback through a rack of synths, one per 16 channels (0023), previews, MIDI input; MIDI, MusicXML and WAV export (0007). |
 | `Source/App/GeneratorPanel.*`, `BlocksPanel.*`, `SettingsList.*` | The Generate tab (0017), the Blocks toolbox (0018, 0024) with a small piano-roll preview, and the settings menus both draw from an adapter. |
 | `Source/App/Panels.*`, `MainComponent.*`, `Theme.*` | Toolbar, Parts and Score tabs, status line, keys and menus, colours (both looks in `theme::rollColours`). |
-| `Tests/Test*.cpp` | Core tests (82), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (13). |
+| `Tests/Test*.cpp` | Core tests (86), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (14). |
 | `tools/` | `RenderRoll.cpp` (MideratorRender, PNGs of the real views), `try_generators.lua`, `sync_engines.sh`, `sync_from_noterator.sh`. |
 
 ## Working in it
@@ -135,6 +135,10 @@ tools/sync_from_noterator.sh ../Noterator --check
   the user chose (0019). **Where a result lands is decided in
   `Controller::place`**: chosen bars, a block at the caret, the selection,
   the caret's bar.
+- **Every generated line is fitted to the part it lands in** (0036,
+  `fitToPolyphony`, shared): no more notes at once than the instrument
+  plays. New ways of placing a result keep `InsertOptions::fitPolyphony`
+  on; only Blocks turn it off.
 - **Selecting notes clears the chosen bars** (`select`, `selectAll`, dragging,
   pasting, drawing). Code that sets `selection` directly must decide whether
   `range` still holds.
@@ -162,7 +166,8 @@ and Follow - the view scrolls smoothly with the music as it plays, or turns
 a page at a time (0033, 0034) - merged into `main` in both repositories,
 not yet tried by the user on their Mac. Then Space from bar 1, Shift+Space
 from the caret, and buttons to the start and the end (0035), on the branch
-`ccr-ac8da7d9-3sbl5x` in both. Not built yet, roughly in the order
+`ccr-ac8da7d9-3sbl5x` in both, with generated music fitted to what each
+instrument can play (0036) and a File button (0037). Not built yet, roughly in the order
 the user is likely to want them: drawable CC lanes; articulations; VST3/CLAP
 instruments and SoundFonts; real-time recording; Windows. Known rough edges
 are in the latest session log's "Not done yet".

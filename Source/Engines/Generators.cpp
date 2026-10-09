@@ -172,6 +172,12 @@ InsertReport insertIntoRange (Score& score, const GeneratedResult& result, const
         const auto* p = score.partById (partId);
         if (p == nullptr) return;
         if (o.fitToInstrument) notes = fitToInstrument (notes, instrumentById (p->instrument));
+        if (o.fitPolyphony)
+        {
+            int dropped = 0;
+            notes = fitToPolyphony (notes, instrumentById (p->instrument), &dropped);
+            if (dropped > 0) report.thinnedParts.push_back (partId);
+        }
         const auto ids = pasteNotes (score, partId, from, notes, to - from, true);
         report.newNotes.insert (ids.begin(), ids.end());
     };
@@ -210,6 +216,7 @@ InsertReport insertIntoRange (Score& score, const GeneratedResult& result, const
         const auto more = insertResult (score, leftover, 0, from, o);
         report.newNotes.insert (more.newNotes.begin(), more.newNotes.end());
         report.newParts = more.newParts;
+        report.thinnedParts.insert (report.thinnedParts.end(), more.thinnedParts.begin(), more.thinnedParts.end());
     }
     score.fitBars();
     return report;
@@ -236,6 +243,47 @@ std::string instrumentForGeneratedPart (const GeneratedPart& part, const Instrum
     if (name.find ("second") != std::string::npos || name.find ("voice") != std::string::npos)
         return target.family == "Strings" ? "vln2" : target.id;
     return target.id;
+}
+
+std::vector<Note> fitToPolyphony (std::vector<Note> notes, const Instrument& inst, int* dropped)
+{
+    if (dropped != nullptr) *dropped = 0;
+    if (inst.drums || notes.empty()) return notes;
+    const size_t most = static_cast<size_t> (std::max (1, inst.poly));
+    const bool keepLow = inst.role == 'B';
+    std::sort (notes.begin(), notes.end(), [] (const Note& a, const Note& b) { return a.start != b.start ? a.start < b.start : a.pitch < b.pitch; });
+    std::vector<Note> kept;
+    kept.reserve (notes.size());
+    for (size_t i = 0; i < notes.size();)
+    {
+        // The notes that start together, low to high.
+        size_t j = i;
+        while (j < notes.size() && notes[j].start == notes[i].start) ++j;
+        const Tick at = notes[i].start;
+        size_t from = i, to = j;
+        if (to - from > most)
+        {
+            if (dropped != nullptr) *dropped += static_cast<int> (to - from - most);
+            if (keepLow) to = from + most;
+            else from = to - most;
+        }
+        // Make room: the notes still sounding that started earliest end here.
+        for (;;)
+        {
+            size_t sounding = 0, earliest = kept.size();
+            for (size_t k = 0; k < kept.size(); ++k)
+                if (kept[k].end() > at)
+                {
+                    ++sounding;
+                    if (earliest == kept.size() || kept[k].start < kept[earliest].start) earliest = k;
+                }
+            if (sounding + (to - from) <= most || earliest == kept.size()) break;
+            kept[earliest].length = at - kept[earliest].start;
+        }
+        for (size_t k = from; k < to; ++k) kept.push_back (notes[k]);
+        i = j;
+    }
+    return kept;
 }
 
 int polyphonyOf (const std::vector<Note>& notes)
@@ -310,6 +358,12 @@ InsertReport insertResult (Score& score, const GeneratedResult& result, uint32_t
         used.push_back (partId);
         auto notes = gp.notes;
         if (options.fitToInstrument) notes = fitToInstrument (notes, instrumentById (instrument));
+        if (options.fitPolyphony)
+        {
+            int dropped = 0;
+            notes = fitToPolyphony (notes, instrumentById (instrument), &dropped);
+            if (dropped > 0) report.thinnedParts.push_back (partId);
+        }
         const auto ids = pasteNotes (score, partId, at, notes, options.replace ? span : 0, options.replace);
         report.newNotes.insert (ids.begin(), ids.end());
     }

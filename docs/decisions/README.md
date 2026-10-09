@@ -49,3 +49,5 @@ piano roll changed say so at the top. 0026 on are Miderator's own.
 | [0033](0033-follow-the-playhead-switchable.md) | The view follows the playhead, a page at a time, and can be switched off (both apps) | Accepted; default changed by 0034 |
 | [0034](0034-follow-scrolls-smoothly.md) | Following the playhead scrolls smoothly, by default (both apps) | Accepted |
 | [0035](0035-space-plays-from-the-start.md) | Space plays from bar 1, Shift+Space from the caret; buttons to the start and the end (both apps) | Accepted |
+| [0036](0036-one-note-at-a-time-for-one-note-instruments.md) | Generated music gives an instrument no more notes at once than it plays (both apps) | Accepted |
+| [0037](0037-a-file-menu-button.md) | New, Open, Save and Export under one File button (both apps) | Accepted |

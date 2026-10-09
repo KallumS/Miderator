@@ -68,6 +68,8 @@ private:
     void showNewMenu();
     juce::PopupMenu templateMenu();
     void showExportMenu();
+    juce::PopupMenu exportMenu();
+    void showFileMenu();
     void showSettingsMenu();
     void openDialog();
     void saveDialog (bool saveAs, std::function<void()> then = {});

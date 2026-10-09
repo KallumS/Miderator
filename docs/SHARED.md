@@ -17,6 +17,7 @@ update the commit below.
 | `1cb4015` | 2026-10-09 (the copy Miderator started from) |
 | `270dfb4` | 2026-10-09: `Follow.h` and `TestFollow.cpp` (0033). Merged into Noterator's main |
 | `5291bdc` | 2026-10-09: smooth following and `SmoothClock` in `Follow.h`, `Layout::playheadX` in `Engrave.*`, their tests (0034). Merged into Noterator's main |
+| `c6f4c8d` | 2026-10-09: `fitToPolyphony` in `Generators.*` and its tests (0036). On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 
 ## Shared
 

@@ -35,11 +35,14 @@ public:
     void resized() override;
     void paint (juce::Graphics&) override;
 
-    std::function<void()> onNew, onOpen, onSave, onExport, onSettings, onZoomIn, onZoomOut, onStart, onEnd;
+    // The File button, for its menu to open under.
+    juce::Component& fileAnchor() { return fileButton; }
+
+    std::function<void()> onFile, onSettings, onZoomIn, onZoomOut, onStart, onEnd;
 
 private:
     Controller& controller;
-    juce::TextButton newButton { "New" }, openButton { "Open" }, saveButton { "Save" }, exportButton { "Export" };
+    juce::TextButton fileButton { "File" };   // New, Open, Save, Export: one menu (decision 0037)
     juce::TextButton undoButton { "Undo" }, redoButton { "Redo" };
     TransportButton startButton { "Return to start", TransportButton::Kind::start };
     juce::TextButton playButton { "Play" };

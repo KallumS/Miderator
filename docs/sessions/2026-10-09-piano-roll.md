@@ -119,3 +119,17 @@ Noterator - none of it touches the shared files, so nothing was synced
 the window through the silent sound card: End showed bars 20-25 with the
 caret at the end, Home went back, a click in bar 4 then Shift+Space played
 from there, Space from bar 1.
+
+## Then: one note at a time, and a File button (0036, 0037)
+
+Chords were reaching one-note instruments from Generate Notes. Measured and
+fixed in Noterator (its `2026-10-09-transport.md` has the route) and copied
+here: `fitToPolyphony` in `Generators.*` fits every generated line to the
+part it lands in - the top notes kept, the bottom for a bass, held notes cut
+to the next, drums alone - and Blocks go in as they are. The same
+`Controller::place` and File-button changes as Noterator's, made with the
+same scripts. Tried in the window: a Phrase of chords (19 notes) into
+Violin I went in as its top line, five single notes, and the status line
+said "Violin I: top notes only" - at first running into the middle of the
+status bar, so the left message now stops short of it with an ellipsis, in
+both apps. 86 core tests, 14 app tests.

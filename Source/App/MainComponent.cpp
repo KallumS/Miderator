@@ -42,10 +42,7 @@ MainComponent::MainComponent()
     tabs.addTab ("Score", theme::control, &scorePanel, false);
     tabs.setColour (juce::TabbedComponent::backgroundColourId, theme::ground);
 
-    toolbar.onNew = [this] { showNewMenu(); };
-    toolbar.onOpen = [this] { openDialog(); };
-    toolbar.onSave = [this] { saveDialog (false); };
-    toolbar.onExport = [this] { showExportMenu(); };
+    toolbar.onFile = [this] { showFileMenu(); };
     toolbar.onSettings = [this] { showSettingsMenu(); };
     toolbar.onZoomIn = [this] { zoomBy (1.25f); };
     toolbar.onZoomOut = [this] { zoomBy (1.0f / 1.25f); };
@@ -419,7 +416,36 @@ void MainComponent::showNewMenu()
     m.showMenuAsync (juce::PopupMenu::Options(), [this] (int r) { if (r > 0) menuItemSelected (r, 0); });
 }
 
+void MainComponent::showFileMenu()
+{
+    // New, Open, Save and Export under one button, so the toolbar keeps room
+    // for what is used while writing (decision 0037).
+    juce::PopupMenu m;
+    auto item = [&m] (int id, const juce::String& text, const juce::String& shortcut = {})
+    {
+        juce::PopupMenu::Item i (text);
+        i.itemID = id;
+        if (shortcut.isNotEmpty()) i.shortcutKeyDescription = key (shortcut);
+        m.addItem (i);
+    };
+    m.addSubMenu ("New", templateMenu());
+    item (menuOpen, "Open...", "Cmd+O");
+    item (menuImport, "Import MIDI or MusicXML...");
+    m.addSeparator();
+    item (menuSave, "Save", "Cmd+S");
+    item (menuSaveAs, "Save As...", "Shift+Cmd+S");
+    m.addSeparator();
+    m.addSubMenu ("Export", exportMenu());
+    m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&toolbar.fileAnchor()),
+                     [this] (int r) { if (r > 0) menuItemSelected (r, 0); });
+}
+
 void MainComponent::showExportMenu()
+{
+    exportMenu().showMenuAsync (juce::PopupMenu::Options(), [this] (int r) { if (r > 0) menuItemSelected (r, 0); });
+}
+
+juce::PopupMenu MainComponent::exportMenu()
 {
     juce::PopupMenu m;
     const auto [a, b] = controller.selectedBars();
@@ -432,7 +458,7 @@ void MainComponent::showExportMenu()
     m.addSeparator();
     m.addItem (menuExportXml, "Song as MusicXML (for Dorico, MuseScore, Sibelius)...");
     m.addItem (menuExportXmlBars, "Selection (" + bars + ") as MusicXML...");
-    m.showMenuAsync (juce::PopupMenu::Options(), [this] (int r) { if (r > 0) menuItemSelected (r, 0); });
+    return m;
 }
 
 void MainComponent::showSettingsMenu()

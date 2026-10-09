@@ -747,13 +747,17 @@ GeneratorContext Controller::generatorContext (bool withSelection) const
 Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, const std::string& generatorId,
                         InsertReport& report) const
 {
+    // Every instrument gets no more notes at once than it plays (decision
+    // 0036) - except a block from the toolbox, which goes in as it is.
+    InsertOptions base;
+    base.fitPolyphony = generatorId != "starting-blocks";
     if (range.active())
     {
         // Selected bars: the music fills them (decision 0019).
         const Tick from = s.barStart (range.first), to = s.barStart (range.last + 1);
         if (! fromSelection)
         {
-            report = insertIntoRange (s, r, range.parts, from, to);
+            report = insertIntoRange (s, r, range.parts, from, to, base);
             return from;
         }
         if (generatorId == "midi-variator" && ! selection.empty())
@@ -764,7 +768,7 @@ Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, 
                 for (const auto& n : p.notes)
                     if (selection.count (n.id) != 0) { source = p.id; break; }
             const auto* sp = s.partById (source);
-            InsertOptions o;
+            InsertOptions o = base;
             o.contextInstrument = sp != nullptr ? sp->instrument : std::string ("pno");
             report = insertResult (s, fitToSpan (r, to - from), source, from, o);
             return from;
@@ -776,7 +780,7 @@ Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, 
         // a block from the toolbox, which is small and goes where the caret
         // is, so blocks can be laid one after another (decision 0018).
         const Tick at = generatorId == "starting-blocks" ? caret : s.barStart (s.barAt (caret));
-        report = insertResult (s, r, caretPart, at);
+        report = insertResult (s, r, caretPart, at, base);
         return at;
     }
     const auto [first, last] = selectedBars();
@@ -785,7 +789,7 @@ Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, 
         for (const auto& n : p.notes)
             if (selection.count (n.id) != 0) source = p.id;
     const auto* sp = s.partById (source);
-    InsertOptions o;
+    InsertOptions o = base;
     o.contextInstrument = sp != nullptr ? sp->instrument : std::string ("pno");
 
     if (generatorId == "midi-variator")
@@ -807,6 +811,13 @@ void Controller::insertGenerated (const GeneratedResult& r, bool fromSelection, 
     InsertReport report;
     Tick at = 0;
     edit ("Inserted " + juce::String (r.title), [&] (Score& s) { at = place (s, r, fromSelection, generatorId, report); });
+    // Say so when an instrument was given fewer notes than the idea had.
+    juce::StringArray thinned;
+    for (const auto id : report.thinnedParts)
+        if (const auto* p = score.partById (id))
+            thinned.addIfNotAlreadyThere (juce::String (p->name) + (instrumentById (p->instrument).role == 'B' ? ": bottom notes only" : ": top notes only"));
+    if (! thinned.isEmpty())
+        status += " - " + thinned.joinIntoString (", ");
     if (range.active() && (! fromSelection || generatorId == "midi-variator"))
     {
         // The bars stay selected, so another idea can go straight into them.

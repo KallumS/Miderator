@@ -32,7 +32,7 @@ void TransportButton::paintButton (juce::Graphics& g, bool highlighted, bool dow
 Toolbar::Toolbar (Controller& c) : controller (c)
 {
     for (auto* b : std::initializer_list<juce::Button*> { &startButton, &endButton }) addAndMakeVisible (b);
-    for (auto* b : { &newButton, &openButton, &saveButton, &exportButton, &undoButton, &redoButton, &playButton, &followButton,
+    for (auto* b : { &fileButton, &undoButton, &redoButton, &playButton, &followButton,
                      &selectButton, &drawButton, &tripletButton, &snapButton, &quantiseButton, &stepButton,
                      &themeButton, &zoomOut, &zoomIn, &settingsButton })
         addAndMakeVisible (b);
@@ -41,10 +41,7 @@ Toolbar::Toolbar (Controller& c) : controller (c)
     gridLabel.setColour (juce::Label::textColourId, theme::textDim);
     gridLabel.setJustificationType (juce::Justification::centredRight);
 
-    newButton.setTooltip ("A new song, from a template");
-    openButton.setTooltip ("Open a Miderator project, a MIDI file or a MusicXML file (Cmd+O)");
-    saveButton.setTooltip ("Save the project (Cmd+S)");
-    exportButton.setTooltip ("Export the song, or the chosen bars, as MIDI, audio or MusicXML");
+    fileButton.setTooltip ("New, Open, Save and Export (Cmd+N, Cmd+O, Cmd+S, Cmd+E)");
     undoButton.setTooltip ("Undo (Cmd+Z)");
     redoButton.setTooltip ("Redo (Shift+Cmd+Z)");
     playButton.setTooltip ("Play from the caret, or stop (Shift+Space; Space plays from bar 1)");
@@ -71,10 +68,7 @@ Toolbar::Toolbar (Controller& c) : controller (c)
         gridBox.addItem (g.name(), id++);
     }
 
-    newButton.onClick = [this] { if (onNew) onNew(); };
-    openButton.onClick = [this] { if (onOpen) onOpen(); };
-    saveButton.onClick = [this] { if (onSave) onSave(); };
-    exportButton.onClick = [this] { if (onExport) onExport(); };
+    fileButton.onClick = [this] { if (onFile) onFile(); };
     settingsButton.onClick = [this] { if (onSettings) onSettings(); };
     undoButton.onClick = [this] { controller.undo(); };
     redoButton.onClick = [this] { controller.redo(); };
@@ -116,7 +110,7 @@ void Toolbar::resized()
 {
     auto r = getLocalBounds().reduced (8, 7);
     auto place = [&r] (juce::Component& c, int w, int gap = 4) { c.setBounds (r.removeFromLeft (w)); r.removeFromLeft (gap); };
-    place (newButton, 52); place (openButton, 56); place (saveButton, 52); place (exportButton, 62, 14);
+    place (fileButton, 52, 14);
     place (undoButton, 52); place (redoButton, 52, 14);
     place (startButton, 30, 2);
     place (playButton, 60, 2);
@@ -564,13 +558,18 @@ void StatusBar::paint (juce::Graphics& g)
         if (! controller.selection.empty()) where += "   |   " + juce::String (static_cast<int> (controller.selection.size())) + " selected";
     }
     g.setColour (theme::text);
-    g.drawText (where, r.withTrimmedRight (320), juce::Justification::centred);
+    const auto middle = r.withTrimmedRight (320);
+    g.drawText (where, middle, juce::Justification::centred);
+    // The message on the left stops short of the middle, ending in "..." if
+    // it is too long, rather than running into it.
+    const int whereWidth = juce::roundToInt (juce::GlyphArrangement::getStringWidth (g.getCurrentFont(), where));
+    const int leftEnd = where.isEmpty() ? r.getRight() - 320 : middle.getCentreX() - whereWidth / 2 - 16;
 
     // Left: the last thing that happened, or the mode.
     juce::String left = controller.status;
     if (controller.stepInput) left = "STEP INPUT - play a MIDI keyboard: each note goes at the caret, " + juce::String (controller.grid.name()) + " long. Esc to stop.";
     g.setColour (controller.stepInput ? theme::accent : theme::text);
-    g.drawText (left, r, juce::Justification::centredLeft);
+    g.drawText (left, r.withRight (std::max (r.getX() + 80, leftEnd)), juce::Justification::centredLeft, true);
 }
 
 } // namespace nt

@@ -24,7 +24,8 @@ Noterator's, and the two open each other's projects.
 - **Generators built in.** Drag across some bars in the tracks, choose a
   generator, press Generate, click a result to hear it, press Insert: the
   music fills exactly those bars, the tune on top, the bass at the bottom,
-  the chords shared out between.
+  the chords shared out between. Every instrument gets only what it can play: a
+  violin never gets chords, only their top line.
 - **Starting Blocks as a toolbox.** Pick a chord, arpeggio, run or interval;
   every degree of the key is a button. Click one to see and hear it, Insert
   to put it at the caret - then the next one goes after it.
@@ -77,8 +78,8 @@ It needs a Mac with Apple silicon (M1 or later).
 
 | | |
 | --- | --- |
-| Start a song | **New**: a small group, a whole orchestral section, a chamber or full orchestra, or a big band |
-| Bring music in | **Open**, or drop a MIDI, MusicXML or project file on the window |
+| Start a song | **File** > **New**: a small group, a whole orchestral section, a chamber or full orchestra, or a big band |
+| Bring music in | **File** > **Open**, or drop a MIDI, MusicXML or project file on the window |
 | Show a part in the piano roll | click its name in the tracks (**Alt+Up/Down** for the next) |
 | Choose bars | click a bar in a track; drag across bars and tracks for more; drag along the Chords lane for every part; **Esc** lets go |
 | Generate | **Generate** tab: choose a generator, **Generate**, click a result to hear it, **Insert** - into the chosen bars, or the part in the roll |
@@ -92,7 +93,7 @@ It needs a Mac with Apple silicon (M1 or later).
 | Hear | **Space** plays from bar 1; **Shift+Space** (or **Play**) plays from the caret - click the bar numbers or a note to move it |
 | Start and end | **\|◀** beside Play (or **Home**) goes back to bar 1; **▶\|** (or **End**) to the end of the music |
 | Follow the music | **Follow** (or **F**) scrolls along with the music as it plays, the playhead a third of the way across; switch it off to keep the view still. To turn a page at a time instead: **Play** menu, **Turn a Page at a Time** |
-| Take it out | **Export**: the song or the chosen bars as MIDI, MusicXML or WAV |
+| Take it out | **File** > **Export**: the song or the chosen bars as MIDI, MusicXML or WAV |
 | Undo | **Cmd+Z**, **Shift+Cmd+Z** |
 | All the keys | **H** |
 

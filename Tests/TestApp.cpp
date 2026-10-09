@@ -402,6 +402,42 @@ TEST ("app: Space plays from bar 1, Shift+Space from the caret; Home and End go 
     c.stop();
 }
 
+TEST ("app: Generate Notes' chords into a violin come one note at a time; Blocks go in as they are")
+{
+    Controller c (audio());
+    c.newScore ("String Quartet");
+    const auto violin = c.score.parts[0].id;
+    c.setCaret (violin, 0);
+    auto ctx = c.generatorContext (false);
+    c.lua.reset ("good-idea");
+    for (const auto& st : c.lua.settings ("good-idea", ctx))
+        for (size_t i = 0; i < st.names.size(); ++i)
+            if ((st.id == "kind" && st.names[i] == "Phrase") || (st.id == "content" && st.names[i] == "Chords"))
+                c.lua.set ("good-idea", st.id, static_cast<int> (i), ctx);
+    const auto out = c.lua.generate ("good-idea", c.generatorContext (false), 3, 1);
+    c.lua.reset ("good-idea");
+    CHECK (! out.results.empty());
+    if (out.results.empty()) return;
+    CHECK (polyphonyOf (out.results.front().parts.front().notes) > 1);   // the idea itself is chords
+    c.insertGenerated (out.results.front(), false, "good-idea");
+    CHECK (! c.score.parts[0].notes.empty());
+    CHECK_EQ (polyphonyOf (c.score.parts[0].notes), 1);
+    CHECK (c.status.contains ("Violin I: top notes only"));
+
+    // A chord block from the toolbox into the same violin: as it always was.
+    Controller d (audio());
+    d.newScore ("String Quartet");
+    d.setCaret (d.score.parts[0].id, 0);
+    d.lua.reset ("starting-blocks");
+    const auto blocks = d.lua.generate ("starting-blocks", d.generatorContext (false), 1, 0);
+    CHECK (! blocks.results.empty());
+    if (blocks.results.empty()) return;
+    d.insertGenerated (blocks.results.front(), false, "starting-blocks");
+    int most = 0;
+    for (const auto& p : d.score.parts) most = std::max (most, polyphonyOf (p.notes));
+    CHECK (most > 1);
+}
+
 int main (int argc, char** argv)
 {
     juce::ScopedJuceInitialiser_GUI init;
