@@ -358,6 +358,7 @@ GeneratorOutput LuaEngine::generate (const std::string& generator, const Generat
         result.title = stringField (L, r, "title");
         result.detail = stringField (L, r, "detail");
         result.length = toTicks (numberField (L, r, "beats", 0));
+        result.chordRoot = static_cast<int> (numberField (L, r, "root", -1));
         lua_getfield (L, r, "parts");
         const int parts = lua_gettop (L);
         const auto pn = lua_istable (L, parts) ? static_cast<int> (luaL_len (L, parts)) : 0;

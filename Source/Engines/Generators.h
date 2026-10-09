@@ -63,6 +63,11 @@ int polyphonyOf (const std::vector<Note>& notes);
 InsertReport insertResult (Score& score, const GeneratedResult& result, uint32_t targetPartId, Tick at,
                            const InsertOptions& options = {});
 
+// Records the root a chord result was made on over [at, at + length), so the
+// Chords lane names it from there (decision 0046). Roots recorded there
+// before give way. Nothing for a result with no root.
+void markChordRoot (Score& score, const GeneratedResult& result, Tick at, Tick length);
+
 // A result made to last exactly `span`: cut where the span ends, and played
 // once where the span is longer - the rest left empty (decisions 0019, 0042).
 GeneratedResult fitToSpan (const GeneratedResult& result, Tick span);

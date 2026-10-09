@@ -72,6 +72,19 @@ struct Tempo
     double bpm = 120.0;
 };
 
+// The root a chord was made on, recorded where something that knew it - the
+// Blocks toolbox - put the chord in (decision 0046). While the notes sounding
+// over [start, end) are still exactly these pitch classes, the Chords lane
+// names them from this root; edited, they are read like any others.
+struct ChordRoot
+{
+    Tick start = 0, end = 0;
+    int root = 0;                     // pitch class
+    std::vector<int> pitchClasses;    // sorted, each once
+    bool operator== (const ChordRoot& o) const
+    { return start == o.start && end == o.end && root == o.root && pitchClasses == o.pitchClasses; }
+};
+
 struct Part
 {
     uint32_t id = 0;
@@ -92,6 +105,7 @@ struct Score
     std::vector<Meter> meters { Meter {} };
     std::vector<KeySig> keys { KeySig {} };
     std::vector<Tempo> tempos { Tempo {} };
+    std::vector<ChordRoot> chordRoots;   // decision 0046
     int bars = 16;
     uint32_t nextId = 1;
 

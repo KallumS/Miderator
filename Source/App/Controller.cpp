@@ -849,7 +849,15 @@ void Controller::insertGenerated (const GeneratedResult& r, bool fromSelection, 
 {
     InsertReport report;
     Tick at = 0;
-    edit ("Inserted " + juce::String (r.title), [&] (Score& s) { at = place (s, r, fromSelection, generatorId, report); });
+    edit ("Inserted " + juce::String (r.title), [&] (Score& s)
+    {
+        at = place (s, r, fromSelection, generatorId, report);
+        // A Blocks chord keeps the root it was made on, for the Chords lane
+        // (decision 0046) - as far as the chosen bars, if bars are chosen.
+        Tick length = r.length;
+        if (range.active() && ! fromSelection) length = std::min (length, s.barStart (range.last + 1) - at);
+        markChordRoot (s, r, at, length);
+    });
     // Say so when an instrument was given fewer notes than the idea had.
     juce::StringArray thinned;
     for (const auto id : report.thinnedParts)

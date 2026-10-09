@@ -100,8 +100,12 @@ function A.generate(st, ctx, seed, count)
     st.degree = d
     local block = E.generate(st)
     local title = ("%s  %s"):format(E.degreeNumeral(st, d), block.name)
+    -- A chord says the root it was built on, so the Chords lane names it as
+    -- it was made (decision 0046). A broken chord - an arpeggio - is a line,
+    -- and is read like one.
+    local root = st.cat == "Chord" and E.scalePitch(st, d) % 12 or nil
     out[#out + 1] = { title = title, detail = E.noteName(st, d) .. "  " .. E.degreeTitle(st, d), beats = block.beats,
-                      parts = { { name = st.cat, drums = false, notes = C.notes(block.notes) } } }
+                      root = root, parts = { { name = st.cat, drums = false, notes = C.notes(block.notes) } } }
   end
   st.degree = 0
   return { results = out }

@@ -177,6 +177,7 @@ void insertBars (Score& score, int bar, int count)
     for (auto& m : score.meters) if (m.bar > bar) m.bar += count;
     for (auto& k : score.keys) if (k.bar > bar) k.bar += count;
     for (auto& tp : score.tempos) if (tp.at > at) tp.at += len;
+    for (auto& c : score.chordRoots) if (c.start >= at) { c.start += len; c.end += len; }
     score.bars += count;
 }
 
@@ -215,6 +216,11 @@ void deleteBars (Score& score, int bar, int count)
         if (it->at >= to) it->at -= len;
         ++it;
     }
+    // A chord in the bars that went goes with them; one after moves up.
+    score.chordRoots.erase (std::remove_if (score.chordRoots.begin(), score.chordRoots.end(),
+                                            [from, to] (const ChordRoot& c) { return c.start < to && c.end > from; }),
+                            score.chordRoots.end());
+    for (auto& c : score.chordRoots) if (c.start >= to) { c.start -= len; c.end -= len; }
     score.bars -= count;
     score.normalise();
 }

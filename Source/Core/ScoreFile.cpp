@@ -196,6 +196,15 @@ std::string saveScore (const Score& score)
     out << "],\n  \"tempos\": [";
     for (size_t i = 0; i < score.tempos.size(); ++i)
         out << (i ? ", " : "") << "{ \"tick\": " << score.tempos[i].at << ", \"bpm\": " << number (score.tempos[i].bpm) << " }";
+    out << "],\n  \"chordRoots\": [";
+    for (size_t i = 0; i < score.chordRoots.size(); ++i)
+    {
+        const auto& c = score.chordRoots[i];
+        out << (i ? ", " : "") << "{ \"start\": " << c.start << ", \"end\": " << c.end << ", \"root\": " << c.root
+            << ", \"pitchClasses\": [";
+        for (size_t k = 0; k < c.pitchClasses.size(); ++k) out << (k ? ", " : "") << c.pitchClasses[k];
+        out << "] }";
+    }
     out << "],\n  \"ppq\": " << PPQ << ",\n  \"parts\": [";
     for (size_t pi = 0; pi < score.parts.size(); ++pi)
     {
@@ -257,6 +266,16 @@ LoadResult loadScore (const std::string& text)
     s.tempos.clear();
     for (const auto& t : root["tempos"].a)
         s.tempos.push_back ({ tick (t["tick"].num_or (0)), t["bpm"].num_or (120) });
+    // Chords made on a known root (decision 0046); older files have none.
+    for (const auto& c : root["chordRoots"].a)
+    {
+        ChordRoot cr;
+        cr.start = tick (c["start"].num_or (0));
+        cr.end = tick (c["end"].num_or (0));
+        cr.root = static_cast<int> (c["root"].num_or (0)) % 12;
+        for (const auto& pc : c["pitchClasses"].a) cr.pitchClasses.push_back (static_cast<int> (pc.num_or (0)) % 12);
+        if (cr.end > cr.start && ! cr.pitchClasses.empty()) s.chordRoots.push_back (cr);
+    }
 
     for (const auto& pj : root["parts"].a)
     {

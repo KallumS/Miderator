@@ -277,6 +277,28 @@ bool silentIn (const Part& p, Tick from, Tick to)
 }
 } // namespace
 
+void markChordRoot (Score& score, const GeneratedResult& result, Tick at, Tick length)
+{
+    if (result.chordRoot < 0 || length <= 0) return;
+    ChordRoot cr;
+    cr.start = at;
+    cr.end = at + length;
+    cr.root = result.chordRoot % 12;
+    for (const auto& gp : result.parts)
+        if (! gp.drums)
+            for (const auto& n : gp.notes)
+                if (n.start < length) cr.pitchClasses.push_back (((n.pitch % 12) + 12) % 12);
+    std::sort (cr.pitchClasses.begin(), cr.pitchClasses.end());
+    cr.pitchClasses.erase (std::unique (cr.pitchClasses.begin(), cr.pitchClasses.end()), cr.pitchClasses.end());
+    if (cr.pitchClasses.empty()) return;
+    auto& list = score.chordRoots;
+    list.erase (std::remove_if (list.begin(), list.end(),
+                                [&cr] (const ChordRoot& o) { return o.start < cr.end && o.end > cr.start; }),
+                list.end());
+    list.push_back (cr);
+    std::sort (list.begin(), list.end(), [] (const ChordRoot& x, const ChordRoot& y) { return x.start < y.start; });
+}
+
 void addAudition (Score& score, const GeneratedResult& result, Tick at, Tick length)
 {
     const Tick end = length > 0 ? at + length : std::numeric_limits<Tick>::max();

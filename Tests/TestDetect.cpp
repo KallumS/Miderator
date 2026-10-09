@@ -3,6 +3,8 @@
 #include "Detect.h"
 #include "Spelling.h"
 
+#include <algorithm>
+
 using namespace nt;
 
 namespace
@@ -146,4 +148,39 @@ TEST ("detect: an arpeggio is a chord, a scale run is not")
     CHECK (! chords.empty());
     if (! chords.empty()) CHECK_EQ (chords.front().name, std::string ("C"));
     for (const auto& c : chords) if (c.start >= 4 * PPQ) CHECK_EQ (c.name, std::string());
+}
+
+TEST ("detect: a chord made on a known root is named from it, until its notes change (0046)")
+{
+    // C E G A over C: the reader calls it C6. Made as vi7 in first inversion,
+    // it is Amin7/C; made as I with an added sixth, C6.
+    auto s = withChords ({ { 60, 64, 67, 69 }, { 60, 64, 67, 69 } }, 4 * PPQ);
+    CHECK_EQ (detectChords (s, 0, 8 * PPQ).front().name, std::string ("C6"));
+    s.chordRoots.push_back ({ 0, 4 * PPQ, 9, { 0, 4, 7, 9 } });
+    const auto named = detectChords (s, 0, 8 * PPQ);
+    CHECK_EQ (named.size(), size_t (2));
+    if (named.size() != 2) return;
+    CHECK_EQ (named[0].name, std::string ("Amin7/C"));
+    CHECK_EQ (named[0].end, 4 * PPQ);
+    CHECK_EQ (named[1].name, std::string ("C6"));           // the second bar has no root recorded
+
+    // Rests after a chord hold it: the same chord with nothing after reads
+    // Amin7/C to the end, in one piece.
+    auto alone = withChords ({ { 60, 64, 67, 69 } }, 4 * PPQ);
+    alone.bars = 4;
+    alone.chordRoots.push_back ({ 0, 4 * PPQ, 9, { 0, 4, 7, 9 } });
+    const auto held = detectChords (alone, 0, alone.endTick());
+    CHECK_EQ (held.size(), size_t (1));
+    if (! held.empty()) CHECK_EQ (held.front().name, std::string ("Amin7/C"));
+
+    // Edited - the A taken out - it is read like any other chord.
+    auto& notes = s.parts[0].notes;
+    notes.erase (std::remove_if (notes.begin(), notes.end(), [] (const Note& n) { return n.start == 0 && n.pitch == 69; }), notes.end());
+    CHECK_EQ (detectChords (s, 0, 8 * PPQ).front().name, std::string ("C"));
+
+    // Named from a root in ScaleView's words, the bass after a slash.
+    CHECK_EQ (nameFromRoot ({ 64, 67, 71, 72 }, 4, 0, 0), std::string ("Eminb6"));
+    CHECK_EQ (nameFromRoot ({ 64, 67, 71, 72 }, 0, 0, 0), std::string ("Cmaj7/E"));
+    CHECK_EQ (nameFromRoot ({ 62, 67, 72 }, 0, 0, 0), std::string ("Csus2/D"));
+    CHECK_EQ (nameFromRoot ({ 60, 67 }, 0, 0, 0), std::string ("C5"));
 }
