@@ -15,8 +15,10 @@ update the commit below.
 | Noterator commit | Synced |
 | --- | --- |
 | `1cb4015` | 2026-10-09 (the copy Miderator started from) |
-| `270dfb4` | 2026-10-09: `Follow.h` and `TestFollow.cpp` (0033). On Noterator's branch `ccr-ac8da7d9-3sbl5x`, not yet on its main |
-| `5291bdc` | 2026-10-09: smooth following and `SmoothClock` in `Follow.h`, `Layout::playheadX` in `Engrave.*`, their tests (0034). Same branch |
+| `270dfb4` | 2026-10-09: `Follow.h` and `TestFollow.cpp` (0033). Merged into Noterator's main |
+| `5291bdc` | 2026-10-09: smooth following and `SmoothClock` in `Follow.h`, `Layout::playheadX` in `Engrave.*`, their tests (0034). Merged into Noterator's main |
+| `c6f4c8d` | 2026-10-09: `fitToPolyphony` in `Generators.*` and its tests (0036). On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
+| `4c3f3ba` | 2026-10-09: `Orchestrate.*` (new, listed in the sync script and `CMakeLists.txt`), `insertIntoRange` handing several parts to it, `TestOrchestrate.cpp` (0040). On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 
 ## Shared
 

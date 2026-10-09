@@ -42,6 +42,8 @@ public:
     void zoomBy (float factor, float anchorX);
     // Brings `t` into view if it is not, a little in from the left.
     void reveal (Tick t);
+    // Scrolls so `t` sits `fraction` of the way across.
+    void showAt (Tick t, double fraction);
     // While playing: scrolling along with the playhead, or a page on just
     // before it reaches the right edge (decisions 0033, 0034).
     void follow (Tick t);

@@ -2,9 +2,11 @@
     MainComponent - the window: toolbar, tracks and piano roll, panels,
     status line, and the keys and menus that drive them.
 
-    Keys follow the DAWs people already know: Space plays, the arrows move
-    and transpose, Q quantises, D switches between selecting and drawing,
-    Cmd+D duplicates, 1-6 choose the grid.
+    Keys follow the DAWs people already know, with Space as the user asked:
+    Space plays from bar 1 and Shift+Space from the caret, Home and End go
+    to the start and the end, the arrows move and transpose, Q quantises, D
+    switches between selecting and drawing, Cmd+D duplicates, 1-6 choose
+    the grid.
 */
 
 #pragma once
@@ -56,7 +58,6 @@ private:
     GeneratorPanel generatorPanel { controller };
     BlocksPanel blocksPanel { controller };
     PartsPanel partsPanel { controller };
-    ScorePanel scorePanel { controller };
     StatusBar statusBar { controller };
     std::unique_ptr<juce::FileChooser> chooser;
     juce::ApplicationProperties preferences;   // the theme and the zoom, kept between launches
@@ -66,7 +67,12 @@ private:
     void showNewMenu();
     juce::PopupMenu templateMenu();
     void showExportMenu();
-    void showSettingsMenu();
+    juce::PopupMenu exportMenu();
+    void showFileMenu();
+    void addScoreItems (juce::PopupMenu& m);
+    void titleDialog();
+    void tempoDialog();
+    void meterDialog();
     void openDialog();
     void saveDialog (bool saveAs, std::function<void()> then = {});
     void importDialog();
@@ -75,6 +81,8 @@ private:
     void audioSettingsDialog();
     void showHelp();
     void zoomBy (float factor);
+    void returnToStart();
+    void skipToEnd();
     void updateTitle();
 };
 

@@ -67,6 +67,7 @@ add_library(MideratorCore STATIC
     Source/Core/Roll.cpp
     Source/Engines/LuaEngine.cpp
     Source/Engines/Generators.cpp
+    Source/Engines/Orchestrate.cpp
     ${EMBEDDED_LUA_CPP})
 target_include_directories(MideratorCore PUBLIC Source/Core Source/Engines)
 target_link_libraries(MideratorCore PUBLIC MideratorLua)
@@ -84,6 +85,7 @@ if(MIDERATOR_BUILD_TESTS)
         Tests/TestDetect.cpp
         Tests/TestMidi.cpp
         Tests/TestGenerators.cpp
+        Tests/TestOrchestrate.cpp
         Tests/TestMusicXml.cpp
         Tests/TestTemplates.cpp
         Tests/TestRoll.cpp

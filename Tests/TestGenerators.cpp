@@ -309,3 +309,133 @@ TEST ("generators: the Generate tab's names say what they do")
     CHECK (! out.results.empty());
     for (const auto& r : out.results) CHECK (r.title.find ("Good Idea") == std::string::npos);
 }
+
+namespace
+{
+GeneratedResult chordLine (std::initializer_list<std::vector<int>> chords, Tick each, Tick held)
+{
+    GeneratedResult r;
+    GeneratedPart gp;
+    gp.name = "Chords";
+    Tick at = 0;
+    for (const auto& c : chords)
+    {
+        for (int p : c) { Note n; n.start = at; n.length = held; n.pitch = p; gp.notes.push_back (n); }
+        at += each;
+    }
+    r.parts = { gp };
+    r.length = at;
+    return r;
+}
+
+Score quartet()
+{
+    Score s;
+    for (const char* id : { "vln1", "vln2", "vla", "vc" })
+    {
+        Part p; p.id = s.newId(); p.instrument = id; p.name = instrumentById (id).name;
+        s.parts.push_back (p);
+    }
+    s.bars = 8;
+    return s;
+}
+} // namespace
+
+TEST ("generators: a one-note instrument gets one note at a time - the top of a chord, or the bottom for a bass")
+{
+    const auto r = chordLine ({ { 60, 64, 67 }, { 62, 65, 69 }, { 59, 62, 67 } }, PPQ, PPQ);
+    auto s = quartet();
+    insertResult (s, r, s.parts[0].id, 0);                       // the caret in the first violin
+    const auto& vln = s.parts[0].notes;
+    CHECK_EQ (polyphonyOf (vln), 1);
+    CHECK_EQ (vln.size(), size_t (3));
+    std::vector<int> top;
+    for (const auto& n : vln) top.push_back (n.pitch % 12);
+    CHECK (top == (std::vector<int> { 7, 9, 7 }));               // G, A, G: the top notes, wherever the octave fitting put them
+
+    auto t = quartet();
+    const auto report = insertResult (t, r, t.parts[3].id, 0);   // the cello takes the bass
+    CHECK_EQ (polyphonyOf (t.parts[3].notes), 1);
+    std::vector<int> low;
+    for (const auto& n : t.parts[3].notes) low.push_back (n.pitch % 12);
+    CHECK (low == (std::vector<int> { 0, 2, 11 }));              // C, D, B
+    CHECK (std::find (report.thinnedParts.begin(), report.thinnedParts.end(), t.parts[3].id) != report.thinnedParts.end());
+}
+
+TEST ("generators: chords dealt out across a quartet never overlap in one part, however long they are held")
+{
+    // Each chord held for two beats, a new one every beat: dealt out one note
+    // to a part, each part's notes would run into the next.
+    const auto r = chordLine ({ { 55, 60, 64, 67 }, { 57, 60, 65, 69 }, { 55, 59, 62, 67 }, { 48, 60, 64, 67 } }, PPQ, 2 * PPQ);
+    auto s = quartet();
+    std::vector<uint32_t> ids;
+    for (const auto& p : s.parts) ids.push_back (p.id);
+    insertIntoRange (s, r, ids, 0, s.barStart (1));
+    for (const auto& p : s.parts)
+    {
+        CHECK_EQ (polyphonyOf (p.notes), 1);
+        CHECK (! p.notes.empty());
+    }
+    // Legato, not cut short: each note runs up to the next.
+    const auto& top = s.parts[0].notes;
+    CHECK_EQ (top.size(), size_t (4));
+    if (top.size() == 4) CHECK_EQ (top[0].end(), top[1].start);
+}
+
+TEST ("generators: a piano keeps its chords, a glockenspiel two notes, a drum kit every hit")
+{
+    const auto r = chordLine ({ { 60, 64, 67, 72 }, { 62, 65, 69, 74 } }, PPQ, PPQ);
+    Score s;
+    for (const char* id : { "pno", "glock" }) { Part p; p.id = s.newId(); p.instrument = id; s.parts.push_back (p); }
+    insertResult (s, r, s.parts[0].id, 0);
+    CHECK_EQ (s.parts[0].notes.size(), size_t (8));
+    insertResult (s, r, s.parts[1].id, 0);
+    CHECK_EQ (polyphonyOf (s.parts[1].notes), 2);
+    CHECK_EQ (s.parts[1].notes.size(), size_t (4));
+
+    GeneratedResult groove;
+    GeneratedPart d;
+    d.name = "Drums";
+    d.drums = true;
+    for (int p : { 36, 38, 42, 46, 49, 51 }) { Note n; n.start = 0; n.length = PPQ; n.pitch = p; d.notes.push_back (n); }
+    groove.parts = { d };
+    groove.length = PPQ;
+    Score k;
+    Part kit; kit.id = k.newId(); kit.instrument = "kit"; k.parts = { kit };
+    insertResult (k, groove, k.parts[0].id, 0);
+    CHECK_EQ (k.parts[0].notes.size(), size_t (6));              // six at once, more than the kit's four: all kept
+}
+
+TEST ("generators: Generate Notes' chord phrases never give a string part two notes at once")
+{
+    auto& e = engineInstance();
+    int results = 0;
+    for (const char* content : { "Chords", "Both" })
+        for (int seed = 1; seed <= 6; ++seed)
+        {
+            auto base = quartet();
+            auto ctx = contextFor (base, base.parts[0].id, 0, {});
+            ctx.rangeBars = 4;
+            e.reset ("good-idea");
+            for (const auto& st : e.settings ("good-idea", ctx))
+                for (size_t i = 0; i < st.names.size(); ++i)
+                    if ((st.id == "kind" && st.names[i] == "Phrase") || (st.id == "content" && st.names[i] == content))
+                        e.set ("good-idea", st.id, static_cast<int> (i), ctx);
+            const auto out = e.generate ("good-idea", ctx, seed, 1);
+            for (const auto& r : out.results)
+            {
+                ++results;
+                auto caret = base;
+                insertResult (caret, r, caret.parts[0].id, 0);
+                auto bars = base;
+                std::vector<uint32_t> ids;
+                for (const auto& p : bars.parts) ids.push_back (p.id);
+                insertIntoRange (bars, r, ids, 0, bars.barStart (4));
+                for (const auto* sc : { &caret, &bars })
+                    for (const auto& p : sc->parts)
+                        CHECK (polyphonyOf (p.notes) <= instrumentById (p.instrument).poly);
+            }
+        }
+    e.reset ("good-idea");
+    CHECK_EQ (results, 12);
+}

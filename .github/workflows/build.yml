@@ -73,7 +73,15 @@ jobs:
           cp -R "$APP" dmg/
           ln -s /Applications dmg/Applications
           cp docs/INSTALL-MAC.txt "dmg/Read me first.txt"
-          hdiutil create -volname "Miderator" -srcfolder dmg -ov -format UDZO Miderator-macOS.dmg
+          # hdiutil sometimes finds the disk "Resource busy" on GitHub's Mac
+          # runners; a few seconds later it works. Try a few times.
+          made=0
+          for attempt in 1 2 3 4 5; do
+            hdiutil create -volname "Miderator" -srcfolder dmg -ov -format UDZO Miderator-macOS.dmg && { made=1; break; }
+            echo "hdiutil failed (attempt $attempt), trying again"
+            sleep 10
+          done
+          [ "$made" = 1 ]
       - uses: actions/upload-artifact@v4
         with:
           name: Miderator-macOS

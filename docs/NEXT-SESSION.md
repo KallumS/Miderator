@@ -22,6 +22,8 @@ through embedded Lua:
   default, with a Light option.
 - Follow: while it plays, the view scrolls smoothly with the music, or turns
   a page at a time (Play menu).
+- Space plays from bar 1, Shift+Space and Play from the caret; buttons
+  beside Play go to the start and the end (Home, End).
 - Templates up to a full orchestra and big band through Apple's built-in
   General MIDI synth; MIDI, MusicXML and WAV out; MIDI and MusicXML in.
 
@@ -30,9 +32,10 @@ changed, and make sure each change reaches me as the downloadable Mac app from
 GitHub Actions.
 
 Before doing anything:
-1. If the branch ccr-ac8da7d9-3sbl5x (everything so far) is not yet merged
-   into main, start your branch from it. Noterator's branch of the same name
-   holds the matching shared code (docs/SHARED.md).
+1. If the branch ccr-ac8da7d9-3sbl5x (the latest work) is not yet merged
+   into main, start your branch from it; if it is, start from main.
+   Noterator's main (or its branch of the same name) holds the matching
+   shared code (docs/SHARED.md).
 2. Read CLAUDE.md, then docs/ARCHITECTURE.md (every decision on one page),
    docs/SHARED.md, and the latest log in docs/sessions/. Follow their rules -
    especially: the files shared with Noterator are never edited here (fix
@@ -74,9 +77,9 @@ where to download the new app.
 - A fix to the generators, the instruments, templates, files or playback
   belongs in Noterator first; the session will ask for that repository if it
   needs it, and copy the change across.
-- Everything so far is on the branch `ccr-ac8da7d9-3sbl5x`, in both
-  Miderator and Noterator. To put it on the main branches, ask a session to
-  open pull requests for you to merge - Noterator's first, or together.
+- The latest work is on the branch `ccr-ac8da7d9-3sbl5x` in both Miderator
+  and Noterator until you merge it. To put it on the main branches, ask a
+  session to open pull requests - Noterator's first, or together.
 - If you want the app to open with a normal double-click, the session can set
   up Apple Developer ID signing - it needs your Apple Developer account, added
   to the repository as secrets.

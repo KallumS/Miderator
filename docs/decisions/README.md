@@ -48,3 +48,9 @@ piano roll changed say so at the top. 0026 on are Miderator's own.
 | [0032](0032-warnings-read-from-the-notes.md) | What an instrument cannot play is read from the notes | Accepted |
 | [0033](0033-follow-the-playhead-switchable.md) | The view follows the playhead, a page at a time, and can be switched off (both apps) | Accepted; default changed by 0034 |
 | [0034](0034-follow-scrolls-smoothly.md) | Following the playhead scrolls smoothly, by default (both apps) | Accepted |
+| [0035](0035-space-plays-from-the-start.md) | Space plays from bar 1, Shift+Space from the caret; buttons to the start and the end (both apps) | Accepted |
+| [0036](0036-one-note-at-a-time-for-one-note-instruments.md) | Generated music gives an instrument no more notes at once than it plays (both apps) | Accepted |
+| [0037](0037-a-file-menu-button.md) | New, Open, Save and Export under one File button (both apps) | Accepted |
+| [0038](0038-the-score-tab-moves-into-file.md) | The Score tab's settings move into the File menu (both apps) | Accepted |
+| [0039](0039-undo-sound-input-and-look-into-file.md) | Undo, Redo, Sound, the input mode and the look move into the File menu (both apps) | Accepted |
+| [0040](0040-generated-music-orchestrated-across-chosen-parts.md) | Generated music is orchestrated across the chosen parts (both apps) | Accepted |

@@ -127,6 +127,9 @@ public:
     void movePart (uint32_t partId, int direction);
     void setPartInstrument (uint32_t partId, const std::string& instrumentId);
     void setKeyAt (int bar, int root, int scale);
+    // The key signature at the caret's bar becomes the scale the Scale lane
+    // shows there; false, with a message, when there is nothing to hear yet.
+    bool useHeardKey();
     void setMeterAt (int bar, int num, int den);
     void setTempo (double bpm);
     void setBars (int bars);
@@ -135,7 +138,15 @@ public:
 
     //==========================================================================
     // Sound
-    void togglePlay();
+    // Space plays from bar 1; Shift+Space and the Play button play from the
+    // caret. Either stops it if it is playing (decision 0035).
+    void togglePlay (bool fromStart = false);
+    // Back to bar 1 - playing on from there if it was playing.
+    void returnToStart();
+    // To the end of the music, the bar line after its last note; playing stops.
+    void skipToEnd();
+    // That bar line, or the end of the song when there are no notes.
+    Tick musicEnd() const;
     void toggleFollow();
     void setFollowStyle (FollowStyle style);
     void playFrom (Tick t);

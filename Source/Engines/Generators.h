@@ -27,9 +27,17 @@ std::vector<Note> fitToInstrument (std::vector<Note> notes, const Instrument& in
 // selection starts in.
 GeneratorContext contextFor (const Score& score, uint32_t partId, Tick at, const Selection& selection);
 
+// No more notes at once than the instrument plays (decision 0036). Where
+// more start together it keeps the top ones - the tune - or the bottom ones
+// for an instrument that takes the bass; a note still sounding when the next
+// starts is shortened to end there, so a line stays legato. Drums are left
+// as they are. `dropped`, if given, counts the notes taken out.
+std::vector<Note> fitToPolyphony (std::vector<Note> notes, const Instrument& inst, int* dropped = nullptr);
+
 struct InsertOptions
 {
     bool fitToInstrument = true;
+    bool fitPolyphony = true;     // fitToPolyphony every line, for the part it lands in
     bool replace = true;          // clear what the target parts had in the span first
     // With no target part, every line gets a part of its own, chosen as if
     // it were going beside a part playing this instrument.
@@ -40,6 +48,7 @@ struct InsertReport
 {
     Selection newNotes;
     std::vector<uint32_t> newParts;
+    std::vector<uint32_t> thinnedParts;   // parts given fewer notes than the result had, to suit the instrument
 };
 
 // The most notes a line sounds at once.
@@ -48,7 +57,8 @@ int polyphonyOf (const std::vector<Note>& notes);
 // Drops a result into the score at `at`. Its first part goes into the target
 // part (none: 0); the others into parts of their own - an existing part on the
 // right instrument that is silent in that span, or a new one. A line with
-// chords never goes to an instrument that plays one note at a time.
+// chords never goes to a new part on an instrument that plays one note at a
+// time; one that must go into such a part is thinned to suit it.
 InsertReport insertResult (Score& score, const GeneratedResult& result, uint32_t targetPartId, Tick at,
                            const InsertOptions& options = {});
 
@@ -62,10 +72,10 @@ GeneratedResult fitToSpan (const GeneratedResult& result, Tick span);
 // gives the extra notes to no one.
 std::vector<std::vector<Note>> spreadChords (const std::vector<Note>& notes, int lines);
 
-// Drops a result into a span of bars across chosen parts, top part first:
-// the tune goes to the top part, the bass to the bottom, chords to the parts
-// between - whole, where one of them can play chords, spread one note each
-// where none can. Only the parts that receive music are cleared.
+// Drops a result into a span of bars across chosen parts. One part takes it
+// as insertResult would; several share it out by what each instrument is
+// (Orchestrate.h, decision 0040). Only the parts that receive music are
+// cleared.
 InsertReport insertIntoRange (Score& score, const GeneratedResult& result, const std::vector<uint32_t>& parts,
                               Tick from, Tick to, const InsertOptions& options = {});
 

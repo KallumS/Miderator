@@ -10,6 +10,7 @@
 #include "Controller.h"
 #include "Exporter.h"
 #include "MidiFile.h"
+#include "ScaleModel.h"
 
 #include <juce_audio_formats/juce_audio_formats.h>
 
@@ -366,6 +367,97 @@ TEST ("app: the warnings follow every edit")
     CHECK (c.warnings.at (low).outOfRange);
     c.dragSelection (0, 17, false);                           // up to G4: fine
     CHECK (c.warnings.count (low) == 0);
+}
+
+TEST ("app: Space plays from bar 1, Shift+Space from the caret; Home and End go to the start and the end")
+{
+    Controller c (audio());
+    c.newScore ("Piano");
+    drawLine (c, 0, 4 * PPQ, { 60, 62, 64, 65 });                     // bar 2
+    CHECK_EQ (c.musicEnd(), 8 * PPQ);                                 // the bar line after the last note
+    c.setCaret (c.score.parts[0].id, 5 * PPQ);
+
+    c.togglePlay (true);                                              // Space
+    CHECK (c.audio.isPlaying());
+    CHECK_EQ (c.audio.playheadTick(), Tick (0));
+    c.togglePlay (true);                                              // Space again stops it
+    CHECK (! c.audio.isPlaying());
+
+    c.togglePlay (false);                                             // Shift+Space, or the Play button
+    CHECK_EQ (c.audio.playheadTick(), 5 * PPQ);
+    c.returnToStart();                                                // while playing: on from bar 1
+    CHECK (c.audio.isPlaying());
+    CHECK_EQ (c.audio.playheadTick(), Tick (0));
+    CHECK_EQ (c.caret, Tick (0));
+
+    c.skipToEnd();                                                    // stops, and the caret is at the end
+    CHECK (! c.audio.isPlaying());
+    CHECK_EQ (c.caret, 8 * PPQ);
+    c.returnToStart();                                                // stopped: just the caret
+    CHECK (! c.audio.isPlaying());
+    CHECK_EQ (c.caret, Tick (0));
+
+    Controller empty (audio());
+    empty.newScore ("Piano");
+    CHECK_EQ (empty.musicEnd(), empty.score.endTick());               // no notes: the end of the song
+    c.stop();
+}
+
+TEST ("app: Generate Notes' chords into a violin come one note at a time; Blocks go in as they are")
+{
+    Controller c (audio());
+    c.newScore ("String Quartet");
+    const auto violin = c.score.parts[0].id;
+    c.setCaret (violin, 0);
+    auto ctx = c.generatorContext (false);
+    c.lua.reset ("good-idea");
+    for (const auto& st : c.lua.settings ("good-idea", ctx))
+        for (size_t i = 0; i < st.names.size(); ++i)
+            if ((st.id == "kind" && st.names[i] == "Phrase") || (st.id == "content" && st.names[i] == "Chords"))
+                c.lua.set ("good-idea", st.id, static_cast<int> (i), ctx);
+    const auto out = c.lua.generate ("good-idea", c.generatorContext (false), 3, 1);
+    c.lua.reset ("good-idea");
+    CHECK (! out.results.empty());
+    if (out.results.empty()) return;
+    CHECK (polyphonyOf (out.results.front().parts.front().notes) > 1);   // the idea itself is chords
+    c.insertGenerated (out.results.front(), false, "good-idea");
+    CHECK (! c.score.parts[0].notes.empty());
+    CHECK_EQ (polyphonyOf (c.score.parts[0].notes), 1);
+    CHECK (c.status.contains ("Violin I: top notes only"));
+
+    // A chord block from the toolbox into the same violin: as it always was.
+    Controller d (audio());
+    d.newScore ("String Quartet");
+    d.setCaret (d.score.parts[0].id, 0);
+    d.lua.reset ("starting-blocks");
+    const auto blocks = d.lua.generate ("starting-blocks", d.generatorContext (false), 1, 0);
+    CHECK (! blocks.results.empty());
+    if (blocks.results.empty()) return;
+    d.insertGenerated (blocks.results.front(), false, "starting-blocks");
+    int most = 0;
+    for (const auto& p : d.score.parts) most = std::max (most, polyphonyOf (p.notes));
+    CHECK (most > 1);
+}
+
+TEST ("app: the File menu's Use the key it hears sets the key the Scale lane shows")
+{
+    Controller c (audio());
+    c.newScore ("Piano");
+    CHECK (! c.useHeardKey());                                        // nothing written yet
+    CHECK (c.status.contains ("Nothing to hear"));
+    CHECK_EQ (c.score.keyAtBar (0).root, 0);                          // still C
+
+    // Two bars of E major, so the Scale lane names it.
+    drawLine (c, 0, 0, { 64, 68, 71, 76, 66, 69, 73, 75 });
+    drawLine (c, 0, 8 * PPQ, { 76, 75, 73, 71, 69, 68, 66, 64 });
+    c.setCaret (c.score.parts[0].id, PPQ);
+    CHECK (! c.keys.empty());
+    CHECK (c.useHeardKey());
+    const auto& k = c.score.keyAtBar (0);
+    CHECK_EQ (std::string (scaleview::roots[static_cast<size_t> (k.root)].name), std::string ("E"));
+    CHECK_EQ (k.scale, 0);                                            // Major
+    c.undo();
+    CHECK_EQ (c.score.keyAtBar (0).root, 0);                          // one undo step
 }
 
 int main (int argc, char** argv)

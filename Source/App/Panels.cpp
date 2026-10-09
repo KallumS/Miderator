@@ -7,24 +7,43 @@ namespace nt
 
 //==============================================================================
 
+void TransportButton::paintButton (juce::Graphics& g, bool highlighted, bool down)
+{
+    getLookAndFeel().drawButtonBackground (g, *this, findColour (juce::TextButton::buttonColourId), highlighted, down);
+    // A bar and a triangle pointing at it: back to the start, or on to the end.
+    const auto r = getLocalBounds().toFloat().withSizeKeepingCentre (14.0f, 12.0f);
+    juce::Path p;
+    if (kind == Kind::start)
+    {
+        p.addRectangle (r.getX(), r.getY(), 2.5f, r.getHeight());
+        p.addTriangle (r.getRight(), r.getY(), r.getRight(), r.getBottom(), r.getX() + 3.5f, r.getCentreY());
+    }
+    else
+    {
+        p.addRectangle (r.getRight() - 2.5f, r.getY(), 2.5f, r.getHeight());
+        p.addTriangle (r.getX(), r.getY(), r.getX(), r.getBottom(), r.getRight() - 3.5f, r.getCentreY());
+    }
+    g.setColour (isEnabled() ? theme::ink : theme::ink.withAlpha (0.4f));
+    g.fillPath (p);
+}
+
+//==============================================================================
+
 Toolbar::Toolbar (Controller& c) : controller (c)
 {
-    for (auto* b : { &newButton, &openButton, &saveButton, &exportButton, &undoButton, &redoButton, &playButton, &followButton,
-                     &selectButton, &drawButton, &tripletButton, &snapButton, &quantiseButton, &stepButton,
-                     &themeButton, &zoomOut, &zoomIn, &settingsButton })
+    for (auto* b : std::initializer_list<juce::Button*> { &startButton, &endButton }) addAndMakeVisible (b);
+    for (auto* b : { &fileButton, &playButton, &followButton,
+                     &selectButton, &drawButton, &tripletButton, &snapButton, &quantiseButton, &zoomOut, &zoomIn })
         addAndMakeVisible (b);
     addAndMakeVisible (gridLabel);
     addAndMakeVisible (gridBox);
     gridLabel.setColour (juce::Label::textColourId, theme::textDim);
     gridLabel.setJustificationType (juce::Justification::centredRight);
 
-    newButton.setTooltip ("A new song, from a template");
-    openButton.setTooltip ("Open a Miderator project, a MIDI file or a MusicXML file (Cmd+O)");
-    saveButton.setTooltip ("Save the project (Cmd+S)");
-    exportButton.setTooltip ("Export the song, or the chosen bars, as MIDI, audio or MusicXML");
-    undoButton.setTooltip ("Undo (Cmd+Z)");
-    redoButton.setTooltip ("Redo (Shift+Cmd+Z)");
-    playButton.setTooltip ("Play from the caret or the chosen bars, or stop (Space)");
+    fileButton.setTooltip ("New, Open, Save, Export, Undo and Redo, the song's settings, the sound, step input and the light look");
+    playButton.setTooltip ("Play from the caret, or stop (Shift+Space; Space plays from bar 1)");
+    startButton.setTooltip ("Return to the start (Home) - if it is playing, it plays on from bar 1");
+    endButton.setTooltip ("Skip to the end of the music (End)");
     followButton.setTooltip ("Follow (F): while it plays, the view scrolls along with the music (or turns a page at a time - Play menu)");
     selectButton.setTooltip ("Select (D switches): click a note to choose it, drag it to move it, drag its end to stretch it, double-click to draw one");
     drawButton.setTooltip ("Draw (D switches): click the roll to draw a note, drag to make it longer, click a note to delete it");
@@ -32,9 +51,6 @@ Toolbar::Toolbar (Controller& c) : controller (c)
     tripletButton.setTooltip ("A triplet grid: three in the space of two (T)");
     snapButton.setTooltip ("Notes snap to the grid when they are drawn, moved or stretched");
     quantiseButton.setTooltip ("Pull the selected notes onto the grid - or the whole part in the roll if none are selected (Q)");
-    stepButton.setTooltip ("Step input: play a MIDI keyboard to write notes at the caret, one grid step each, the caret moving on (R)");
-    themeButton.setTooltip ("A light piano roll and tracks, or back to dark");
-    settingsButton.setTooltip ("The sound, and audio and MIDI devices");
     zoomIn.setTooltip ("Zoom in (Cmd+=)");
     zoomOut.setTooltip ("Zoom out (Cmd+-)");
 
@@ -46,14 +62,10 @@ Toolbar::Toolbar (Controller& c) : controller (c)
         gridBox.addItem (g.name(), id++);
     }
 
-    newButton.onClick = [this] { if (onNew) onNew(); };
-    openButton.onClick = [this] { if (onOpen) onOpen(); };
-    saveButton.onClick = [this] { if (onSave) onSave(); };
-    exportButton.onClick = [this] { if (onExport) onExport(); };
-    settingsButton.onClick = [this] { if (onSettings) onSettings(); };
-    undoButton.onClick = [this] { controller.undo(); };
-    redoButton.onClick = [this] { controller.redo(); };
+    fileButton.onClick = [this] { if (onFile) onFile(); };
     playButton.onClick = [this] { controller.togglePlay(); };
+    startButton.onClick = [this] { if (onStart) onStart(); };
+    endButton.onClick = [this] { if (onEnd) onEnd(); };
     followButton.onClick = [this] { controller.toggleFollow(); };
     selectButton.onClick = [this] { if (controller.drawTool) controller.toggleDrawTool(); };
     drawButton.onClick = [this] { if (! controller.drawTool) controller.toggleDrawTool(); };
@@ -67,8 +79,6 @@ Toolbar::Toolbar (Controller& c) : controller (c)
     tripletButton.onClick = [this] { controller.setGrid (controller.grid.base, ! controller.grid.triplet); };
     snapButton.onClick = [this] { controller.toggleSnap(); };
     quantiseButton.onClick = [this] { controller.quantiseSelection(); };
-    stepButton.onClick = [this] { controller.toggleStepInput(); };
-    themeButton.onClick = [this] { controller.lightTheme = ! controller.lightTheme; controller.viewChanged(); };
     zoomOut.onClick = [this] { if (onZoomOut) onZoomOut(); };
     zoomIn.onClick = [this] { if (onZoomIn) onZoomIn(); };
 
@@ -89,32 +99,26 @@ void Toolbar::resized()
 {
     auto r = getLocalBounds().reduced (8, 7);
     auto place = [&r] (juce::Component& c, int w, int gap = 4) { c.setBounds (r.removeFromLeft (w)); r.removeFromLeft (gap); };
-    place (newButton, 52); place (openButton, 56); place (saveButton, 52); place (exportButton, 62, 14);
-    place (undoButton, 52); place (redoButton, 52, 14);
+    place (fileButton, 52, 14);
+    place (startButton, 30, 2);
     place (playButton, 60, 2);
+    place (endButton, 30, 6);
     place (followButton, 60, 14);
     place (selectButton, 60, 2); place (drawButton, 56, 14);
     place (gridLabel, 36, 4);
     place (gridBox, 74, 4);
     place (tripletButton, 62, 2); place (snapButton, 52, 8);
     place (quantiseButton, 74, 14);
-    place (stepButton, 84, 14);
     auto right = r;
-    settingsButton.setBounds (right.removeFromRight (64));
-    right.removeFromRight (10);
     zoomIn.setBounds (right.removeFromRight (28));
     right.removeFromRight (2);
     zoomOut.setBounds (right.removeFromRight (28));
-    right.removeFromRight (10);
-    themeButton.setBounds (right.removeFromRight (60));
 }
 
 void Toolbar::changeListenerCallback (juce::ChangeBroadcaster*) { refresh(); }
 
 void Toolbar::refresh()
 {
-    undoButton.setEnabled (controller.canUndo());
-    redoButton.setEnabled (controller.canRedo());
     playButton.setButtonText (controller.audio.isPlaying() ? "Stop" : "Play");
     playButton.setToggleState (controller.audio.isPlaying(), juce::dontSendNotification);
     followButton.setToggleState (controller.followPlayback, juce::dontSendNotification);
@@ -125,8 +129,6 @@ void Toolbar::refresh()
         if (values[i] == controller.grid.base) gridBox.setSelectedId (static_cast<int> (i) + 1, juce::dontSendNotification);
     tripletButton.setToggleState (controller.grid.triplet, juce::dontSendNotification);
     snapButton.setToggleState (controller.grid.snap, juce::dontSendNotification);
-    stepButton.setToggleState (controller.stepInput, juce::dontSendNotification);
-    themeButton.setToggleState (controller.lightTheme, juce::dontSendNotification);
     repaint();
 }
 
@@ -368,138 +370,6 @@ void PartsPanel::showAddMenu()
 
 //==============================================================================
 
-ScorePanel::ScorePanel (Controller& c) : controller (c)
-{
-    for (auto* comp : std::initializer_list<juce::Component*> { &titleLabel, &title, &composerLabel, &composer, &tempoLabel, &tempo,
-                                                                 &meterLabel, &meterNum, &meterDen, &meterApply, &keyLabel, &keyRoot,
-                                                                 &keyScale, &keyApply, &keyDetected, &barsLabel, &insertBar, &deleteBars,
-                                                                 &addBars, &soundLabel, &synthChoice, &audioSettings })
-        addAndMakeVisible (comp);
-    for (auto* l : { &titleLabel, &composerLabel, &tempoLabel, &meterLabel, &keyLabel, &barsLabel, &soundLabel })
-        l->setColour (juce::Label::textColourId, theme::stepNumber);
-
-    title.onReturnKey = title.onFocusLost = [this]
-    {
-        const auto t = title.getText().toStdString();
-        if (t != controller.score.title) controller.edit ("Retitled", [t] (Score& s) { s.title = t; });
-    };
-    composer.onReturnKey = composer.onFocusLost = [this]
-    {
-        const auto t = composer.getText().toStdString();
-        if (t != controller.score.composer) controller.edit ("Changed the composer", [t] (Score& s) { s.composer = t; });
-    };
-
-    tempo.setRange (30.0, 240.0, 1.0);
-    tempo.setTextValueSuffix (" bpm");
-    tempo.setTextBoxStyle (juce::Slider::TextBoxRight, false, 70, 22);
-    tempo.onDragEnd = [this] { controller.setTempo (tempo.getValue()); };
-    tempo.onValueChange = [this] { if (! tempo.isMouseButtonDown()) controller.setTempo (tempo.getValue()); };
-
-    for (int n = 1; n <= 16; ++n) meterNum.addItem (juce::String (n), n);
-    for (int d : { 2, 4, 8, 16 }) meterDen.addItem (juce::String (d), d);
-    meterApply.onClick = [this]
-    {
-        controller.setMeterAt (controller.score.barAt (controller.caret), meterNum.getSelectedId(), meterDen.getSelectedId());
-    };
-
-    for (size_t i = 0; i < scaleview::roots.size(); ++i) keyRoot.addItem (scaleview::roots[i].name, static_cast<int> (i) + 1);
-    for (size_t i = 0; i < scaleview::scales.size(); ++i) keyScale.addItem (scaleview::scales[i].name, static_cast<int> (i) + 1);
-    keyApply.onClick = [this]
-    {
-        controller.setKeyAt (controller.score.barAt (controller.caret), keyRoot.getSelectedId() - 1, keyScale.getSelectedId() - 1);
-    };
-    keyDetected.setTooltip ("Sets the key signature to the scale shown in the Scale lane at the caret");
-    keyDetected.onClick = [this]
-    {
-        for (const auto& k : controller.keys)
-            if (controller.caret >= k.start && controller.caret < k.end)
-            {
-                controller.setKeyAt (controller.score.barAt (k.start), k.root, k.scale);
-                return;
-            }
-        controller.setStatus ("Nothing to hear yet: write or generate some music first.");
-    };
-
-    insertBar.onClick = [this] { controller.insertBarsAtCaret (1); };
-    deleteBars.onClick = [this] { controller.deleteSelectedBars(); };
-    addBars.onClick = [this] { controller.setBars (controller.score.bars + 4); };
-
-    synthChoice.addItem ("Apple General MIDI (macOS)", 1);
-    synthChoice.addItem ("Built-in synth", 2);
-    synthChoice.onChange = [this]
-    {
-        controller.audio.useBuiltInSynth (synthChoice.getSelectedId() == 2);
-        controller.setStatus ("Sound: " + controller.audio.synthName());
-    };
-    audioSettings.onClick = [this] { if (onAudioSettings) onAudioSettings(); };
-
-    controller.addChangeListener (this);
-    refresh();
-}
-
-ScorePanel::~ScorePanel() { controller.removeChangeListener (this); }
-
-void ScorePanel::paint (juce::Graphics& g) { g.fillAll (theme::ground); }
-
-void ScorePanel::resized()
-{
-    auto r = getLocalBounds().reduced (10);
-    auto row = [&r] (int h = 26) { auto x = r.removeFromTop (h); r.removeFromTop (6); return x; };
-    titleLabel.setBounds (row (18)); title.setBounds (row());
-    composerLabel.setBounds (row (18)); composer.setBounds (row());
-    r.removeFromTop (6);
-    tempoLabel.setBounds (row (18)); tempo.setBounds (row());
-    r.removeFromTop (6);
-    meterLabel.setBounds (row (18));
-    {
-        auto x = row();
-        meterNum.setBounds (x.removeFromLeft (60)); x.removeFromLeft (4);
-        meterDen.setBounds (x.removeFromLeft (60)); x.removeFromLeft (8);
-        meterApply.setBounds (x);
-    }
-    r.removeFromTop (6);
-    keyLabel.setBounds (row (18));
-    {
-        auto x = row();
-        keyRoot.setBounds (x.removeFromLeft (64)); x.removeFromLeft (4);
-        keyScale.setBounds (x);
-    }
-    {
-        auto x = row();
-        keyApply.setBounds (x.removeFromLeft (x.getWidth() / 2 - 2)); x.removeFromLeft (4);
-        keyDetected.setBounds (x);
-    }
-    r.removeFromTop (6);
-    barsLabel.setBounds (row (18));
-    insertBar.setBounds (row());
-    deleteBars.setBounds (row());
-    addBars.setBounds (row());
-    r.removeFromTop (6);
-    soundLabel.setBounds (row (18));
-    synthChoice.setBounds (row());
-    audioSettings.setBounds (row());
-}
-
-void ScorePanel::changeListenerCallback (juce::ChangeBroadcaster*) { refresh(); }
-
-void ScorePanel::refresh()
-{
-    if (! title.hasKeyboardFocus (true)) title.setText (controller.score.title, false);
-    if (! composer.hasKeyboardFocus (true)) composer.setText (controller.score.composer, false);
-    if (! tempo.isMouseButtonDown()) tempo.setValue (controller.score.tempos.front().bpm, juce::dontSendNotification);
-    const int bar = controller.score.barAt (controller.caret);
-    const auto& m = controller.score.meterAtBar (bar);
-    meterNum.setSelectedId (m.num, juce::dontSendNotification);
-    meterDen.setSelectedId (m.den, juce::dontSendNotification);
-    const auto& k = controller.score.keyAtBar (bar);
-    keyRoot.setSelectedId (k.root + 1, juce::dontSendNotification);
-    keyScale.setSelectedId (k.scale + 1, juce::dontSendNotification);
-    barsLabel.setText ("Bars - " + juce::String (controller.score.bars) + " in all, caret in bar " + juce::String (bar + 1), juce::dontSendNotification);
-    synthChoice.setSelectedId (controller.audio.usingBuiltInSynth() ? 2 : 1, juce::dontSendNotification);
-}
-
-//==============================================================================
-
 StatusBar::StatusBar (Controller& c) : controller (c)
 {
     controller.addChangeListener (this);
@@ -535,13 +405,18 @@ void StatusBar::paint (juce::Graphics& g)
         if (! controller.selection.empty()) where += "   |   " + juce::String (static_cast<int> (controller.selection.size())) + " selected";
     }
     g.setColour (theme::text);
-    g.drawText (where, r.withTrimmedRight (320), juce::Justification::centred);
+    const auto middle = r.withTrimmedRight (320);
+    g.drawText (where, middle, juce::Justification::centred);
+    // The message on the left stops short of the middle, ending in "..." if
+    // it is too long, rather than running into it.
+    const int whereWidth = juce::roundToInt (juce::GlyphArrangement::getStringWidth (g.getCurrentFont(), where));
+    const int leftEnd = where.isEmpty() ? r.getRight() - 320 : middle.getCentreX() - whereWidth / 2 - 16;
 
     // Left: the last thing that happened, or the mode.
     juce::String left = controller.status;
     if (controller.stepInput) left = "STEP INPUT - play a MIDI keyboard: each note goes at the caret, " + juce::String (controller.grid.name()) + " long. Esc to stop.";
     g.setColour (controller.stepInput ? theme::accent : theme::text);
-    g.drawText (left, r, juce::Justification::centredLeft);
+    g.drawText (left, r.withRight (std::max (r.getX() + 80, leftEnd)), juce::Justification::centredLeft, true);
 }
 
 } // namespace nt

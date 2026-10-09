@@ -107,3 +107,65 @@ for the first time, through a silent PulseAudio sink: at the default zoom
 the music moves about a pixel a frame (measured from a 60 fps recording:
 mostly 1, sometimes 0 or 2 where Xvfb's frames fall), and in page mode it
 turns a page twice in 14 seconds, as it should. 82 core tests.
+
+## Then: start, end, and Space from bar 1 (0035)
+
+Both repositories' branches had been merged into `main`; the branch was
+started again from `main`. Space now plays from bar 1 and Shift+Space (and
+Play) from the caret; |◀ and ▶| beside Play (Home, End) go to the start and
+to the bar line after the last note. The same change was made in
+Noterator - none of it touches the shared files, so nothing was synced
+(`--check`: 0 differ). An app test covers the controller (13 now). Tried in
+the window through the silent sound card: End showed bars 20-25 with the
+caret at the end, Home went back, a click in bar 4 then Shift+Space played
+from there, Space from bar 1.
+
+## Then: one note at a time, and a File button (0036, 0037)
+
+Chords were reaching one-note instruments from Generate Notes. Measured and
+fixed in Noterator (its `2026-10-09-transport.md` has the route) and copied
+here: `fitToPolyphony` in `Generators.*` fits every generated line to the
+part it lands in - the top notes kept, the bottom for a bass, held notes cut
+to the next, drums alone - and Blocks go in as they are. The same
+`Controller::place` and File-button changes as Noterator's, made with the
+same scripts. Tried in the window: a Phrase of chords (19 notes) into
+Violin I went in as its top line, five single notes, and the status line
+said "Violin I: top notes only" - at first running into the middle of the
+status bar, so the left message now stops short of it with an ellipsis, in
+both apps. 86 core tests, 14 app tests.
+
+## Then: the Score tab into File (0038)
+
+The user asked for the Score tab's contents to go under File too. They are
+now a "This song" section in the File menu (and the Mac's File menu): title
+and composer and tempo in small boxes, time signature and key as sub-menus
+ticked at the caret's bar, bars, and sound; the tab and `ScorePanel` are
+gone, and "use the key it hears" is `Controller::useHeardKey`, with an app
+test (15 now). Made with one script in both apps. Tried every item in the
+window - and the first try of Tempo did nothing but say "Grid 1 bar": the
+grid range check in `menuItemSelected` took every id from 300 to 999, so
+the new items at 400 were read as grid sizes past the end of the list.
+Bounded to the grid's own choices; Noterator has no grid range and was
+never affected. After that: tempo 132, 6/8, E Mixolydian, a title and
+composer, four more bars, each shown back in the menu.
+
+## Then: more into File, and orchestration (0039, 0040)
+
+Undo, Redo, Sound, the input mode and the look left the toolbar for the File
+menu, in both apps, by one script; the status line still shows the input
+mode. Tried in both windows (Light and Note input from the menu, ticked).
+
+The user asked for generated music to fill every chosen part by range, with
+a string quintet as the example, and sent orchestration books. A helper read
+them (Rimsky-Korsakov's chapter III above all) into a rulebook; the result is
+`Orchestrate.*`, shared, made in Noterator and synced (0040). Measured
+first: Generate Notes' chords are block chords at only ~40% of onsets - the
+rest is a bass alone, broken chords, arpeggios - so the harmony is read with
+`detectChords`, and inner parts strike where the chords strike or hold.
+Mistakes on the way: the first voicing bounded inner parts by the tune's
+octave doubling, squeezing the viola into the bass's register - inner parts
+now go under the tune, starting where the generated chord has their note;
+and a Good Idea tune overlapping by a tick read as chords, so the tune and
+the chords swapped and the piccolo and glockenspiel were thinned - seen in
+Miderator's window, fixed by naming first (the test failed before). The
+full orchestra in the window: all 28 parts filled, nothing thinned. 93 core tests, 15 app tests.
