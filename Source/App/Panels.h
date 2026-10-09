@@ -38,12 +38,13 @@ public:
     // The File button, for its menu to open under.
     juce::Component& fileAnchor() { return fileButton; }
 
-    std::function<void()> onFile, onSettings, onZoomIn, onZoomOut, onStart, onEnd;
+    std::function<void()> onFile, onZoomIn, onZoomOut, onStart, onEnd;
 
 private:
     Controller& controller;
-    juce::TextButton fileButton { "File" };   // New, Open, Save, Export: one menu (decision 0037)
-    juce::TextButton undoButton { "Undo" }, redoButton { "Redo" };
+    // New, Open, Save, Export, Undo, the score's settings, the sound, the
+    // input mode and the look: one menu (decisions 0037, 0038, 0039)
+    juce::TextButton fileButton { "File" };
     TransportButton startButton { "Return to start", TransportButton::Kind::start };
     juce::TextButton playButton { "Play" };
     TransportButton endButton { "Skip to end", TransportButton::Kind::end };
@@ -53,10 +54,7 @@ private:
     juce::ComboBox gridBox;
     juce::TextButton tripletButton { "Triplet" }, snapButton { "Snap" };
     juce::TextButton quantiseButton { "Quantise" };
-    juce::TextButton stepButton { "Step input" };
-    juce::TextButton themeButton { "Light" };
     juce::TextButton zoomOut { "-" }, zoomIn { "+" };
-    juce::TextButton settingsButton { "Sound" };
 
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
     void refresh();

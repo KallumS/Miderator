@@ -54,7 +54,6 @@ MainComponent::MainComponent()
     tabs.setColour (juce::TabbedComponent::backgroundColourId, theme::ground);
 
     toolbar.onFile = [this] { showFileMenu(); };
-    toolbar.onSettings = [this] { showSettingsMenu(); };
     toolbar.onZoomIn = [this] { zoomBy (1.25f); };
     toolbar.onZoomOut = [this] { zoomBy (1.0f / 1.25f); };
     toolbar.onStart = [this] { returnToStart(); };
@@ -450,7 +449,8 @@ void MainComponent::showNewMenu()
 void MainComponent::showFileMenu()
 {
     // New, Open, Save and Export under one button, so the toolbar keeps room
-    // for what is used while writing (decision 0037).
+    // for what is used while writing (decision 0037); then undo, the score's
+    // settings (0038), the sound, the input mode and the look (0039).
     juce::PopupMenu m;
     auto item = [&m] (int id, const juce::String& text, const juce::String& shortcut = {})
     {
@@ -467,7 +467,29 @@ void MainComponent::showFileMenu()
     item (menuSaveAs, "Save As...", "Shift+Cmd+S");
     m.addSeparator();
     m.addSubMenu ("Export", exportMenu());
+    m.addSeparator();
+    {
+        juce::PopupMenu::Item i ("Undo");
+        i.itemID = menuUndo;
+        i.isEnabled = controller.canUndo();
+        i.shortcutKeyDescription = key ("Cmd+Z");
+        m.addItem (i);
+        juce::PopupMenu::Item r ("Redo");
+        r.itemID = menuRedo;
+        r.isEnabled = controller.canRedo();
+        r.shortcutKeyDescription = key ("Shift+Cmd+Z");
+        m.addItem (r);
+    }
     addScoreItems (m);
+    m.addSeparator();
+    {
+        juce::PopupMenu::Item i ("Step input from a MIDI keyboard");
+        i.itemID = menuStepInput;
+        i.isTicked = controller.stepInput;
+        i.shortcutKeyDescription = "R";
+        m.addItem (i);
+    }
+    m.addItem (menuLightTheme, "Light piano roll and tracks", true, controller.lightTheme);
     m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&toolbar.fileAnchor()),
                      [this] (int r) { if (r > 0) menuItemSelected (r, 0); });
 }
@@ -617,21 +639,6 @@ juce::PopupMenu MainComponent::exportMenu()
     m.addItem (menuExportXml, "Song as MusicXML (for Dorico, MuseScore, Sibelius)...");
     m.addItem (menuExportXmlBars, "Selection (" + bars + ") as MusicXML...");
     return m;
-}
-
-void MainComponent::showSettingsMenu()
-{
-    juce::PopupMenu m;
-    m.addSectionHeader ("Playing through: " + audio.synthName());
-    m.addItem (1, "Apple General MIDI (macOS)", true, ! audio.usingBuiltInSynth());
-    m.addItem (2, "Built-in synth", true, audio.usingBuiltInSynth());
-    m.addSeparator();
-    m.addItem (3, "Audio and MIDI devices...");
-    m.showMenuAsync (juce::PopupMenu::Options(), [this] (int r)
-    {
-        if (r == 1 || r == 2) { audio.useBuiltInSynth (r == 2); controller.setStatus ("Sound: " + audio.synthName()); }
-        if (r == 3) audioSettingsDialog();
-    });
 }
 
 //==============================================================================

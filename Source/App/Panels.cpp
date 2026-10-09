@@ -32,18 +32,15 @@ void TransportButton::paintButton (juce::Graphics& g, bool highlighted, bool dow
 Toolbar::Toolbar (Controller& c) : controller (c)
 {
     for (auto* b : std::initializer_list<juce::Button*> { &startButton, &endButton }) addAndMakeVisible (b);
-    for (auto* b : { &fileButton, &undoButton, &redoButton, &playButton, &followButton,
-                     &selectButton, &drawButton, &tripletButton, &snapButton, &quantiseButton, &stepButton,
-                     &themeButton, &zoomOut, &zoomIn, &settingsButton })
+    for (auto* b : { &fileButton, &playButton, &followButton,
+                     &selectButton, &drawButton, &tripletButton, &snapButton, &quantiseButton, &zoomOut, &zoomIn })
         addAndMakeVisible (b);
     addAndMakeVisible (gridLabel);
     addAndMakeVisible (gridBox);
     gridLabel.setColour (juce::Label::textColourId, theme::textDim);
     gridLabel.setJustificationType (juce::Justification::centredRight);
 
-    fileButton.setTooltip ("New, Open, Save and Export (Cmd+N, Cmd+O, Cmd+S, Cmd+E)");
-    undoButton.setTooltip ("Undo (Cmd+Z)");
-    redoButton.setTooltip ("Redo (Shift+Cmd+Z)");
+    fileButton.setTooltip ("New, Open, Save, Export, Undo and Redo, the song's settings, the sound, step input and the light look");
     playButton.setTooltip ("Play from the caret, or stop (Shift+Space; Space plays from bar 1)");
     startButton.setTooltip ("Return to the start (Home) - if it is playing, it plays on from bar 1");
     endButton.setTooltip ("Skip to the end of the music (End)");
@@ -54,9 +51,6 @@ Toolbar::Toolbar (Controller& c) : controller (c)
     tripletButton.setTooltip ("A triplet grid: three in the space of two (T)");
     snapButton.setTooltip ("Notes snap to the grid when they are drawn, moved or stretched");
     quantiseButton.setTooltip ("Pull the selected notes onto the grid - or the whole part in the roll if none are selected (Q)");
-    stepButton.setTooltip ("Step input: play a MIDI keyboard to write notes at the caret, one grid step each, the caret moving on (R)");
-    themeButton.setTooltip ("A light piano roll and tracks, or back to dark");
-    settingsButton.setTooltip ("The sound, and audio and MIDI devices");
     zoomIn.setTooltip ("Zoom in (Cmd+=)");
     zoomOut.setTooltip ("Zoom out (Cmd+-)");
 
@@ -69,9 +63,6 @@ Toolbar::Toolbar (Controller& c) : controller (c)
     }
 
     fileButton.onClick = [this] { if (onFile) onFile(); };
-    settingsButton.onClick = [this] { if (onSettings) onSettings(); };
-    undoButton.onClick = [this] { controller.undo(); };
-    redoButton.onClick = [this] { controller.redo(); };
     playButton.onClick = [this] { controller.togglePlay(); };
     startButton.onClick = [this] { if (onStart) onStart(); };
     endButton.onClick = [this] { if (onEnd) onEnd(); };
@@ -88,8 +79,6 @@ Toolbar::Toolbar (Controller& c) : controller (c)
     tripletButton.onClick = [this] { controller.setGrid (controller.grid.base, ! controller.grid.triplet); };
     snapButton.onClick = [this] { controller.toggleSnap(); };
     quantiseButton.onClick = [this] { controller.quantiseSelection(); };
-    stepButton.onClick = [this] { controller.toggleStepInput(); };
-    themeButton.onClick = [this] { controller.lightTheme = ! controller.lightTheme; controller.viewChanged(); };
     zoomOut.onClick = [this] { if (onZoomOut) onZoomOut(); };
     zoomIn.onClick = [this] { if (onZoomIn) onZoomIn(); };
 
@@ -111,7 +100,6 @@ void Toolbar::resized()
     auto r = getLocalBounds().reduced (8, 7);
     auto place = [&r] (juce::Component& c, int w, int gap = 4) { c.setBounds (r.removeFromLeft (w)); r.removeFromLeft (gap); };
     place (fileButton, 52, 14);
-    place (undoButton, 52); place (redoButton, 52, 14);
     place (startButton, 30, 2);
     place (playButton, 60, 2);
     place (endButton, 30, 6);
@@ -121,23 +109,16 @@ void Toolbar::resized()
     place (gridBox, 74, 4);
     place (tripletButton, 62, 2); place (snapButton, 52, 8);
     place (quantiseButton, 74, 14);
-    place (stepButton, 84, 14);
     auto right = r;
-    settingsButton.setBounds (right.removeFromRight (64));
-    right.removeFromRight (10);
     zoomIn.setBounds (right.removeFromRight (28));
     right.removeFromRight (2);
     zoomOut.setBounds (right.removeFromRight (28));
-    right.removeFromRight (10);
-    themeButton.setBounds (right.removeFromRight (60));
 }
 
 void Toolbar::changeListenerCallback (juce::ChangeBroadcaster*) { refresh(); }
 
 void Toolbar::refresh()
 {
-    undoButton.setEnabled (controller.canUndo());
-    redoButton.setEnabled (controller.canRedo());
     playButton.setButtonText (controller.audio.isPlaying() ? "Stop" : "Play");
     playButton.setToggleState (controller.audio.isPlaying(), juce::dontSendNotification);
     followButton.setToggleState (controller.followPlayback, juce::dontSendNotification);
@@ -148,8 +129,6 @@ void Toolbar::refresh()
         if (values[i] == controller.grid.base) gridBox.setSelectedId (static_cast<int> (i) + 1, juce::dontSendNotification);
     tripletButton.setToggleState (controller.grid.triplet, juce::dontSendNotification);
     snapButton.setToggleState (controller.grid.snap, juce::dontSendNotification);
-    stepButton.setToggleState (controller.stepInput, juce::dontSendNotification);
-    themeButton.setToggleState (controller.lightTheme, juce::dontSendNotification);
     repaint();
 }
 

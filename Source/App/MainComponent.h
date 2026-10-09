@@ -73,7 +73,6 @@ private:
     void titleDialog();
     void tempoDialog();
     void meterDialog();
-    void showSettingsMenu();
     void openDialog();
     void saveDialog (bool saveAs, std::function<void()> then = {});
     void importDialog();
