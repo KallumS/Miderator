@@ -1,18 +1,18 @@
-Installing Noterator on a Mac
+Installing Miderator on a Mac
 =============================
 
-1. Drag Noterator into the Applications folder (the shortcut beside it).
+1. Drag Miderator into the Applications folder (the shortcut beside it).
 
 2. The first time only: in Applications, RIGHT-click (or Control-click)
-   Noterator and choose Open, then Open again in the box that appears.
+   Miderator and choose Open, then Open again in the box that appears.
 
-   macOS asks because Noterator is not yet signed with an Apple Developer
+   macOS asks because Miderator is not yet signed with an Apple Developer
    certificate. After this first time it opens normally with a double-click.
 
    If macOS says the app "is damaged and can't be opened", open Terminal
    (Applications > Utilities > Terminal), paste this line and press Return:
 
-       xattr -cr /Applications/Noterator.app
+       xattr -cr /Applications/Miderator.app
 
    then open it again. That removes the "downloaded from the internet" mark,
    which is all the warning is about.

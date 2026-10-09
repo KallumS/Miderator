@@ -1,4 +1,4 @@
-# Builds Noterator for macOS (an Apple silicon app in a .dmg, ready to download from
+# Builds Miderator for macOS (an Apple silicon app in a .dmg, ready to download from
 # the run's Artifacts) and runs the tests on Linux and macOS.
 #
 # Pushing a tag that starts with "v" (v0.1.0) also publishes a GitHub Release
@@ -31,21 +31,23 @@ jobs:
         run: lua5.4 tools/try_generators.lua
       - name: Core tests
         run: |
-          cmake -B build-core -G Ninja -DNOTERATOR_BUILD_APP=OFF -DCMAKE_BUILD_TYPE=Release
+          cmake -B build-core -G Ninja -DMIDERATOR_BUILD_APP=OFF -DCMAKE_BUILD_TYPE=Release
           cmake --build build-core
           ctest --test-dir build-core --output-on-failure
       - name: The app and the renderer compile
         run: |
           cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --target Noterator NoteratorRender NoteratorAppTests
+          cmake --build build --target Miderator MideratorRender MideratorAppTests
       - name: App tests (controller, export, audio)
-        run: ./build/NoteratorAppTests_artefacts/Release/NoteratorAppTests
-      - name: Render the test page
-        run: ./build/NoteratorRender_artefacts/Release/NoteratorRender demo engraving-test.png 10 light
+        run: ./build/MideratorAppTests_artefacts/Release/MideratorAppTests
+      - name: Render the tracks and the piano roll
+        run: |
+          ./build/MideratorRender_artefacts/Release/MideratorRender demo piano-roll-dark.png
+          ./build/MideratorRender_artefacts/Release/MideratorRender demo piano-roll-light.png light 4
       - uses: actions/upload-artifact@v4
         with:
-          name: engraving-test
-          path: engraving-test.png
+          name: piano-roll
+          path: piano-roll-*.png
 
   macos:
     name: macOS app
@@ -57,13 +59,13 @@ jobs:
       - name: Configure
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64
       - name: Build
-        run: cmake --build build --target Noterator NoteratorTests NoteratorAppTests
+        run: cmake --build build --target Miderator MideratorTests MideratorAppTests
       - name: Tests
         run: ctest --test-dir build --output-on-failure -V
       - name: Package
         run: |
-          APP="build/Noterator_artefacts/Release/Noterator.app"
-          lipo -info "$APP/Contents/MacOS/Noterator"
+          APP="build/Miderator_artefacts/Release/Miderator.app"
+          lipo -info "$APP/Contents/MacOS/Miderator"
           # An ad-hoc signature: enough for an Apple silicon Mac to run it.
           # (No Apple Developer ID yet, so the first launch needs right-click > Open.)
           codesign --force --deep --sign - "$APP"
@@ -71,13 +73,13 @@ jobs:
           cp -R "$APP" dmg/
           ln -s /Applications dmg/Applications
           cp docs/INSTALL-MAC.txt "dmg/Read me first.txt"
-          hdiutil create -volname "Noterator" -srcfolder dmg -ov -format UDZO Noterator-macOS.dmg
+          hdiutil create -volname "Miderator" -srcfolder dmg -ov -format UDZO Miderator-macOS.dmg
       - uses: actions/upload-artifact@v4
         with:
-          name: Noterator-macOS
-          path: Noterator-macOS.dmg
+          name: Miderator-macOS
+          path: Miderator-macOS.dmg
       - name: Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: Noterator-macOS.dmg
+          files: Miderator-macOS.dmg
