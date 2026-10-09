@@ -66,7 +66,7 @@ gets undone.
 | `Source/App/AudioEngine.*`, `Exporter.*` | Playback through a rack of synths, one per 16 channels (0023), previews, MIDI input; MIDI, MusicXML and WAV export (0007). |
 | `Source/App/GeneratorPanel.*`, `BlocksPanel.*`, `SettingsList.*` | The Generate tab (0017), the Blocks toolbox (0018, 0024) with a small piano-roll preview, and the settings menus both draw from an adapter. |
 | `Source/App/Panels.*`, `MainComponent.*`, `Theme.*` | Toolbar, Parts tab, status line, keys and menus (File holds New, Open, Save, Export, Undo, the song's settings, Sound, Step input and Light, 0037-0039), colours (both looks in `theme::rollColours`). |
-| `Tests/Test*.cpp` | Core tests (97), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (19). |
+| `Tests/Test*.cpp` | Core tests (100), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (19). |
 | `tools/` | `RenderRoll.cpp` (MideratorRender, PNGs of the real views), `try_generators.lua`, `sync_engines.sh`, `sync_from_noterator.sh`. `build-mac.command`, at the top, builds the app on the user's Mac (0045). |
 
 ## Working in it
@@ -151,6 +151,11 @@ tools/sync_from_noterator.sh ../Noterator --check
 - **Selecting notes clears the chosen bars** (`select`, `selectAll`, dragging,
   pasting, drawing). Code that sets `selection` directly must decide whether
   `range` still holds.
+- **A Blocks chord's name comes from its recorded root** (0046,
+  `Score::chordRoots`, `nameFromRoot`): the lane reads notes only where
+  nothing recorded how they were made. New data about a span of the score
+  goes on `Score`, is saved by `ScoreFile` and moved by `insertBars` and
+  `deleteBars`, or it drifts.
 - **General MIDI gets CC7 and CC11 only** from AutoCC; a .mid gets all four (0008).
 - **A part's channel is bank x 16 + channel** (0023). Never assume 0-15.
 - **Menu ids come in ranges** (`MainComponent.cpp`): every range check names
@@ -182,7 +187,8 @@ was the Score tab, Undo, Sound, Step input and Light (0038, 0039), and
 generated music orchestrated across the chosen parts, or every part
 with nothing chosen, a single line to one part (0040-0042); then auditions that
 play every note on a piano (0043), a name click that lets go of bars chosen
-elsewhere (0044) and `build-mac.command` (0045), on the branch
+elsewhere (0044), `build-mac.command` (0045) and Blocks chords named in the
+Chords lane from their own root (0046), on the branch
 `ccr-ac8da7d9-3sbl5x`. Not built yet, roughly in the order
 the user is likely to want them: drawable CC lanes; articulations; VST3/CLAP
 instruments and SoundFonts; real-time recording; Windows. Known rough edges

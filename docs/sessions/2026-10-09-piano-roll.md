@@ -239,3 +239,24 @@ The user asked for the build-it-yourself file offered earlier:
 `xcode-select`, `cmake`, `codesign`, `osascript` and `open`: a first fetch of
 `main`, an update to a branch, and a wrong branch name. shellcheck is clean.
 Not yet run on a Mac. 97 core tests, 19 app tests.
+
+## Then: every Blocks chord checked against the Chords lane (0046)
+
+The user saw the lane disagree with Blocks over inversions and asked for
+every chord in every key to be checked, Blocks being right wherever they
+disagree. A harness ran Blocks itself in all 288 keys - every family, type,
+degree and inversion, 670,248 chords - through the lane's reader and scored
+each name with ScaleView's `check_symbol.py`: none claimed wrong notes, 48%
+were named from another root, and 19% share their exact notes and bass with
+a Blocks chord on another root, so no reading of notes alone can get them
+all. With the user's choice (both: Blocks chords keep their names, and
+ScaleView Pro moves towards Blocks), a Blocks chord now carries its root
+into the score (`ChordRoot`), and the lane names it from there: the same
+sweep through the real insert path reads 670,248 of 670,248 on Blocks' root
+and bass. The test of four keys fails with the root not recorded; a test of
+rests holding the name failed on the first version, which split the empty
+bars after a chord off under the reader's name - seen in Miderator's window,
+where bars 3 onwards read a second C6. The user then said arpeggios can be
+ignored: only the Chord block reports a root. A tool call reported as failed
+had written the Controller change it was making - found, as before, by
+reading the file before editing it. 100 core tests, 19 app tests.
