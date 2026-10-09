@@ -133,3 +133,18 @@ Violin I went in as its top line, five single notes, and the status line
 said "Violin I: top notes only" - at first running into the middle of the
 status bar, so the left message now stops short of it with an ellipsis, in
 both apps. 86 core tests, 14 app tests.
+
+## Then: the Score tab into File (0038)
+
+The user asked for the Score tab's contents to go under File too. They are
+now a "This song" section in the File menu (and the Mac's File menu): title
+and composer and tempo in small boxes, time signature and key as sub-menus
+ticked at the caret's bar, bars, and sound; the tab and `ScorePanel` are
+gone, and "use the key it hears" is `Controller::useHeardKey`, with an app
+test (15 now). Made with one script in both apps. Tried every item in the
+window - and the first try of Tempo did nothing but say "Grid 1 bar": the
+grid range check in `menuItemSelected` took every id from 300 to 999, so
+the new items at 400 were read as grid sizes past the end of the list.
+Bounded to the grid's own choices; Noterator has no grid range and was
+never affected. After that: tempo 132, 6/8, E Mixolydian, a title and
+composer, four more bars, each shown back in the menu.

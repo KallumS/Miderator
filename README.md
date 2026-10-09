@@ -98,7 +98,8 @@ It needs a Mac with Apple silicon (M1 or later).
 | All the keys | **H** |
 
 The **Parts** tab adds and removes instruments, and shows what each one can
-do. The **Score** tab sets the title, tempo, time signature and key.
+do. **File** > **This song** sets the title, tempo, time signature, key,
+bars and sound.
 
 ## Where it is going
 

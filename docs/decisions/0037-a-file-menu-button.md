@@ -1,7 +1,7 @@
 # 0037 - New, Open, Save and Export under one File button
 
 - **Date:** 2026-10-09
-- **Status:** Accepted (Noterator and Miderator alike)
+- **Status:** Accepted (Noterator and Miderator alike); the menu gained the Score tab's settings in 0038
 
 ## Context
 

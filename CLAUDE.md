@@ -64,8 +64,8 @@ gets undone.
 | `Source/App/PianoRollView.*` | One part's piano roll: keys, range bracket, notes, the mouse rules (0028), the velocity lane (0030). |
 | `Source/App/AudioEngine.*`, `Exporter.*` | Playback through a rack of synths, one per 16 channels (0023), previews, MIDI input; MIDI, MusicXML and WAV export (0007). |
 | `Source/App/GeneratorPanel.*`, `BlocksPanel.*`, `SettingsList.*` | The Generate tab (0017), the Blocks toolbox (0018, 0024) with a small piano-roll preview, and the settings menus both draw from an adapter. |
-| `Source/App/Panels.*`, `MainComponent.*`, `Theme.*` | Toolbar, Parts and Score tabs, status line, keys and menus, colours (both looks in `theme::rollColours`). |
-| `Tests/Test*.cpp` | Core tests (86), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (14). |
+| `Source/App/Panels.*`, `MainComponent.*`, `Theme.*` | Toolbar, Parts tab, status line, keys and menus (File holds New, Open, Save, Export and the song's settings, 0037, 0038), colours (both looks in `theme::rollColours`). |
+| `Tests/Test*.cpp` | Core tests (86), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (15). |
 | `tools/` | `RenderRoll.cpp` (MideratorRender, PNGs of the real views), `try_generators.lua`, `sync_engines.sh`, `sync_from_noterator.sh`. |
 
 ## Working in it
@@ -144,6 +144,8 @@ tools/sync_from_noterator.sh ../Noterator --check
   `range` still holds.
 - **General MIDI gets CC7 and CC11 only** from AutoCC; a .mid gets all four (0008).
 - **A part's channel is bank x 16 + channel** (0023). Never assume 0-15.
+- **Menu ids come in ranges** (`MainComponent.cpp`): every range check names
+  its own end, or it swallows the next range's items (0038).
 - Letters in shortcuts arrive in either case: compare them upper-cased.
 - **No references into temporaries in tests**: `f().front().x` inside
   `CHECK_EQ` dangles. It passed with GCC and failed on the Mac.
@@ -167,7 +169,8 @@ a page at a time (0033, 0034) - merged into `main` in both repositories,
 not yet tried by the user on their Mac. Then Space from bar 1, Shift+Space
 from the caret, and buttons to the start and the end (0035), on the branch
 `ccr-ac8da7d9-3sbl5x` in both, with generated music fitted to what each
-instrument can play (0036) and a File button (0037). Not built yet, roughly in the order
+instrument can play (0036) and a File button (0037) that also holds what
+was the Score tab (0038). Not built yet, roughly in the order
 the user is likely to want them: drawable CC lanes; articulations; VST3/CLAP
 instruments and SoundFonts; real-time recording; Windows. Known rough edges
 are in the latest session log's "Not done yet".
