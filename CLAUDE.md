@@ -157,8 +157,12 @@ light with **Light** (0031, remembered); the chrome stays dark.
 ## Where it stands
 
 First version, built 2026-10-09: tracks and piano roll, every Noterator
-feature but notation, velocity lane, quantise, step input, light and dark.
-Not yet tried by the user on their Mac. Not built yet, roughly in the order
+feature but notation, velocity lane, quantise, step input, light and dark,
+and Follow - the view scrolls smoothly with the music as it plays, or turns
+a page at a time (0033, 0034). Not yet tried by the user on their Mac. All
+of it is on the branch `ccr-ac8da7d9-3sbl5x`, not yet merged into `main`;
+the shared files match Noterator's branch of the same name (`docs/SHARED.md`),
+also not yet merged there. Not built yet, roughly in the order
 the user is likely to want them: drawable CC lanes; articulations; VST3/CLAP
 instruments and SoundFonts; real-time recording; Windows. Known rough edges
 are in the latest session log's "Not done yet".

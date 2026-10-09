@@ -12,7 +12,7 @@ notation taken out and a piano roll put in. Everything else - the
 generators, the ensembles, the instruments, the sound, the files - is
 Noterator's, and the two open each other's projects.
 
-![Generate Notes filling four bars of a string quartet, the viola in the piano roll](docs/piano-roll.png)
+![Generate Notes filling four bars of a string quartet, the second violin in the piano roll](docs/piano-roll.png)
 
 ## What it does
 
@@ -46,6 +46,10 @@ Noterator's, and the two open each other's projects.
   chords and the scale as you write. Click a chord to hear it.
 - **Hear it.** Plays through the General MIDI orchestra built into macOS - no
   sounds to install - with AutoCC's swells on strings, wind and brass.
+- **Follow the music.** While it plays, the tracks and the roll scroll
+  smoothly along with it, the playhead a third of the way across so you see
+  what is coming. Or turn a page at a time, or keep the view still (the
+  **Follow** button, or **F**).
 - **Take it with you.** Export the whole song or the chosen bars as MIDI
   (with all four AutoCC lanes, for sample libraries), as MusicXML for
   Dorico, Sibelius, MuseScore or Finale, or as WAV audio. Open or drop in a

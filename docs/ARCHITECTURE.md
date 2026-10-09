@@ -38,7 +38,7 @@ decisions; 0026 on are Miderator's.
   pitch. A piano roll draws exactly that.
 - **The view is derived.** Nothing about the tracks or the roll is stored;
   the grid, the tool and the zoom are choices in the window.
-- **The music core has no JUCE** (`Source/Core`, `Source/Engines`), so 74 tests
+- **The music core has no JUCE** (`Source/Core`, `Source/Engines`), so 82 tests
   build and run in seconds. `MideratorAppTests` covers the JUCE side.
 - **One controller.** Every window piece reads the `Controller` and asks it for
   changes; it keeps undo, re-checks the instruments, re-detects and re-sends
