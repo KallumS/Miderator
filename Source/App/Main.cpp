@@ -1,8 +1,8 @@
 /*
-    Noterator - a notation DAW for the family of generators.
+    Miderator - a piano-roll DAW for the family of generators.
 
     The application: one window, the house look-and-feel, tooltips, and the
-    files the system hands us (a .noterator or a .mid double-clicked in the
+    files the system hands us (a .miderator or a .mid double-clicked in the
     Finder arrives through anotherInstanceStarted).
 */
 

@@ -21,7 +21,7 @@ namespace
 {
 juce::File temp (const juce::String& name)
 {
-    return juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("noterator-test-" + name);
+    return juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("miderator-test-" + name);
 }
 
 double rmsOf (const juce::File& wav)
@@ -38,6 +38,14 @@ AudioEngine& audio()
 {
     static AudioEngine engine;
     return engine;
+}
+
+// Quarter notes one after another, drawn as the piano roll draws them.
+void drawLine (Controller& c, size_t partIndex, Tick from, std::initializer_list<int> pitches)
+{
+    const auto id = c.score.parts[partIndex].id;
+    Tick at = from;
+    for (int p : pitches) { c.drawNoteAt (id, at, p, PPQ); at += PPQ; }
 }
 } // namespace
 
@@ -65,7 +73,7 @@ TEST ("app: chosen bars are filled by Good Idea, across the parts chosen")
     c.newScore ("String Quartet");
     c.setBars (8);
     c.setCaret (c.score.parts[0].id, 0);
-    for (int letter : { 0, 2, 4, 5 }) c.typeLetter (letter, false);   // bar 1, first violin
+    drawLine (c, 0, 0, { 72, 74, 76, 77 });                           // bar 1, first violin
     c.selectRange (1, 4, 0, 3);                                       // bars 2-5, all four
     CHECK (c.range.active());
     CHECK_EQ (c.rangeText(), juce::String ("Bars 2-5, Violin I to Cello"));
@@ -129,8 +137,7 @@ TEST ("app: selected bars export as MIDI and read back")
 {
     Controller c (audio());
     c.newScore ("Piano");
-    c.setCaret (c.score.parts[0].id, 4 * PPQ);
-    for (int letter : { 0, 2, 4, 0 }) c.typeLetter (letter, false);
+    drawLine (c, 0, 4 * PPQ, { 60, 62, 64, 60 });
     juce::String error;
     const auto f = temp ("bars.mid");
     CHECK (exportMidi (c.score, { 4 * PPQ, 8 * PPQ }, true, f, error));
@@ -152,8 +159,7 @@ TEST ("app: audio renders, and is not silent, through both synths")
 {
     Controller c (audio());
     c.newScore ("String Quartet");
-    c.setCaret (c.score.parts[0].id, 0);
-    for (int letter : { 0, 2, 4, 5, 4, 2, 0 }) c.typeLetter (letter, false);
+    drawLine (c, 0, 0, { 72, 74, 76, 77, 76, 74, 72 });
     for (bool builtIn : { false, true })
     {
         juce::String error;
@@ -175,8 +181,7 @@ TEST ("app: the last part of a full orchestra sounds, through a second synth")
     CHECK_EQ (c.score.parts.size(), size_t (28));
     CHECK_EQ (banksFor (c.score), 2);
     // Only the double basses play: their channel is in the second bank.
-    c.setCaret (c.score.parts.back().id, 0);
-    for (int letter : { 0, 4, 0, 4 }) c.typeLetter (letter, false);
+    drawLine (c, c.score.parts.size() - 1, 0, { 36, 40, 36, 40 });
     for (bool builtIn : { false, true })
     {
         juce::String error;
@@ -199,11 +204,10 @@ TEST ("app: a project saves and opens again")
 {
     Controller c (audio());
     c.newScore ("Band");
-    c.setCaret (c.score.parts[0].id, 0);
-    c.typeLetter (0, false);
-    c.typeLetter (2, true);
+    c.drawNoteAt (c.score.parts[0].id, 0, 60);
+    c.drawNoteAt (c.score.parts[0].id, 0, 64);
     juce::String error;
-    const auto f = temp ("song.noterator");
+    const auto f = temp ("song.miderator");
     CHECK (c.save (f, error));
     Controller d (audio());
     CHECK (d.load (f, error));
@@ -216,8 +220,7 @@ TEST ("app: MusicXML out, bars at a time, and back in, plain and compressed")
 {
     Controller c (audio());
     c.newScore ("Piano");
-    c.setCaret (c.score.parts[0].id, 4 * PPQ);
-    for (int letter : { 0, 2, 4, 5 }) c.typeLetter (letter, false);
+    drawLine (c, 0, 4 * PPQ, { 60, 62, 64, 65 });
     juce::String error;
     const auto f = temp ("bars.musicxml");
     CHECK (exportMusicXml (c.score, { 4 * PPQ, 8 * PPQ }, f, error));
@@ -250,6 +253,119 @@ TEST ("app: MusicXML out, bars at a time, and back in, plain and compressed")
     if (! zipped.parts.empty()) CHECK_EQ (zipped.parts[0].notes.size(), size_t (4));
     f.deleteFile();
     mxl.deleteFile();
+}
+
+TEST ("app: notes drawn, dragged, copied and stretched on the roll, each one undo")
+{
+    Controller c (audio());
+    c.newScore ("Piano");
+    const auto piano = c.score.parts[0].id;
+    c.grid.base = PPQ / 4;
+    const auto id = c.drawNoteAt (piano, PPQ, 60);
+    CHECK (id != 0);
+    CHECK_EQ (c.score.parts[0].notes.size(), size_t (1));
+    CHECK_EQ (c.score.parts[0].notes[0].length, PPQ / 4);   // a drawn note is a grid step
+    CHECK (c.selection == Selection { id });
+
+    c.dragSelection (PPQ, 7, false);                         // a beat later, a fifth up
+    CHECK_EQ (c.score.parts[0].notes[0].start, 2 * PPQ);
+    CHECK_EQ (c.score.parts[0].notes[0].pitch, 67);
+    c.dragSelection (-4 * PPQ, 0, false);                    // past the start: refused
+    CHECK_EQ (c.score.parts[0].notes[0].start, 2 * PPQ);
+    CHECK_EQ (c.status, juce::String ("That would go past the start, or the ends of the MIDI range."));
+
+    c.dragSelection (PPQ, 0, true);                          // Alt-drag: a copy
+    CHECK_EQ (c.score.parts[0].notes.size(), size_t (2));
+    CHECK_EQ (c.selection.size(), size_t (1));
+    CHECK (c.selection.count (id) == 0);                     // the copy is what is selected
+
+    c.stretchSelection (PPQ / 2, false);
+    CHECK_EQ (c.score.parts[0].notes[1].length, PPQ * 3 / 4);
+    c.stretchSelection (-4 * PPQ, false);                    // never shorter than the shortest
+    CHECK_EQ (c.score.parts[0].notes[1].length, PPQ / 8);
+
+    c.undo(); c.undo(); c.undo();
+    CHECK_EQ (c.score.parts[0].notes.size(), size_t (1));
+    c.undo(); c.undo();
+    CHECK (c.score.parts[0].notes.empty());
+}
+
+TEST ("app: quantise, duplicate and velocities through the controller")
+{
+    Controller c (audio());
+    c.newScore ("Piano");
+    const auto piano = c.score.parts[0].id;
+    c.edit ("Played in", [piano] (Score& s)
+    {
+        for (Tick at : { Tick (30), Tick (PPQ - 50), Tick (2 * PPQ + 70) })
+        {
+            Note n;
+            n.start = at;
+            n.length = PPQ - 40;
+            n.pitch = 60;
+            n.id = s.newId();
+            s.partById (piano)->notes.push_back (n);
+        }
+    });
+    c.setCaret (piano, 0);
+    c.select ({});
+    c.setGrid (PPQ, false);
+    c.quantiseSelection();                                    // nothing selected: the whole part
+    const auto& n = c.score.parts[0].notes;
+    CHECK_EQ (n.size(), size_t (3));
+    CHECK_EQ (n[0].start, Tick (0));
+    CHECK_EQ (n[1].start, PPQ);
+    CHECK_EQ (n[2].start, 2 * PPQ);
+    CHECK_EQ (n[2].length, PPQ);
+
+    Selection all;
+    for (const auto& x : c.score.parts[0].notes) all.insert (x.id);
+    c.select (all);
+    c.duplicateSelection();                                   // straight after: three beats on
+    CHECK_EQ (c.score.parts[0].notes.size(), size_t (6));
+    CHECK_EQ (c.score.parts[0].notes[3].start, 3 * PPQ);
+    CHECK_EQ (c.selection.size(), size_t (3));
+
+    std::map<uint32_t, int> v;
+    for (const auto x : c.selection) v[x] = 40;
+    c.setVelocities (v);
+    int soft = 0;
+    for (const auto& x : c.score.parts[0].notes) if (x.velocity == 40) ++soft;
+    CHECK_EQ (soft, 3);
+}
+
+TEST ("app: step input writes a grid step at the caret, and keys together make a chord")
+{
+    Controller c (audio());
+    c.newScore ("Piano");
+    c.setCaret (c.score.parts[0].id, PPQ + 10);
+    c.setGrid (PPQ / 2, false);
+    c.toggleStepInput();
+    CHECK (c.stepInput);
+    CHECK_EQ (c.caret, PPQ);                                  // onto the grid
+    c.writePitch (60, false);
+    c.writePitch (64, true);                                  // pressed with it
+    c.writePitch (67, false);
+    const auto& n = c.score.parts[0].notes;
+    CHECK_EQ (n.size(), size_t (3));
+    CHECK_EQ (n[0].start, PPQ);
+    CHECK_EQ (n[1].start, PPQ);
+    CHECK_EQ (n[1].pitch, 64);
+    CHECK_EQ (n[2].start, PPQ + PPQ / 2);
+    CHECK_EQ (n[2].length, PPQ / 2);
+    CHECK_EQ (c.caret, 2 * PPQ);
+}
+
+TEST ("app: the warnings follow every edit")
+{
+    Controller c (audio());
+    c.newScore ("String Quartet");
+    const auto violin = c.score.parts[0].id;
+    const auto low = c.drawNoteAt (violin, 0, 50);           // under the violin's G
+    CHECK (c.warnings.count (low) == 1);
+    CHECK (c.warnings.at (low).outOfRange);
+    c.dragSelection (0, 17, false);                           // up to G4: fine
+    CHECK (c.warnings.count (low) == 0);
 }
 
 int main (int argc, char** argv)

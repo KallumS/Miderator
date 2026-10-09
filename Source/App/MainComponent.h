@@ -1,10 +1,10 @@
 /*
-    MainComponent - the window: toolbar, page, panels, status line, and the
-    keys and menus that drive them.
+    MainComponent - the window: toolbar, tracks and piano roll, panels,
+    status line, and the keys and menus that drive them.
 
-    Keys follow the notation programs people already know: letters write
-    notes, numbers choose note values (MuseScore's: 5 is a quarter), the
-    arrows move and transpose, Space plays.
+    Keys follow the DAWs people already know: Space plays, the arrows move
+    and transpose, Q quantises, D switches between selecting and drawing,
+    Cmd+D duplicates, 1-6 choose the grid.
 */
 
 #pragma once
@@ -14,7 +14,7 @@
 #include "BlocksPanel.h"
 #include "GeneratorPanel.h"
 #include "Panels.h"
-#include "ScoreView.h"
+#include "Workspace.h"
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
@@ -51,7 +51,7 @@ private:
     AudioEngine audio;
     Controller controller { audio };
     Toolbar toolbar { controller };
-    ScoreView view { controller };
+    Workspace workspace { controller };
     juce::TabbedComponent tabs { juce::TabbedButtonBar::TabsAtTop };
     GeneratorPanel generatorPanel { controller };
     BlocksPanel blocksPanel { controller };
@@ -59,7 +59,7 @@ private:
     ScorePanel scorePanel { controller };
     StatusBar statusBar { controller };
     std::unique_ptr<juce::FileChooser> chooser;
-    juce::ApplicationProperties preferences;   // the page colour and zoom, kept between launches
+    juce::ApplicationProperties preferences;   // the theme and the zoom, kept between launches
     juce::File lastFolder;
 
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
@@ -74,6 +74,7 @@ private:
     void exportDialog (ExportKind kind, bool selectedBars);
     void audioSettingsDialog();
     void showHelp();
+    void zoomBy (float factor);
     void updateTitle();
 };
 

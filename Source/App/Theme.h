@@ -7,9 +7,10 @@
     grey is blue-shifted, R < G < B - a neutral grey reads flat beside the
     yellow - and every button takes the dark ink, chosen or not.
 
-    The page of music is set in ink on its own paper, and the accent is spent
-    on what is selected and what is sounding. The page can be turned over to
-    black on white (Starting Blocks Notation's 0012); the chrome stays.
+    The tracks and the piano roll are the page here: dark by default, as a
+    DAW is (decision 0031), or light on request; the chrome stays dark either
+    way. The accent is spent on what is selected and what is sounding, red
+    only on what an instrument cannot play.
 */
 
 #pragma once
@@ -50,6 +51,20 @@ struct Page
 
 Page darkPage();
 Page lightPage();
+
+// The piano roll's and the tracks' colours, light or dark.
+struct RollColours
+{
+    Page page;
+    juce::Colour whiteRow, blackRow;           // the lanes behind the notes
+    juce::Colour barLine, beatLine, stepLine;  // the grid
+    juce::Colour note, noteEdge, ghost, faint; // a note, its outline, another part's, outside the sweet register
+    juce::Colour selected, sounding;
+    juce::Colour whiteKey, blackKey, keyText;
+    juce::Colour trackRow, trackRowAlt, header, headerActive, headerText;
+};
+
+RollColours rollColours (bool light);
 
 class LookAndFeel : public juce::LookAndFeel_V4
 {

@@ -19,9 +19,7 @@ Controller::Controller (AudioEngine& audioEngine) : audio (audioEngine)
 void Controller::refresh()
 {
     ensureCaretPart();
-    engrave::Options o;
-    o.transposedScore = transposedScore;
-    layout = engrave::layout (score, o);
+    warnings = roll::check (score);
     chords = detectChords (score, 0, score.endTick());
     keys = detectKeys (score, true);
     audio.update (score);
@@ -84,7 +82,7 @@ void Controller::redo()
 }
 
 void Controller::selectionChanged() { sendChangeMessage(); }
-void Controller::viewChanged() { refresh(); }
+void Controller::viewChanged() { sendChangeMessage(); }
 void Controller::setStatus (const juce::String& s) { status = s; sendChangeMessage(); }
 
 //==============================================================================
@@ -99,7 +97,7 @@ void Controller::setCaret (uint32_t partId, Tick t)
 
 void Controller::moveCaret (int direction)
 {
-    caret = std::clamp<Tick> (caret + direction * input.length(), 0, score.endTick());
+    caret = std::clamp<Tick> (roll::snap (score, caret, grid) + direction * grid.step(), 0, score.endTick());
     sendChangeMessage();
 }
 
@@ -113,101 +111,73 @@ void Controller::caretToPart (int direction)
     sendChangeMessage();
 }
 
-void Controller::writeAt (uint32_t partId, Tick at, int pitch, bool addToChord)
+uint32_t Controller::drawNoteAt (uint32_t partId, Tick at, int pitch, Tick length)
 {
-    const auto* part = score.partById (partId);
-    if (part == nullptr) return;
-    const Tick len = input.length();
+    if (score.partById (partId) == nullptr) return 0;
+    if (length <= 0) length = grid.step();
     uint32_t id = 0;
-    edit ("Wrote a note", [&] (Score& s)
-    {
-        if (addToChord) id = nt::addToChord (s, partId, at, len, pitch, input.voice);
-        else id = writeNote (s, partId, at, len, pitch, input.voice);
-    });
-    lastPitch = pitch;
-    if (! addToChord)
-    {
-        lastWriteStart = at;
-        lastWriteLength = len;
-        caretPart = partId;
-        caret = std::min (at + len, score.endTick());
-    }
+    edit ("Drew a note", [&] (Score& s) { id = roll::drawNote (s, partId, at, length, pitch); });
+    if (id == 0) return 0;
+    range = {};
     selection = { id };
+    caretPart = partId;
     previewPitches ({ pitch }, partId, 0.5);
     sendChangeMessage();
+    return id;
 }
 
 void Controller::writePitch (int pitch, bool addToChord)
 {
-    writeAt (caretPart, addToChord ? lastWriteStart : caret, pitch, addToChord);
-}
-
-void Controller::typeLetter (int letter, bool addToChord)
-{
-    static constexpr int letterPc[7] = { 0, 2, 4, 5, 7, 9, 11 };
-    const auto* part = caretPartPtr();
-    if (part == nullptr) return;
-    const auto& inst = instrumentById (part->instrument);
-    const Tick at = addToChord ? lastWriteStart : caret;
-    const auto& k = score.keyAtBar (score.barAt (at));
-    const auto ctx = keyContext (k.root, k.scale);
-    // The letter as the key signature has it: F in D major is F#. Typed
-    // letters are written pitches, so a clarinet's typed C sounds Bb.
-    const int writtenPc = (letterPc[letter] + ctx.signature.map[static_cast<size_t> (letter)] + 12) % 12;
-    const int shift = inst.octave + (transposedScore ? inst.transposition : 0);
-    const int soundingPc = ((writtenPc - shift) % 12 + 12) % 12;
-    // Where the line is: the last note before the caret in this part, or,
-    // in an empty part, the middle of where the instrument sounds best - so
-    // a viola's first C is not a violin's.
+    // Step input: a grid step at the caret, overwriting what was there, and
+    // the caret moves on; keys pressed together make a chord.
+    const auto partId = caretPart;
+    if (score.partById (partId) == nullptr) return;
+    const Tick len = grid.step();
+    const Tick at = addToChord ? lastWriteStart : roll::snap (score, caret, grid);
+    uint32_t id = 0;
+    edit ("Wrote a note", [&] (Score& s)
+    {
+        if (addToChord) id = nt::addToChord (s, partId, at, len, pitch, 0);
+        else id = writeNote (s, partId, at, len, pitch, 0);
+    });
     if (! addToChord)
     {
-        const Note* before = nullptr;
-        for (const auto& n : part->notes)
-            if (n.start < at && (before == nullptr || n.start >= before->start)) before = &n;
-        if (before != nullptr) lastPitch = before->pitch;
-        else if (lastPart != caretPart) lastPitch = (inst.sweetLow + inst.sweetHigh) / 2;
-        lastPart = caretPart;
+        lastWriteStart = at;
+        caret = std::min (at + len, score.endTick());
+        selection.clear();
     }
-    int pitch;
-    if (addToChord)
-    {
-        // Added notes stack upwards from the last one.
-        pitch = lastPitch + 1;
-        while (pitch % 12 != soundingPc) ++pitch;
-    }
-    else pitch = nearestPitchWithClass (soundingPc, lastPitch);
-    writeAt (caretPart, at, pitch, addToChord);
-}
-
-void Controller::typeRest()
-{
-    const Tick len = input.length();
-    const Tick at = caret;
-    const auto partId = caretPart;
-    edit ("Wrote a rest", [&] (Score& s) { writeRest (s, partId, at, len, input.voice); });
-    caret = std::min (at + len, score.endTick());
+    range = {};
+    selection.insert (id);
     sendChangeMessage();
 }
 
-void Controller::setDuration (Tick base)
+void Controller::setGrid (Tick base, bool triplet)
 {
-    input.base = base;
-    // Choosing a value with notes selected changes them, as in every
-    // notation program.
-    if (! selection.empty() && ! input.noteInput)
-    {
-        const auto ids = selection;
-        const Tick len = input.length();
-        edit ("Changed the note values", [&] (Score& s) { setLengths (s, ids, len); });
-        return;
-    }
-    sendChangeMessage();
+    grid.base = base;
+    grid.triplet = triplet;
+    setStatus ("Grid " + juce::String (grid.name()));
 }
 
-void Controller::toggleDot() { input.dotted = ! input.dotted; if (input.dotted) input.triplet = false; sendChangeMessage(); }
-void Controller::toggleTriplet() { input.triplet = ! input.triplet; if (input.triplet) input.dotted = false; sendChangeMessage(); }
-void Controller::toggleNoteInput() { input.noteInput = ! input.noteInput; sendChangeMessage(); }
-void Controller::setVoice (int voice) { input.voice = std::clamp (voice, 0, 1); sendChangeMessage(); }
+void Controller::toggleSnap()
+{
+    grid.snap = ! grid.snap;
+    setStatus (grid.snap ? "Notes snap to the grid" : "Snap off: notes go exactly where they are put");
+}
+
+void Controller::toggleDrawTool()
+{
+    drawTool = ! drawTool;
+    setStatus (drawTool ? "Draw: click the roll to draw a note, drag to make it longer, click a note to delete it"
+                        : "Select: click a note to choose it, drag it to move it, drag its end to stretch it");
+}
+
+void Controller::toggleStepInput()
+{
+    stepInput = ! stepInput;
+    if (stepInput) caret = roll::snap (score, caret, grid);
+    setStatus (stepInput ? "Step input: play a MIDI keyboard to write notes at the caret, one grid step each"
+                         : "Step input off");
+}
 
 //==============================================================================
 
@@ -267,25 +237,73 @@ void Controller::transposeSelection (int semitones)
 
 void Controller::moveSelection (int direction)
 {
-    if (selection.empty()) return;
-    const auto ids = selection;
-    const Tick by = direction * input.length();
-    range = {};
-    bool ok = true;
-    edit ("Moved", [&] (Score& s) { ok = moveNotes (s, ids, by); });
-    if (! ok) undo();
+    dragSelection (direction * grid.step(), 0, false);
 }
 
-void Controller::lengthenSelection (int direction)
+void Controller::dragSelection (Tick by, int semitones, bool copy)
+{
+    if (selection.empty() || (by == 0 && semitones == 0 && ! copy)) return;
+    const auto ids = selection;
+    range = {};
+    if (copy)
+    {
+        std::vector<uint32_t> made;
+        edit ("Copied notes", [&] (Score& s) { made = roll::copyNotesBy (s, ids, by, semitones); });
+        if (made.empty()) { undo(); setStatus ("That would go past the start, or the ends of the MIDI range."); return; }
+        selection = Selection (made.begin(), made.end());
+    }
+    else
+    {
+        bool ok = true;
+        edit (semitones != 0 && by == 0 ? "Transposed" : "Moved", [&] (Score& s) { ok = roll::moveNotes (s, ids, by, semitones); });
+        if (! ok) { undo(); setStatus ("That would go past the start, or the ends of the MIDI range."); return; }
+    }
+    if (semitones != 0) previewSelection();
+    sendChangeMessage();
+}
+
+void Controller::stretchSelection (Tick by, bool fromStart)
+{
+    if (selection.empty() || by == 0) return;
+    const auto ids = selection;
+    const Tick shortest = std::min<Tick> (grid.step(), PPQ / 8);
+    edit (by > 0 ? "Lengthened" : "Shortened", [&] (Score& s)
+    {
+        if (fromStart) roll::resizeStarts (s, ids, by, shortest);
+        else roll::resizeNotes (s, ids, by, shortest);
+    });
+}
+
+void Controller::setVelocities (const std::map<uint32_t, int>& velocities)
+{
+    if (velocities.empty()) return;
+    edit ("Changed velocity", [&] (Score& s) { roll::setVelocities (s, velocities); });
+}
+
+void Controller::quantiseSelection()
+{
+    // Nothing selected: the whole part in the roll, as a DAW quantises a clip.
+    auto ids = selection;
+    if (ids.empty())
+        if (const auto* p = caretPartPtr())
+            for (const auto& n : p->notes) ids.insert (n.id);
+    if (ids.empty()) { setStatus ("Nothing to quantise"); return; }
+    const Tick step = grid.step();
+    edit ("Quantised to " + juce::String (grid.name()), [&] (Score& s) { roll::quantise (s, ids, step); });
+}
+
+void Controller::duplicateSelection()
 {
     if (selection.empty()) return;
-    const auto ids = selection;
-    Tick len = 0;
+    // Straight after the selection, rounded up to the grid.
+    Tick first = -1, last = 0;
     for (const auto& p : score.parts)
         for (const auto& n : p.notes)
-            if (ids.count (n.id) != 0) { len = n.length; break; }
-    const Tick next = direction > 0 ? len * 2 : std::max<Tick> (PPQ / 16, len / 2);
-    edit (direction > 0 ? "Lengthened" : "Shortened", [&] (Score& s) { setLengths (s, ids, next); });
+            if (selection.count (n.id) != 0) { first = first < 0 ? n.start : std::min (first, n.start); last = std::max (last, n.end()); }
+    if (first < 0) return;
+    const Tick step = grid.step();
+    const Tick span = std::max (step, ((last - first + step - 1) / step) * step);
+    dragSelection (span, 0, true);
 }
 
 void Controller::deleteSelection()
@@ -327,17 +345,6 @@ void Controller::paste()
     selection = Selection (ids.begin(), ids.end());
     caret = at + span;
     sendChangeMessage();
-}
-
-void Controller::toggleVoiceOfSelection()
-{
-    if (selection.empty()) return;
-    int voice = 0;
-    for (const auto& p : score.parts)
-        for (const auto& n : p.notes)
-            if (selection.count (n.id) != 0) { voice = n.voice; break; }
-    const auto ids = selection;
-    edit ("Changed voice", [&] (Score& s) { nt::setVoice (s, ids, 1 - voice); });
 }
 
 void Controller::previewSelection()
@@ -510,9 +517,9 @@ void Controller::deleteSelectedBars()
 void Controller::togglePlay()
 {
     if (audio.isPlaying()) { stop(); return; }
-    // From the selection if there is one, else from the caret's bar.
-    Tick from = score.barStart (score.barAt (caret));
-    if (! selection.empty()) from = score.barStart (selectedBars().first);
+    // From the chosen bars if there are some, else from the caret.
+    Tick from = caret;
+    if (range.active()) from = score.barStart (range.first);
     playFrom (from);
 }
 
@@ -621,7 +628,7 @@ bool Controller::readScoreFile (const juce::File& f, Score& out, juce::String& e
     }
     juce::MemoryBlock mb;
     if (! f.loadFileAsData (mb)) { error = "Could not read " + f.getFileName(); return false; }
-    if (f.hasFileExtension ("noterator"))
+    if (f.hasFileExtension ("miderator;noterator"))
     {
         auto r = loadScore (mb.toString().toStdString());
         if (! r.ok) { error = r.error; return false; }
@@ -642,7 +649,7 @@ bool Controller::load (const juce::File& f, juce::String& error)
     if (! readScoreFile (f, loaded, error)) return false;
     // Only a project saves back to where it came from; a MIDI or MusicXML
     // file opened here becomes a new project when it is saved.
-    file = f.hasFileExtension ("noterator") ? f : juce::File();
+    file = f.hasFileExtension ("miderator;noterator") ? f : juce::File();
     audio.stop();
     score = std::move (loaded);
     undoStack.clear();

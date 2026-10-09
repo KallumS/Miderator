@@ -37,6 +37,57 @@ Page lightPage()
     return p;
 }
 
+RollColours rollColours (bool light)
+{
+    RollColours r;
+    r.page = light ? lightPage() : darkPage();
+    if (light)
+    {
+        r.whiteRow = juce::Colour (0xffFBFBFD);
+        r.blackRow = juce::Colour (0xffECEEF2);
+        r.barLine = juce::Colour (0xff8A919C);
+        r.beatLine = juce::Colour (0xffCDD2D9);
+        r.stepLine = juce::Colour (0xffE4E7EC);
+        r.note = juce::Colour (0xff4A515C);
+        r.noteEdge = juce::Colour (0xff14171C);
+        r.ghost = juce::Colour (0x223A404A);
+        r.faint = juce::Colour (0xff9AA1AC);
+        r.selected = shade (accent, -0.35f);
+        r.sounding = juce::Colour (0xff14171C);
+        r.whiteKey = juce::Colour (0xffFFFFFF);
+        r.blackKey = juce::Colour (0xff3A404A);
+        r.keyText = juce::Colour (0xff3A404A);
+        r.trackRow = juce::Colour (0xffF4F5F8);
+        r.trackRowAlt = juce::Colour (0xffEDEFF3);
+        r.header = juce::Colour (0xffDDE1E7);
+        r.headerActive = juce::Colour (0xffC5CBD3);
+        r.headerText = juce::Colour (0xff14171C);
+    }
+    else
+    {
+        r.whiteRow = juce::Colour (0xff1C2026);
+        r.blackRow = juce::Colour (0xff15181D);
+        r.barLine = juce::Colour (0xff535A66);
+        r.beatLine = juce::Colour (0xff30353D);
+        r.stepLine = juce::Colour (0xff24282F);
+        r.note = juce::Colour (0xffA9AFBA);
+        r.noteEdge = juce::Colour (0xff0D0F13);
+        r.ghost = juce::Colour (0x26A9AFBA);
+        r.faint = juce::Colour (0xff6D7581);
+        r.selected = accent;
+        r.sounding = juce::Colour (0xffF2F4F7);
+        r.whiteKey = juce::Colour (0xffDDE1E7);
+        r.blackKey = juce::Colour (0xff111419);
+        r.keyText = juce::Colour (0xff3A404A);
+        r.trackRow = juce::Colour (0xff1C2026);
+        r.trackRowAlt = juce::Colour (0xff181B21);
+        r.header = frameActive;
+        r.headerActive = juce::Colour (0xff3A404A);
+        r.headerText = text;
+    }
+    return r;
+}
+
 LookAndFeel::LookAndFeel()
 {
     setColour (juce::ResizableWindow::backgroundColourId, ground);

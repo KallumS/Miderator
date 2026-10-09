@@ -26,7 +26,7 @@ public:
         channels[9].drums = true;
     }
 
-    juce::String name() const override { return "Noterator's built-in synth"; }
+    juce::String name() const override { return "Miderator's built-in synth"; }
 
     void render (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) override
     {
@@ -303,7 +303,7 @@ std::unique_ptr<SynthBackend> createSynth (bool preferBuiltIn, juce::String& des
    #else
     juce::ignoreUnused (preferBuiltIn);
    #endif
-    description = "Noterator's built-in synth";
+    description = "Miderator's built-in synth";
     return std::make_unique<BasicSynth>();
 }
 

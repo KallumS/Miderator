@@ -1,8 +1,9 @@
 #include "BlocksPanel.h"
 
 #include "ScaleModel.h"
-#include "ScoreRenderer.h"
+#include "Spelling.h"
 #include "Theme.h"
+#include "Timeline.h"
 
 namespace nt
 {
@@ -79,34 +80,47 @@ class BlocksPanel::Preview : public juce::Component
 public:
     explicit Preview (Controller& c) : controller (c) {}
     Score score;
-    engrave::Layout layout;
 
     void set (const Score& s)
     {
         score = s;
-        layout = engrave::layout (score);
         repaint();
     }
 
+    // The block as a small piano roll: its bars and beats, and its notes.
     void paint (juce::Graphics& g) override
     {
-        const auto page = controller.lightPage ? theme::lightPage() : theme::darkPage();
-        g.setColour (page.paper);
-        g.fillRoundedRectangle (getLocalBounds().toFloat(), 4.0f);
-        if (layout.staves.empty()) return;
-        // As large as fits, up to the page's own size.
-        const float byHeight = static_cast<float> (getHeight() - 8) / static_cast<float> (layout.height + 5.0);
-        const float byWidth = static_cast<float> (getWidth() - 12) / static_cast<float> (layout.width + 2.0);
-        RenderStyle style;
-        style.space = std::clamp (std::min (byHeight, byWidth), 3.0f, 8.0f);
-        style.page = page;
-        style.showWarnings = false;
-        style.showBarNumbers = false;
-        const float h = static_cast<float> (layout.height) * style.space;
-        const juce::Point<float> origin (6.0f, (static_cast<float> (getHeight()) - h) * 0.5f);
-        juce::Graphics::ScopedSaveState s (g);
-        g.reduceClipRegion (getLocalBounds().reduced (2));
-        ScoreRenderer::draw (g, layout, score, style, origin, getLocalBounds().toFloat());
+        const auto c = theme::rollColours (controller.lightTheme);
+        const auto box = getLocalBounds().toFloat();
+        g.setColour (c.whiteRow);
+        g.fillRoundedRectangle (box, 4.0f);
+        if (score.parts.empty()) return;
+        const auto area = box.reduced (8.0f, 8.0f);
+        const Tick end = std::max<Tick> (score.endTick(), 1);
+        auto xOf = [&] (Tick t) { return area.getX() + area.getWidth() * static_cast<float> (t) / static_cast<float> (end); };
+        for (int bar = 0; bar < score.bars; ++bar)
+        {
+            const auto& m = score.meterAtBar (bar);
+            const Tick start = score.barStart (bar);
+            g.setColour (c.beatLine);
+            for (Tick t = m.beatTicks(); t < m.barTicks(); t += m.beatTicks()) g.fillRect (xOf (start + t), area.getY(), 1.0f, area.getHeight());
+            g.setColour (c.barLine);
+            g.fillRect (xOf (start), area.getY(), 1.0f, area.getHeight());
+        }
+        g.fillRect (xOf (end) - 1.0f, area.getY(), 1.0f, area.getHeight());
+        std::vector<Note> notes;
+        for (const auto& p : score.parts) notes.insert (notes.end(), p.notes.begin(), p.notes.end());
+        paint::miniNotes (g, area.reduced (0.0f, 2.0f), notes, xOf, c, {});
+        // The notes' names, low to high, under it all.
+        const auto ctx = keyContext (score.keys.front().root, score.keys.front().scale);
+        std::vector<int> pitches;
+        for (const auto& n : notes) if (std::find (pitches.begin(), pitches.end(), n.pitch) == pitches.end()) pitches.push_back (n.pitch);
+        std::sort (pitches.begin(), pitches.end());
+        juce::StringArray names;
+        for (int p : pitches) names.add (pitchName (p, ctx));
+        g.setColour (c.page.ink.withAlpha (0.75f));
+        g.setFont (juce::FontOptions (11.5f));
+        g.drawText (names.joinIntoString (" "), box.reduced (6.0f, 2.0f).removeFromBottom (14.0f), juce::Justification::bottomRight, true);
     }
 
 private:

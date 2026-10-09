@@ -7,59 +7,43 @@ namespace nt
 
 //==============================================================================
 
-GlyphButton::GlyphButton (const juce::String& name, juce::juce_wchar g, float s) : juce::Button (name), glyph (g), scale (s)
-{
-    setClickingTogglesState (false);
-}
-
-void GlyphButton::paintButton (juce::Graphics& g, bool highlighted, bool down)
-{
-    auto r = getLocalBounds().toFloat().reduced (0.5f);
-    juce::Colour fill = getToggleState() ? theme::accent : theme::control;
-    if (down) fill = getToggleState() ? theme::shade (theme::accent, -0.18f) : theme::controlHeld;
-    else if (highlighted) fill = getToggleState() ? theme::shade (theme::accent, 0.18f) : theme::controlHover;
-    g.setColour (fill);
-    g.fillRoundedRectangle (r, 3.0f);
-    g.setColour (theme::ink);
-    g.drawRoundedRectangle (r, 3.0f, 1.0f);
-    auto& gl = Glyphs::get();
-    const auto b = gl.bounds (glyph);
-    if (b.isEmpty()) return;
-    const float sp = std::min ((r.getHeight() - 8.0f) / std::max (1.0f, b.getHeight()), (r.getWidth() - 8.0f) / std::max (1.0f, b.getWidth())) * scale;
-    const float x = r.getCentreX() - (b.getX() + b.getWidth() * 0.5f) * sp;
-    const float y = r.getCentreY() - (b.getY() + b.getHeight() * 0.5f) * sp;
-    gl.draw (g, glyph, x, y, sp);
-}
-
-//==============================================================================
-
-namespace
-{
-struct Duration { const char* name; Tick ticks; juce::juce_wchar glyph; const char* key; };
-const Duration durationList[] = {
-    { "Whole note", 4 * PPQ, 0xE1D2, "7" }, { "Half note", 2 * PPQ, 0xE1D3, "6" }, { "Quarter note", PPQ, 0xE1D5, "5" },
-    { "Eighth note", PPQ / 2, 0xE1D7, "4" }, { "Sixteenth note", PPQ / 4, 0xE1D9, "3" }, { "Thirty-second note", PPQ / 8, 0xE1DB, "2" },
-};
-} // namespace
-
 Toolbar::Toolbar (Controller& c) : controller (c)
 {
     for (auto* b : { &newButton, &openButton, &saveButton, &exportButton, &undoButton, &redoButton, &playButton,
-                     &inputButton, &voiceButton, &transposeButton, &pageButton, &zoomOut, &zoomIn, &settingsButton })
+                     &selectButton, &drawButton, &tripletButton, &snapButton, &quantiseButton, &stepButton,
+                     &themeButton, &zoomOut, &zoomIn, &settingsButton })
         addAndMakeVisible (b);
+    addAndMakeVisible (gridLabel);
+    addAndMakeVisible (gridBox);
+    gridLabel.setColour (juce::Label::textColourId, theme::textDim);
+    gridLabel.setJustificationType (juce::Justification::centredRight);
 
-    newButton.setTooltip ("A new score, from a template");
-    openButton.setTooltip ("Open a Noterator project or a MIDI file (Cmd+O)");
+    newButton.setTooltip ("A new song, from a template");
+    openButton.setTooltip ("Open a Miderator project, a MIDI file or a MusicXML file (Cmd+O)");
     saveButton.setTooltip ("Save the project (Cmd+S)");
-    exportButton.setTooltip ("Export the score, or the selected bars, as MIDI or audio");
+    exportButton.setTooltip ("Export the song, or the chosen bars, as MIDI, audio or MusicXML");
     undoButton.setTooltip ("Undo (Cmd+Z)");
     redoButton.setTooltip ("Redo (Shift+Cmd+Z)");
-    playButton.setTooltip ("Play from the caret or the selection, or stop (Space)");
-    inputButton.setTooltip ("Note input (N): click a line or space, or type A-G, or play a MIDI keyboard");
-    voiceButton.setTooltip ("Which voice notes are written in: 1 stems up, 2 stems down (V changes the selection's)");
-    transposeButton.setTooltip ("Show the score at concert pitch, or as the transposing instruments read it");
-    pageButton.setTooltip ("Set the page dark, light ink on dark paper - or back to black on white");
+    playButton.setTooltip ("Play from the caret or the chosen bars, or stop (Space)");
+    selectButton.setTooltip ("Select (D switches): click a note to choose it, drag it to move it, drag its end to stretch it, double-click to draw one");
+    drawButton.setTooltip ("Draw (D switches): click the roll to draw a note, drag to make it longer, click a note to delete it");
+    gridBox.setTooltip ("The grid notes snap to, and how long a drawn note is (keys 1-6)");
+    tripletButton.setTooltip ("A triplet grid: three in the space of two (T)");
+    snapButton.setTooltip ("Notes snap to the grid when they are drawn, moved or stretched");
+    quantiseButton.setTooltip ("Pull the selected notes onto the grid - or the whole part in the roll if none are selected (Q)");
+    stepButton.setTooltip ("Step input: play a MIDI keyboard to write notes at the caret, one grid step each, the caret moving on (R)");
+    themeButton.setTooltip ("A light piano roll and tracks, or back to dark");
     settingsButton.setTooltip ("The sound, and audio and MIDI devices");
+    zoomIn.setTooltip ("Zoom in (Cmd+=)");
+    zoomOut.setTooltip ("Zoom out (Cmd+-)");
+
+    int id = 1;
+    for (const auto t : roll::gridValues())
+    {
+        roll::Grid g;
+        g.base = t;
+        gridBox.addItem (g.name(), id++);
+    }
 
     newButton.onClick = [this] { if (onNew) onNew(); };
     openButton.onClick = [this] { if (onOpen) onOpen(); };
@@ -69,29 +53,22 @@ Toolbar::Toolbar (Controller& c) : controller (c)
     undoButton.onClick = [this] { controller.undo(); };
     redoButton.onClick = [this] { controller.redo(); };
     playButton.onClick = [this] { controller.togglePlay(); };
-    inputButton.onClick = [this] { controller.toggleNoteInput(); };
-    voiceButton.onClick = [this] { controller.setVoice (1 - controller.input.voice); };
-    transposeButton.onClick = [this] { controller.transposedScore = ! controller.transposedScore; controller.viewChanged(); };
-    pageButton.onClick = [this] { controller.lightPage = ! controller.lightPage; controller.viewChanged(); };
-    zoomOut.onClick = [this] { controller.zoom = std::max (5.0f, controller.zoom / 1.15f); controller.viewChanged(); };
-    zoomIn.onClick = [this] { controller.zoom = std::min (24.0f, controller.zoom * 1.15f); controller.viewChanged(); };
-
-    for (const auto& d : durationList)
+    selectButton.onClick = [this] { if (controller.drawTool) controller.toggleDrawTool(); };
+    drawButton.onClick = [this] { if (! controller.drawTool) controller.toggleDrawTool(); };
+    gridBox.onChange = [this]
     {
-        auto b = std::make_unique<GlyphButton> (d.name, d.glyph, 0.95f);
-        b->setTooltip (juce::String (d.name) + " (" + d.key + ")");
-        const Tick t = d.ticks;
-        b->onClick = [this, t] { controller.setDuration (t); };
-        addAndMakeVisible (*b);
-        durations.push_back (std::move (b));
-    }
-    for (auto* b : { &dotButton, &tripletButton, &restButton }) addAndMakeVisible (b);
-    dotButton.setTooltip ("Dotted (.)");
-    tripletButton.setTooltip ("Triplet (T)");
-    restButton.setTooltip ("Write a rest at the caret (0)");
-    dotButton.onClick = [this] { controller.toggleDot(); };
-    tripletButton.onClick = [this] { controller.toggleTriplet(); };
-    restButton.onClick = [this] { controller.typeRest(); };
+        const int i = gridBox.getSelectedId() - 1;
+        const auto& values = roll::gridValues();
+        if (i >= 0 && i < static_cast<int> (values.size()) && values[static_cast<size_t> (i)] != controller.grid.base)
+            controller.setGrid (values[static_cast<size_t> (i)], controller.grid.triplet);
+    };
+    tripletButton.onClick = [this] { controller.setGrid (controller.grid.base, ! controller.grid.triplet); };
+    snapButton.onClick = [this] { controller.toggleSnap(); };
+    quantiseButton.onClick = [this] { controller.quantiseSelection(); };
+    stepButton.onClick = [this] { controller.toggleStepInput(); };
+    themeButton.onClick = [this] { controller.lightTheme = ! controller.lightTheme; controller.viewChanged(); };
+    zoomOut.onClick = [this] { if (onZoomOut) onZoomOut(); };
+    zoomIn.onClick = [this] { if (onZoomIn) onZoomIn(); };
 
     controller.addChangeListener (this);
     refresh();
@@ -113,11 +90,12 @@ void Toolbar::resized()
     place (newButton, 52); place (openButton, 56); place (saveButton, 52); place (exportButton, 62, 14);
     place (undoButton, 52); place (redoButton, 52, 14);
     place (playButton, 60, 14);
-    place (inputButton, 92, 6);
-    for (auto& d : durations) place (*d, 30, 2);
-    r.removeFromLeft (4);
-    place (dotButton, 30, 2); place (tripletButton, 30, 2); place (restButton, 30, 6);
-    place (voiceButton, 66, 14);
+    place (selectButton, 60, 2); place (drawButton, 56, 14);
+    place (gridLabel, 36, 4);
+    place (gridBox, 74, 4);
+    place (tripletButton, 62, 2); place (snapButton, 52, 8);
+    place (quantiseButton, 74, 14);
+    place (stepButton, 84, 14);
     auto right = r;
     settingsButton.setBounds (right.removeFromRight (64));
     right.removeFromRight (10);
@@ -125,9 +103,7 @@ void Toolbar::resized()
     right.removeFromRight (2);
     zoomOut.setBounds (right.removeFromRight (28));
     right.removeFromRight (10);
-    pageButton.setBounds (right.removeFromRight (86));
-    right.removeFromRight (4);
-    transposeButton.setBounds (right.removeFromRight (106));
+    themeButton.setBounds (right.removeFromRight (60));
 }
 
 void Toolbar::changeListenerCallback (juce::ChangeBroadcaster*) { refresh(); }
@@ -138,14 +114,15 @@ void Toolbar::refresh()
     redoButton.setEnabled (controller.canRedo());
     playButton.setButtonText (controller.audio.isPlaying() ? "Stop" : "Play");
     playButton.setToggleState (controller.audio.isPlaying(), juce::dontSendNotification);
-    inputButton.setToggleState (controller.input.noteInput, juce::dontSendNotification);
-    for (size_t i = 0; i < durations.size(); ++i)
-        durations[i]->setToggleState (durationList[i].ticks == controller.input.base, juce::dontSendNotification);
-    dotButton.setToggleState (controller.input.dotted, juce::dontSendNotification);
-    tripletButton.setToggleState (controller.input.triplet, juce::dontSendNotification);
-    voiceButton.setButtonText ("Voice " + juce::String (controller.input.voice + 1));
-    transposeButton.setButtonText (controller.transposedScore ? "Transposed" : "Concert pitch");
-    pageButton.setToggleState (! controller.lightPage, juce::dontSendNotification);
+    selectButton.setToggleState (! controller.drawTool, juce::dontSendNotification);
+    drawButton.setToggleState (controller.drawTool, juce::dontSendNotification);
+    const auto& values = roll::gridValues();
+    for (size_t i = 0; i < values.size(); ++i)
+        if (values[i] == controller.grid.base) gridBox.setSelectedId (static_cast<int> (i) + 1, juce::dontSendNotification);
+    tripletButton.setToggleState (controller.grid.triplet, juce::dontSendNotification);
+    snapButton.setToggleState (controller.grid.snap, juce::dontSendNotification);
+    stepButton.setToggleState (controller.stepInput, juce::dontSendNotification);
+    themeButton.setToggleState (controller.lightTheme, juce::dontSendNotification);
     repaint();
 }
 
@@ -550,7 +527,7 @@ void StatusBar::paint (juce::Graphics& g)
         const int bar = s.barAt (controller.caret);
         const Tick inBar = controller.caret - s.barStart (bar);
         const auto beat = s.meterAtBar (bar).beatTicks();
-        where = juce::String (p->name) + ", bar " + juce::String (bar + 1) + " beat " + juce::String (1.0 + static_cast<double> (inBar) / static_cast<double> (beat), 2);
+        where = juce::String (p->name) + " in the roll, caret at bar " + juce::String (bar + 1) + " beat " + juce::String (1.0 + static_cast<double> (inBar) / static_cast<double> (beat), 2);
         if (! controller.selection.empty()) where += "   |   " + juce::String (static_cast<int> (controller.selection.size())) + " selected";
     }
     g.setColour (theme::text);
@@ -558,8 +535,8 @@ void StatusBar::paint (juce::Graphics& g)
 
     // Left: the last thing that happened, or the mode.
     juce::String left = controller.status;
-    if (controller.input.noteInput) left = "NOTE INPUT - click the staff, type A-G (Shift adds to the chord), or play a MIDI keyboard. Esc to stop.";
-    g.setColour (controller.input.noteInput ? theme::accent : theme::text);
+    if (controller.stepInput) left = "STEP INPUT - play a MIDI keyboard: each note goes at the caret, " + juce::String (controller.grid.name()) + " long. Esc to stop.";
+    g.setColour (controller.stepInput ? theme::accent : theme::text);
     g.drawText (left, r, juce::Justification::centredLeft);
 }
 

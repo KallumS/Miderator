@@ -7,24 +7,12 @@
 #pragma once
 
 #include "Controller.h"
-#include "ScoreRenderer.h"
+#include "Theme.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
 namespace nt
 {
-
-// A button showing one Bravura glyph: the note values, the dot, the triplet.
-class GlyphButton : public juce::Button
-{
-public:
-    GlyphButton (const juce::String& name, juce::juce_wchar glyph, float scale = 1.0f);
-    void paintButton (juce::Graphics&, bool highlighted, bool down) override;
-
-private:
-    juce::juce_wchar glyph;
-    float scale;
-};
 
 class Toolbar : public juce::Component, private juce::ChangeListener
 {
@@ -34,20 +22,20 @@ public:
     void resized() override;
     void paint (juce::Graphics&) override;
 
-    std::function<void()> onNew, onOpen, onSave, onExport, onSettings;
+    std::function<void()> onNew, onOpen, onSave, onExport, onSettings, onZoomIn, onZoomOut;
 
 private:
     Controller& controller;
     juce::TextButton newButton { "New" }, openButton { "Open" }, saveButton { "Save" }, exportButton { "Export" };
     juce::TextButton undoButton { "Undo" }, redoButton { "Redo" };
     juce::TextButton playButton { "Play" };
-    juce::TextButton inputButton { "Note input" };
-    std::vector<std::unique_ptr<GlyphButton>> durations;
-    GlyphButton dotButton { "Dot", smufl::augmentationDot, 1.6f };
-    GlyphButton tripletButton { "Triplet", smufl::tuplet0 + 3, 1.0f };
-    GlyphButton restButton { "Rest", smufl::restQuarter, 0.8f };
-    juce::TextButton voiceButton { "Voice 1" };
-    juce::TextButton transposeButton { "Concert pitch" }, pageButton { "Dark page" };
+    juce::TextButton selectButton { "Select" }, drawButton { "Draw" };
+    juce::Label gridLabel { {}, "Grid" };
+    juce::ComboBox gridBox;
+    juce::TextButton tripletButton { "Triplet" }, snapButton { "Snap" };
+    juce::TextButton quantiseButton { "Quantise" };
+    juce::TextButton stepButton { "Step input" };
+    juce::TextButton themeButton { "Light" };
     juce::TextButton zoomOut { "-" }, zoomIn { "+" };
     juce::TextButton settingsButton { "Sound" };
 
