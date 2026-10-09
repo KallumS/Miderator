@@ -211,3 +211,31 @@ plays it where it would go, the parts it replaces silent there;
 audition put back. In Miderator's window, the Blocks preview with the caret
 on Violin I shows the whole C major chord again. The branch was restarted
 from `main` after the user merged 0042. 97 core tests, 18 app tests.
+
+## Then: a name click, inversions, and building on the user's Mac (0044, 0045)
+
+The user found that after choosing bars and inserting, clicking another
+part's name left Insert unable to put anything there. In the window: bars of
+Violin I chosen, an idea in, Viola's name clicked, Insert - and the idea went
+into Violin I's chosen bars again. A name click only moved the caret; it now
+goes through `Controller::choosePart`, which lets go of bars chosen in other
+parts (0044). The app test failed with the old click ("got 0, wanted 4" notes
+in the viola), then passed; the window showed the idea in the viola.
+
+**What looked broken and was not:** the user saw the Chords lane disagree with
+Blocks on inversions. A probe through every Blocks chord, degree and
+inversion: triads read right in every inversion (C/E, Dmin/F...). The
+differences are notes that are another chord's too - vi7 in first inversion
+is C E G A, the same four notes as I6, read C6; ii7 over F reads F6, iii7 G6,
+viiø7 Dmin6; inverted 6th chords read as minor sevenths; a sus2 inverted is
+another root's sus4; inverted 9ths to 13ths read from their bass. Every name
+accounts for exactly the notes. ScaleView Pro prefers the reading with the
+bass as root (`COST_INVERSION`), measured and pinned there; the lane reads
+notes, not what Blocks was asked for. Nothing changed; a change would be made
+and measured in ScaleView Pro first.
+
+The user asked for the build-it-yourself file offered earlier:
+`build-mac.command` (0045), rehearsed on Linux with fake `uname`,
+`xcode-select`, `cmake`, `codesign`, `osascript` and `open`: a first fetch of
+`main`, an update to a branch, and a wrong branch name. shellcheck is clean.
+Not yet run on a Mac. 97 core tests, 19 app tests.

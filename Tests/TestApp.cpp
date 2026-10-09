@@ -622,3 +622,33 @@ TEST ("app: an audition plays every note on a piano, Generate Notes in place and
     CHECK_EQ (alone.parts[0].instrument, std::string ("pno"));
     CHECK (polyphonyOf (alone.parts[0].notes) > 1);
 }
+
+TEST ("app: clicking a part's name lets go of bars chosen in other parts, so an idea goes to it")
+{
+    Controller c (audio());
+    c.newScore ("String Quartet");
+    const auto violin = c.score.parts[0].id, viola = c.score.parts[2].id;
+    GeneratedResult tune;
+    tune.length = 4 * PPQ;
+    GeneratedPart melody;
+    melody.name = "Melody";
+    for (int i = 0; i < 4; ++i) { Note n; n.start = i * PPQ; n.length = PPQ; n.pitch = 64 + i; melody.notes.push_back (n); }
+    tune.parts = { melody };
+
+    c.selectRange (0, 1, 0, 0);                         // bars 1-2 of Violin I
+    c.insertGenerated (tune, false, "good-idea");
+    const auto violinNotes = c.score.partById (violin)->notes.size();
+    CHECK_EQ (violinNotes, size_t (4));
+
+    c.choosePart (viola);                               // Viola's name clicked
+    CHECK (! c.range.active());
+    CHECK_EQ (c.caretPart, viola);
+    c.insertGenerated (tune, false, "good-idea");
+    CHECK_EQ (c.score.partById (viola)->notes.size(), size_t (4));
+    CHECK_EQ (c.score.partById (violin)->notes.size(), violinNotes);
+
+    // Bars chosen that include the part clicked stay chosen.
+    c.selectRange (0, 1, 0, 3);
+    c.choosePart (viola);
+    CHECK (c.range.active());
+}

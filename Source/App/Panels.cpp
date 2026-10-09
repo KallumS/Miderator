@@ -251,7 +251,7 @@ struct PartsPanel::Row : public juce::Component
         volume.setBounds (bottom);
     }
 
-    void mouseDown (const juce::MouseEvent&) override { controller.setCaret (partId, controller.caret); }
+    void mouseDown (const juce::MouseEvent&) override { controller.choosePart (partId); }
 
     Controller& controller;
     uint32_t partId;

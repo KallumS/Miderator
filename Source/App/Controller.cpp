@@ -95,6 +95,13 @@ void Controller::setCaret (uint32_t partId, Tick t)
     sendChangeMessage();
 }
 
+void Controller::choosePart (uint32_t partId)
+{
+    if (range.active() && std::find (range.parts.begin(), range.parts.end(), partId) == range.parts.end())
+        range = {};
+    setCaret (partId, caret);
+}
+
 void Controller::moveCaret (int direction)
 {
     caret = std::clamp<Tick> (roll::snap (score, caret, grid) + direction * grid.step(), 0, score.endTick());

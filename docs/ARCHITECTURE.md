@@ -88,6 +88,8 @@ decisions; 0026 on are Miderator's.
 | [0041](decisions/0041-where-generated-music-goes.md) | Nothing chosen: shared across every part; bars of one part: all of it there; bars of several: shared across them. No part is ever added. Both apps. |
 | [0042](decisions/0042-a-single-line-to-one-part-and-a-span-filled-once.md) | A single line (melody, motif) goes to one part, never shared; chosen bars are filled once, cut or left empty, never repeated. Both apps. |
 | [0043](decisions/0043-an-audition-plays-every-note-on-a-piano.md) | An audition is the result itself: every note on a piano, drums on a kit, heard where it would go - nothing fitted. |
+| [0044](decisions/0044-a-name-click-lets-go-of-bars-chosen-elsewhere.md) | A click on a part's name lets go of bars chosen in other parts, so the next idea goes to it. |
+| [0045](decisions/0045-built-on-the-users-own-mac.md) | `build-mac.command` builds the app on the user's Mac and puts it in Applications; CI still builds and tests every push. |
 | [0035](decisions/0035-space-plays-from-the-start.md) | Space plays from bar 1, Shift+Space and Play from the caret; |◀ and ▶| (Home, End) go to the start and the end of the music. Both apps. |
 | [0034](decisions/0034-follow-scrolls-smoothly.md) | Following scrolls smoothly by default, the playhead a third of the way across, on a steady clock read once a frame for both views; turning pages is a choice in the Play menu. |
 | [0010](decisions/0010-verify-by-rendering.md) | Drawing changes are checked by rendering them to PNG (`MideratorRender`). |

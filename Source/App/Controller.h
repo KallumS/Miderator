@@ -83,6 +83,10 @@ public:
     //==========================================================================
     // Writing
     void setCaret (uint32_t partId, Tick t);
+    // A part's name clicked: the caret goes to that part, and bars chosen in
+    // other parts are let go, so the next idea goes to the part clicked
+    // (decision 0044). Bars chosen that include it stay chosen.
+    void choosePart (uint32_t partId);
     void moveCaret (int direction);                  // a grid step either way
     void caretToPart (int direction);
     // A note drawn on the roll: `length` 0 means one grid step.
