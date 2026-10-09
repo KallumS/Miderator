@@ -10,6 +10,7 @@
 #include "Controller.h"
 #include "Exporter.h"
 #include "MidiFile.h"
+#include "ScaleModel.h"
 
 #include <juce_audio_formats/juce_audio_formats.h>
 
@@ -436,6 +437,27 @@ TEST ("app: Generate Notes' chords into a violin come one note at a time; Blocks
     int most = 0;
     for (const auto& p : d.score.parts) most = std::max (most, polyphonyOf (p.notes));
     CHECK (most > 1);
+}
+
+TEST ("app: the File menu's Use the key it hears sets the key the Scale lane shows")
+{
+    Controller c (audio());
+    c.newScore ("Piano");
+    CHECK (! c.useHeardKey());                                        // nothing written yet
+    CHECK (c.status.contains ("Nothing to hear"));
+    CHECK_EQ (c.score.keyAtBar (0).root, 0);                          // still C
+
+    // Two bars of E major, so the Scale lane names it.
+    drawLine (c, 0, 0, { 64, 68, 71, 76, 66, 69, 73, 75 });
+    drawLine (c, 0, 8 * PPQ, { 76, 75, 73, 71, 69, 68, 66, 64 });
+    c.setCaret (c.score.parts[0].id, PPQ);
+    CHECK (! c.keys.empty());
+    CHECK (c.useHeardKey());
+    const auto& k = c.score.keyAtBar (0);
+    CHECK_EQ (std::string (scaleview::roots[static_cast<size_t> (k.root)].name), std::string ("E"));
+    CHECK_EQ (k.scale, 0);                                            // Major
+    c.undo();
+    CHECK_EQ (c.score.keyAtBar (0).root, 0);                          // one undo step
 }
 
 int main (int argc, char** argv)

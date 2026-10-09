@@ -463,6 +463,18 @@ void Controller::setPartInstrument (uint32_t partId, const std::string& instrume
     });
 }
 
+bool Controller::useHeardKey()
+{
+    for (const auto& k : keys)
+        if (caret >= k.start && caret < k.end)
+        {
+            setKeyAt (score.barAt (k.start), k.root, k.scale);
+            return true;
+        }
+    setStatus ("Nothing to hear yet: write or generate some music first.");
+    return false;
+}
+
 void Controller::setKeyAt (int bar, int root, int scale)
 {
     edit ("Changed the key", [&] (Score& s)

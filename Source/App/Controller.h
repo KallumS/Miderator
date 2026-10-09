@@ -127,6 +127,9 @@ public:
     void movePart (uint32_t partId, int direction);
     void setPartInstrument (uint32_t partId, const std::string& instrumentId);
     void setKeyAt (int bar, int root, int scale);
+    // The key signature at the caret's bar becomes the scale the Scale lane
+    // shows there; false, with a message, when there is nothing to hear yet.
+    bool useHeardKey();
     void setMeterAt (int bar, int num, int den);
     void setTempo (double bpm);
     void setBars (int bars);

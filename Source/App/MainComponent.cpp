@@ -1,6 +1,7 @@
 #include "MainComponent.h"
 
 #include "Exporter.h"
+#include "ScaleModel.h"
 #include "Templates.h"
 
 namespace nt
@@ -15,8 +16,19 @@ enum MenuIds
     menuUndo = 100, menuRedo, menuCut, menuCopy, menuPaste, menuDelete, menuSelectAll, menuDuplicate, menuQuantise,
     menuPlay = 200, menuPlayCaret, menuToStart, menuToEnd, menuFollow, menuFollowSmooth, menuFollowPage, menuDrawTool, menuStepInput, menuSnap, menuTriplet, menuLightTheme, menuZoomIn, menuZoomOut, menuAudioSettings, menuHelp,
     menuGridBase = 300,
-    menuTemplateBase = 1000
+    menuTitle = 400, menuTempo, menuMeterOther, menuKeyHeard, menuInsertBar, menuDeleteBars, menuAddBars, menuSoundApple, menuSoundBuiltIn,
+    menuMeterBase = 500,
+    menuTemplateBase = 1000,
+    menuKeyBase = 2000           // + root x 32 + scale
 };
+
+// The time signatures offered in the menu; anything else is under Other...
+const std::vector<std::pair<int, int>>& meterChoices()
+{
+    static const std::vector<std::pair<int, int>> m { { 2, 2 }, { 2, 4 }, { 3, 4 }, { 4, 4 }, { 5, 4 }, { 6, 4 }, { 7, 4 },
+                                                     { 3, 8 }, { 5, 8 }, { 6, 8 }, { 7, 8 }, { 9, 8 }, { 12, 8 } };
+    return m;
+}
 
 juce::String key (const juce::String& k)
 {
@@ -39,7 +51,6 @@ MainComponent::MainComponent()
     tabs.addTab ("Generate", theme::control, &generatorPanel, false);
     tabs.addTab ("Blocks", theme::control, &blocksPanel, false);
     tabs.addTab ("Parts", theme::control, &partsPanel, false);
-    tabs.addTab ("Score", theme::control, &scorePanel, false);
     tabs.setColour (juce::TabbedComponent::backgroundColourId, theme::ground);
 
     toolbar.onFile = [this] { showFileMenu(); };
@@ -48,7 +59,6 @@ MainComponent::MainComponent()
     toolbar.onZoomOut = [this] { zoomBy (1.0f / 1.25f); };
     toolbar.onStart = [this] { returnToStart(); };
     toolbar.onEnd = [this] { skipToEnd(); };
-    scorePanel.onAudioSettings = [this] { audioSettingsDialog(); };
 
     // A MIDI keyboard writes in step input, and is always heard.
     audio.onMidiInput = [this] (const juce::MidiMessage& m)
@@ -248,6 +258,7 @@ juce::PopupMenu MainComponent::getMenuForIndex (int index, const juce::String&)
         item (menuExportAudioBars, "Export Selected Bars as Audio (WAV)...");
         item (menuExportXml, "Export Score as MusicXML...");
         item (menuExportXmlBars, "Export Selected Bars as MusicXML...");
+        addScoreItems (m);
     }
     else if (index == 1)
     {
@@ -334,9 +345,20 @@ juce::PopupMenu MainComponent::getMenuForIndex (int index, const juce::String&)
 void MainComponent::menuItemSelected (int id, int)
 {
     auto& c = controller;
-    if (id >= menuGridBase && id < menuTemplateBase)
+    if (id >= menuGridBase && id < menuGridBase + static_cast<int> (roll::gridValues().size()))
     {
         c.setGrid (roll::gridValues()[static_cast<size_t> (id - menuGridBase)], c.grid.triplet);
+        return;
+    }
+    if (id >= menuMeterBase && id < menuMeterBase + static_cast<int> (meterChoices().size()))
+    {
+        const auto [num, den] = meterChoices()[static_cast<size_t> (id - menuMeterBase)];
+        c.setMeterAt (c.score.barAt (c.caret), num, den);
+        return;
+    }
+    if (id >= menuKeyBase)
+    {
+        c.setKeyAt (c.score.barAt (c.caret), (id - menuKeyBase) / 32, (id - menuKeyBase) % 32);
         return;
     }
     if (id >= menuTemplateBase)
@@ -382,6 +404,15 @@ void MainComponent::menuItemSelected (int id, int)
         case menuFollowPage: c.setFollowStyle (FollowStyle::page); break;
         case menuAudioSettings: audioSettingsDialog(); break;
         case menuHelp: showHelp(); break;
+        case menuTitle: titleDialog(); break;
+        case menuTempo: tempoDialog(); break;
+        case menuMeterOther: meterDialog(); break;
+        case menuKeyHeard: c.useHeardKey(); break;
+        case menuInsertBar: c.insertBarsAtCaret (1); break;
+        case menuDeleteBars: c.deleteSelectedBars(); break;
+        case menuAddBars: c.setBars (c.score.bars + 4); break;
+        case menuSoundApple: audio.useBuiltInSynth (false); c.setStatus ("Sound: " + audio.synthName()); break;
+        case menuSoundBuiltIn: audio.useBuiltInSynth (true); c.setStatus ("Sound: " + audio.synthName()); break;
         default: break;
     }
 }
@@ -436,8 +467,135 @@ void MainComponent::showFileMenu()
     item (menuSaveAs, "Save As...", "Shift+Cmd+S");
     m.addSeparator();
     m.addSubMenu ("Export", exportMenu());
+    addScoreItems (m);
     m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&toolbar.fileAnchor()),
                      [this] (int r) { if (r > 0) menuItemSelected (r, 0); });
+}
+
+void MainComponent::addScoreItems (juce::PopupMenu& m)
+{
+    // What was the Song tab: the song's name, tempo, time and key
+    // signatures, bars and sound (decision 0038). Signatures are set at the
+    // caret's bar, as the tab's buttons did.
+    const auto& s = controller.score;
+    const int bar = s.barAt (controller.caret);
+    m.addSeparator();
+    m.addSectionHeader ("This song");
+    m.addItem (menuTitle, "Title and composer...");
+    m.addItem (menuTempo, "Tempo (" + juce::String (juce::roundToInt (s.tempos.front().bpm)) + " bpm)...");
+
+    const auto& meter = s.meterAtBar (bar);
+    juce::PopupMenu meters;
+    bool listed = false;
+    for (size_t i = 0; i < meterChoices().size(); ++i)
+    {
+        const auto [num, den] = meterChoices()[i];
+        const bool on = num == meter.num && den == meter.den;
+        listed = listed || on;
+        meters.addItem (menuMeterBase + static_cast<int> (i), juce::String (num) + "/" + juce::String (den), true, on);
+    }
+    meters.addSeparator();
+    meters.addItem (menuMeterOther, "Other...", true, ! listed);
+    m.addSubMenu ("Time signature at bar " + juce::String (bar + 1) + " (" + juce::String (meter.num) + "/" + juce::String (meter.den) + ")", meters);
+
+    const auto& k = s.keyAtBar (bar);
+    juce::PopupMenu keys;
+    keys.addItem (menuKeyHeard, "Use the key it hears");
+    keys.addSeparator();
+    for (size_t r = 0; r < scaleview::roots.size(); ++r)
+    {
+        juce::PopupMenu sc;
+        for (size_t i = 0; i < scaleview::scales.size(); ++i)
+            sc.addItem (menuKeyBase + static_cast<int> (r) * 32 + static_cast<int> (i), scaleview::scales[i].name, true,
+                        static_cast<int> (r) == k.root && static_cast<int> (i) == k.scale);
+        keys.addSubMenu (scaleview::roots[r].name, sc, true, nullptr, static_cast<int> (r) == k.root);
+    }
+    juce::String keyName = "?";
+    if (k.root >= 0 && k.root < static_cast<int> (scaleview::roots.size()) && k.scale >= 0 && k.scale < static_cast<int> (scaleview::scales.size()))
+        keyName = juce::String (scaleview::roots[static_cast<size_t> (k.root)].name) + " " + scaleview::scales[static_cast<size_t> (k.scale)].name;
+    m.addSubMenu ("Key at bar " + juce::String (bar + 1) + " (" + keyName + ")", keys);
+
+    juce::PopupMenu bars;
+    const auto [a, b] = controller.selectedBars();
+    bars.addItem (menuInsertBar, "Insert a bar at the caret (before bar " + juce::String (bar + 1) + ")");
+    bars.addItem (menuDeleteBars, a == b ? "Delete bar " + juce::String (a + 1) : "Delete bars " + juce::String (a + 1) + "-" + juce::String (b + 1));
+    bars.addItem (menuAddBars, "Add 4 bars at the end");
+    m.addSubMenu ("Bars (" + juce::String (s.bars) + " in all)", bars);
+
+    m.addSeparator();
+    juce::PopupMenu sound;
+    sound.addItem (menuSoundApple, "Apple General MIDI (macOS)", true, ! audio.usingBuiltInSynth());
+    sound.addItem (menuSoundBuiltIn, "Built-in synth", true, audio.usingBuiltInSynth());
+    sound.addSeparator();
+    sound.addItem (menuAudioSettings, "Audio and MIDI devices...");
+    m.addSubMenu ("Sound", sound);
+}
+
+namespace
+{
+// A small box to type into, with OK and Cancel; `done` gets the box while it
+// is still there to read.
+void askFor (const juce::String& title, const juce::String& message, std::function<void (juce::AlertWindow&)> fill,
+             std::function<void (juce::AlertWindow&)> done)
+{
+    auto* w = new juce::AlertWindow (title, message, juce::MessageBoxIconType::NoIcon);
+    fill (*w);
+    w->addButton ("OK", 1, juce::KeyPress (juce::KeyPress::returnKey));
+    w->addButton ("Cancel", 0, juce::KeyPress (juce::KeyPress::escapeKey));
+    w->enterModalState (true, juce::ModalCallbackFunction::create ([w, done] (int r) { if (r == 1) done (*w); }), true);
+}
+} // namespace
+
+void MainComponent::titleDialog()
+{
+    askFor ("Title and composer", {}, [this] (juce::AlertWindow& w)
+    {
+        w.addTextEditor ("title", controller.score.title, "Title");
+        w.addTextEditor ("composer", controller.score.composer, "Composer");
+    },
+    [this] (juce::AlertWindow& w)
+    {
+        const auto t = w.getTextEditorContents ("title").trim().toStdString();
+        const auto who = w.getTextEditorContents ("composer").trim().toStdString();
+        if (t != controller.score.title || who != controller.score.composer)
+            controller.edit ("Retitled", [t, who] (Score& s) { s.title = t; s.composer = who; });
+    });
+}
+
+void MainComponent::tempoDialog()
+{
+    askFor ("Tempo", "Beats a minute, 30 to 240", [this] (juce::AlertWindow& w)
+    {
+        w.addTextEditor ("bpm", juce::String (juce::roundToInt (controller.score.tempos.front().bpm)), "Tempo");
+        if (auto* e = w.getTextEditor ("bpm")) e->setInputRestrictions (3, "0123456789");
+    },
+    [this] (juce::AlertWindow& w)
+    {
+        const int bpm = w.getTextEditorContents ("bpm").getIntValue();
+        if (bpm < 30 || bpm > 240) { controller.setStatus ("The tempo stays as it was: it can be 30 to 240."); return; }
+        controller.setTempo (bpm);
+    });
+}
+
+void MainComponent::meterDialog()
+{
+    const int bar = controller.score.barAt (controller.caret);
+    askFor ("Time signature at bar " + juce::String (bar + 1), {}, [this, bar] (juce::AlertWindow& w)
+    {
+        const auto& m = controller.score.meterAtBar (bar);
+        juce::StringArray nums, dens { "2", "4", "8", "16" };
+        for (int n = 1; n <= 16; ++n) nums.add (juce::String (n));
+        w.addComboBox ("num", nums, "Beats in a bar");
+        w.addComboBox ("den", dens, "Each beat a");
+        if (auto* b = w.getComboBoxComponent ("num")) b->setText (juce::String (m.num), juce::dontSendNotification);
+        if (auto* b = w.getComboBoxComponent ("den")) b->setText (juce::String (m.den), juce::dontSendNotification);
+    },
+    [this, bar] (juce::AlertWindow& w)
+    {
+        const auto* n = w.getComboBoxComponent ("num");
+        const auto* d = w.getComboBoxComponent ("den");
+        if (n != nullptr && d != nullptr) controller.setMeterAt (bar, n->getText().getIntValue(), d->getText().getIntValue());
+    });
 }
 
 void MainComponent::showExportMenu()
