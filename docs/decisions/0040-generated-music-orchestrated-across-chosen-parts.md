@@ -2,7 +2,7 @@
 
 - **Date:** 2026-10-09
 - **Status:** Accepted (Noterator and Miderator alike; the code is shared).
-  Extends 0019.
+  Extends 0019. With nothing chosen it now shares across every part (0041).
 
 ## Context
 

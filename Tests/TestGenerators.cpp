@@ -146,17 +146,19 @@ TEST ("generators: chords made for a tune go beside it, never over it")
     CHECK_EQ (polyphonyOf (chords.notes), 3);
 }
 
-TEST ("generators: a result fills a span exactly, repeated and cut")
+TEST ("generators: a result in a span is cut where the span is shorter, played once where it is longer")
 {
     GeneratedResult r;
     r.length = 4 * PPQ;
     GeneratedPart p; p.name = "Melody";
     for (int i = 0; i < 4; ++i) { Note n; n.start = i * PPQ; n.length = PPQ; n.pitch = 60 + i; p.notes.push_back (n); }
     r.parts = { p };
-    const auto longer = fitToSpan (r, 10 * PPQ);   // two and a half times
+    // Twelve bars chosen for eight bars of music: eight filled, four left empty (0042).
+    const auto longer = fitToSpan (r, 10 * PPQ);
     CHECK_EQ (longer.length, 10 * PPQ);
-    CHECK_EQ (longer.parts[0].notes.size(), size_t (10));
-    CHECK_EQ (longer.parts[0].notes.back().start, 9 * PPQ);
+    CHECK_EQ (longer.parts[0].notes.size(), size_t (4));
+    CHECK_EQ (longer.parts[0].notes.back().start, 3 * PPQ);
+    // Five bars chosen for eight: the five, the rest left out.
     const auto shorter = fitToSpan (r, 2 * PPQ + PPQ / 2);
     CHECK_EQ (shorter.parts[0].notes.size(), size_t (3));
     CHECK_EQ (shorter.parts[0].notes.back().length, PPQ / 2);
@@ -202,15 +204,16 @@ TEST ("generators: a measure into four selected bars of a string quartet")
     for (const auto& p : s.parts) ids.push_back (p.id);
     insertIntoRange (s, r, ids, 4 * PPQ, 20 * PPQ);         // bars 2 to 5
     CHECK_EQ (s.parts.size(), size_t (4));                   // no new parts: everything fitted
-    // The tune twice over four bars in the first violins, the old note gone.
-    CHECK_EQ (s.parts[0].notes.size(), size_t (4));
+    // The tune once - two bars of four, the last two left empty (0042) - in
+    // the first violins, the old note gone.
+    CHECK_EQ (s.parts[0].notes.size(), size_t (2));
     for (const auto& n : s.parts[0].notes) CHECK (n.start >= 4 * PPQ && n.end() <= 20 * PPQ);
     // Chords dealt to the second violins and violas, one note each.
-    CHECK_EQ (s.parts[1].notes.size(), size_t (5));          // its own note at the start, kept, plus four
-    CHECK_EQ (s.parts[2].notes.size(), size_t (4));
+    CHECK_EQ (s.parts[1].notes.size(), size_t (3));          // its own note at the start, kept, plus two
+    CHECK_EQ (s.parts[2].notes.size(), size_t (2));
     for (size_t i = 1; i < 3; ++i) CHECK_EQ (polyphonyOf (s.parts[i].notes), 1);
     // The bass in the cellos.
-    CHECK_EQ (s.parts[3].notes.size(), size_t (4));
+    CHECK_EQ (s.parts[3].notes.size(), size_t (2));
     const auto& vc = instrumentById ("vc");
     for (const auto& n : s.parts[3].notes) CHECK (n.pitch >= vc.low && n.pitch <= vc.high);
 }

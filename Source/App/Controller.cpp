@@ -756,6 +756,14 @@ GeneratorContext Controller::generatorContext (bool withSelection) const
     return ctx;
 }
 
+uint32_t Controller::lineTarget() const
+{
+    if (! range.active()) return caretPart;
+    for (auto id : range.parts)
+        if (id == caretPart) return id;
+    return range.parts.front();
+}
+
 Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, const std::string& generatorId,
                         InsertReport& report) const
 {
@@ -769,7 +777,9 @@ Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, 
         const Tick from = s.barStart (range.first), to = s.barStart (range.last + 1);
         if (! fromSelection)
         {
-            report = insertIntoRange (s, r, range.parts, from, to, base);
+            // Shared across the chosen parts - or, a single line, into one (0042).
+            const auto parts = isSingleLine (r) ? std::vector<uint32_t> { lineTarget() } : range.parts;
+            report = insertIntoRange (s, r, parts, from, to, base);
             return from;
         }
         if (generatorId == "midi-variator" && ! selection.empty())
@@ -788,11 +798,21 @@ Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, 
     }
     if (! fromSelection || selection.empty())
     {
-        // At the caret's bar, so an idea always starts on a downbeat - except
-        // a block from the toolbox, which is small and goes where the caret
-        // is, so blocks can be laid one after another (decision 0018).
-        const Tick at = generatorId == "starting-blocks" ? caret : s.barStart (s.barAt (caret));
-        report = insertResult (s, r, caretPart, at, base);
+        // A block from the toolbox is small and goes where the caret is, so
+        // blocks can be laid one after another (decision 0018).
+        if (generatorId == "starting-blocks")
+        {
+            report = insertResult (s, r, caretPart, caret, base);
+            return caret;
+        }
+        // Nothing chosen: shared across every part (decision 0041), from the
+        // caret's bar so an idea always starts on a downbeat, all of it.
+        // A single line goes into the caret's part alone (decision 0042).
+        const Tick at = s.barStart (s.barAt (caret));
+        std::vector<uint32_t> all;
+        if (isSingleLine (r)) all.push_back (lineTarget());
+        else for (const auto& p : s.parts) all.push_back (p.id);
+        report = insertIntoRange (s, r, all, at, at + std::max<Tick> (r.length, PPQ), base);
         return at;
     }
     const auto [first, last] = selectedBars();
@@ -830,6 +850,11 @@ void Controller::insertGenerated (const GeneratedResult& r, bool fromSelection, 
             thinned.addIfNotAlreadyThere (juce::String (p->name) + (instrumentById (p->instrument).role == 'B' ? ": bottom notes only" : ": top notes only"));
     if (! thinned.isEmpty())
         status += " - " + thinned.joinIntoString (", ");
+    // And when a line had nowhere to go: no part is added for it (0041).
+    juce::StringArray left;
+    for (const auto& name : report.unplaced) left.addIfNotAlreadyThere (juce::String (name));
+    if (! left.isEmpty())
+        status += " - " + left.joinIntoString (", ") + " left out: no part for " + (left.size() == 1 ? "it" : "them");
     if (range.active() && (! fromSelection || generatorId == "midi-variator"))
     {
         // The bars stay selected, so another idea can go straight into them.
@@ -849,9 +874,9 @@ void Controller::insertGenerated (const GeneratedResult& r, bool fromSelection, 
 
 void Controller::auditionGenerated (const GeneratedResult& r, bool fromSelection, const std::string& generatorId)
 {
-    // Made from the selection, or going into selected bars: heard in place,
-    // with the music around it. Otherwise on its own, on the instruments it would go to.
-    if (range.active() || (fromSelection && ! selection.empty()))
+    // Heard in place, on the parts it would go to (decision 0041), with the
+    // music around it - except a block, heard on its own.
+    if (range.active() || (fromSelection && ! selection.empty()) || generatorId != "starting-blocks")
     {
         Score temp = score;
         InsertReport report;

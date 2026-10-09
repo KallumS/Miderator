@@ -409,6 +409,7 @@ TEST ("app: Generate Notes' chords into a violin come one note at a time; Blocks
     c.newScore ("String Quartet");
     const auto violin = c.score.parts[0].id;
     c.setCaret (violin, 0);
+    c.selectRange (0, 3, 0, 0);                                       // bars 1-4 of the violin alone (0041)
     auto ctx = c.generatorContext (false);
     c.lua.reset ("good-idea");
     for (const auto& st : c.lua.settings ("good-idea", ctx))
@@ -458,6 +459,108 @@ TEST ("app: the File menu's Use the key it hears sets the key the Scale lane sho
     CHECK_EQ (k.scale, 0);                                            // Major
     c.undo();
     CHECK_EQ (c.score.keyAtBar (0).root, 0);                          // one undo step
+}
+
+TEST ("app: nothing chosen shares an idea across every part; one part's bars take all of it")
+{
+    // A phrase of a tune and chords.
+    auto phrase = [] (Controller& c)
+    {
+        auto ctx = c.generatorContext (false);
+        c.lua.reset ("good-idea");
+        for (const auto& st : c.lua.settings ("good-idea", ctx))
+            for (size_t i = 0; i < st.names.size(); ++i)
+                if ((st.id == "kind" && st.names[i] == "Phrase") || (st.id == "content" && st.names[i] == "Both"))
+                    c.lua.set ("good-idea", st.id, static_cast<int> (i), ctx);
+        auto out = c.lua.generate ("good-idea", c.generatorContext (false), 2, 1);
+        c.lua.reset ("good-idea");
+        return out;
+    };
+
+    // Nothing chosen: every part of the quartet plays, from the caret's bar.
+    Controller c (audio());
+    c.newScore ("String Quartet");
+    c.setCaret (c.score.parts[1].id, c.score.barStart (2) + PPQ);
+    const auto out = phrase (c);
+    CHECK (! out.results.empty());
+    if (out.results.empty()) return;
+    c.insertGenerated (out.results.front(), false, "good-idea");
+    CHECK_EQ (c.score.parts.size(), size_t (4));
+    for (const auto& p : c.score.parts)
+    {
+        CHECK (! p.notes.empty());
+        CHECK_EQ (polyphonyOf (p.notes), 1);
+        for (const auto& n : p.notes) CHECK (n.start >= c.score.barStart (2));
+    }
+
+    // One bar of one part chosen: one bar of it there, and nowhere else.
+    Controller d (audio());
+    d.newScore ("String Quartet");
+    d.selectRange (1, 1, 2, 2);                                       // bar 2 of the viola
+    CHECK_EQ (d.generatorContext (false).rangeBars, 1);
+    const auto one = phrase (d);
+    CHECK (! one.results.empty());
+    if (one.results.empty()) return;
+    d.insertGenerated (one.results.front(), false, "good-idea");
+    CHECK_EQ (d.score.parts.size(), size_t (4));
+    for (size_t i = 0; i < 4; ++i) CHECK_EQ (d.score.parts[i].notes.empty(), i != 2);
+    for (const auto& n : d.score.parts[2].notes) CHECK (n.start >= d.score.barStart (1) && n.end() <= d.score.barStart (2));
+
+    // Bars 1-4 of one part: all of the idea fills them, in that part alone.
+    Controller e (audio());
+    e.newScore ("String Quartet");
+    e.selectRange (0, 3, 0, 0);
+    const auto four = phrase (e);
+    if (four.results.empty()) return;
+    e.insertGenerated (four.results.front(), false, "good-idea");
+    CHECK_EQ (e.score.parts.size(), size_t (4));
+    CHECK (! e.score.parts[0].notes.empty());
+    for (size_t i = 1; i < 4; ++i) CHECK (e.score.parts[i].notes.empty());
+    for (const auto& n : e.score.parts[0].notes) CHECK (n.end() <= e.score.barStart (4));
+}
+
+TEST ("app: a single line goes into one part, with nothing chosen or bars of several parts chosen")
+{
+    auto motif = [] (Controller& c)
+    {
+        auto ctx = c.generatorContext (false);
+        c.lua.reset ("good-idea");
+        for (const auto& st : c.lua.settings ("good-idea", ctx))
+            for (size_t i = 0; i < st.names.size(); ++i)
+                if (st.id == "kind" && st.names[i] == "Motif") c.lua.set ("good-idea", st.id, static_cast<int> (i), ctx);
+        auto out = c.lua.generate ("good-idea", c.generatorContext (false), 4, 1);
+        c.lua.reset ("good-idea");
+        return out;
+    };
+    auto withNotes = [] (const Controller& c)
+    {
+        std::vector<size_t> parts;
+        for (size_t i = 0; i < c.score.parts.size(); ++i) if (! c.score.parts[i].notes.empty()) parts.push_back (i);
+        return parts;
+    };
+
+    // Nothing chosen, the caret in the viola: the viola alone.
+    Controller c (audio());
+    c.newScore ("String Quartet");
+    c.setCaret (c.score.parts[2].id, 0);
+    const auto out = motif (c);
+    CHECK (! out.results.empty());
+    if (out.results.empty()) return;
+    CHECK (isSingleLine (out.results.front()));
+    c.insertGenerated (out.results.front(), false, "good-idea");
+    CHECK (withNotes (c) == (std::vector<size_t> { 2 }));
+
+    // Bars of all four chosen, the caret in the cello: the cello alone.
+    Controller d (audio());
+    d.newScore ("String Quartet");
+    d.setCaret (d.score.parts[3].id, 0);
+    d.selectRange (0, 1, 0, 3);
+    d.setCaret (d.score.parts[3].id, 0);
+    const auto two = motif (d);
+    if (two.results.empty()) return;
+    d.insertGenerated (two.results.front(), false, "good-idea");
+    CHECK (withNotes (d) == (std::vector<size_t> { 3 }));
+    for (const auto& n : d.score.parts[3].notes) CHECK (n.end() <= d.score.barStart (2));
 }
 
 int main (int argc, char** argv)

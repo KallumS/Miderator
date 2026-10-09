@@ -169,3 +169,30 @@ and a Good Idea tune overlapping by a tick read as chords, so the tune and
 the chords swapped and the piccolo and glockenspiel were thinned - seen in
 Miderator's window, fixed by naming first (the test failed before). The
 full orchestra in the window: all 28 parts filled, nothing thinned. 93 core tests, 15 app tests.
+
+## Then: where generated music goes, simplified (0041)
+
+Trying 0040 the user found the placement confusing and set four cases:
+nothing chosen shares an idea across every part; bars of one part take all
+of it (first read as "one bar = where it starts", corrected by the user to
+"one bar = one bar of it"); bars of several parts share it. `insertWhole`
+puts all of a result into one part - thinned, then put in its register - and
+no part is added any more: a line with nowhere to go is named. An older app
+test that put chords into the caret's violin with nothing chosen now chooses
+the violin's bars. Mistake: an interrupted tool call had in fact written its
+tests, so they went in twice - caught by counting `TEST` lines. Miderator's
+branch had been merged and deleted on GitHub; its new commit was moved onto
+`main`. In the window, nothing chosen in a full orchestra: all 28 parts
+filled from bar 1. 95 core tests, 16 app tests.
+
+## Then: one line to one part; bars filled once (0042)
+
+The user asked that a single line (a melody, a motif) never be shared out,
+and that chosen bars be filled once - cut where they end, the rest left
+empty, never repeated. `isSingleLine` and `Controller::lineTarget` (the
+caret's part, among the chosen ones if bars are chosen); `fitToSpan` no
+longer repeats - its test was changed first and failed, and an older test
+that expected a two-bar idea twice in four bars now expects it once. A tune
+with a second voice splits, the upper parts the tune. The Generate tab's
+"Into" line was too long for "Baritone Saxophone" and was shortened. In the
+window: a motif with nothing chosen went into Violin I alone. 96 core tests, 17 app tests.
