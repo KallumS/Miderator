@@ -523,6 +523,13 @@ void Controller::togglePlay()
     playFrom (from);
 }
 
+void Controller::toggleFollow()
+{
+    followPlayback = ! followPlayback;
+    setStatus (followPlayback ? "Follow: the view turns a page with the music as it plays"
+                              : "Follow off: the view stays where you put it while it plays");
+}
+
 void Controller::playFrom (Tick t)
 {
     auditioning = false;

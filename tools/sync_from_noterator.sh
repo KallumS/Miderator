@@ -20,6 +20,7 @@ SHARED="
 Source/Core/AutoCC.cpp Source/Core/AutoCC.h
 Source/Core/Detect.cpp Source/Core/Detect.h
 Source/Core/Edit.cpp Source/Core/Edit.h
+Source/Core/Follow.h
 Source/Core/Engrave.cpp Source/Core/Engrave.h
 Source/Core/Instruments.cpp Source/Core/Instruments.h
 Source/Core/MidiFile.cpp Source/Core/MidiFile.h
@@ -40,7 +41,7 @@ Source/App/GeneratorPanel.cpp Source/App/GeneratorPanel.h
 Source/App/SettingsList.cpp Source/App/SettingsList.h
 Source/App/BlocksPanel.h
 Tests/Check.h Tests/TestMain.cpp Tests/TestScore.cpp Tests/TestEngrave.cpp Tests/TestDetect.cpp
-Tests/TestMidi.cpp Tests/TestGenerators.cpp Tests/TestMusicXml.cpp Tests/TestTemplates.cpp
+Tests/TestMidi.cpp Tests/TestGenerators.cpp Tests/TestMusicXml.cpp Tests/TestTemplates.cpp Tests/TestFollow.cpp
 cmake/EmbedLua.cmake
 tools/try_generators.lua tools/sync_engines.sh
 Engines/VENDORED.md

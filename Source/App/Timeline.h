@@ -42,7 +42,8 @@ public:
     void zoomBy (float factor, float anchorX);
     // Brings `t` into view if it is not, a little in from the left.
     void reveal (Tick t);
-    // While playing: a page on when the playhead reaches the right edge.
+    // While playing: a page on just before the playhead reaches the right
+    // edge (decision 0033).
     void follow (Tick t);
 
 private:

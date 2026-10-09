@@ -79,6 +79,7 @@ decisions; 0026 on are Miderator's.
 | [0028](decisions/0028-notes-drawn-with-the-mouse-on-a-grid.md) | Select, drag, stretch, copy, draw with the mouse on a grid counted from each bar line; step input from a MIDI keyboard. Replaces 0016 here. |
 | [0030](decisions/0030-a-velocity-lane-and-quantise.md) | A velocity lane under the roll; quantise and duplicate. |
 | [0032](decisions/0032-warnings-read-from-the-notes.md) | What an instrument cannot play is read from the notes, shown in the roll and the tracks. |
+| [0033](decisions/0033-follow-the-playhead-switchable.md) | While it plays, the view turns a page before the music goes out of view; Follow (F) switches it, remembered. Shared with Noterator. |
 | [0010](decisions/0010-verify-by-rendering.md) | Drawing changes are checked by rendering them to PNG (`MideratorRender`). |
 | [0014](decisions/0014-chords-and-keys-read-from-the-score.md) | Chord lane: ScaleView's names on beat-by-beat segments, only real harmony named. Key lane: Suggester's finder, the signature breaking ties. |
 | [0015](decisions/0015-the-house-scheme-and-a-dark-page.md) | The family's colour scheme. |

@@ -1,5 +1,7 @@
 #include "Timeline.h"
 
+#include "Follow.h"
+
 namespace nt
 {
 
@@ -37,8 +39,7 @@ void Timeline::reveal (Tick t)
 
 void Timeline::follow (Tick t)
 {
-    const double x = static_cast<double> (t) * pixelsPerTick();
-    if (x > scrollX + viewWidth - 30 || x < scrollX) scrollTo (x - 30);
+    scrollTo (followScroll (static_cast<double> (t) * pixelsPerTick(), scrollX, viewWidth));
 }
 
 //==============================================================================

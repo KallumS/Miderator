@@ -9,7 +9,7 @@ namespace nt
 
 Toolbar::Toolbar (Controller& c) : controller (c)
 {
-    for (auto* b : { &newButton, &openButton, &saveButton, &exportButton, &undoButton, &redoButton, &playButton,
+    for (auto* b : { &newButton, &openButton, &saveButton, &exportButton, &undoButton, &redoButton, &playButton, &followButton,
                      &selectButton, &drawButton, &tripletButton, &snapButton, &quantiseButton, &stepButton,
                      &themeButton, &zoomOut, &zoomIn, &settingsButton })
         addAndMakeVisible (b);
@@ -25,6 +25,7 @@ Toolbar::Toolbar (Controller& c) : controller (c)
     undoButton.setTooltip ("Undo (Cmd+Z)");
     redoButton.setTooltip ("Redo (Shift+Cmd+Z)");
     playButton.setTooltip ("Play from the caret or the chosen bars, or stop (Space)");
+    followButton.setTooltip ("Follow (F): while it plays, the view turns a page before the music goes out of view");
     selectButton.setTooltip ("Select (D switches): click a note to choose it, drag it to move it, drag its end to stretch it, double-click to draw one");
     drawButton.setTooltip ("Draw (D switches): click the roll to draw a note, drag to make it longer, click a note to delete it");
     gridBox.setTooltip ("The grid notes snap to, and how long a drawn note is (keys 1-6)");
@@ -53,6 +54,7 @@ Toolbar::Toolbar (Controller& c) : controller (c)
     undoButton.onClick = [this] { controller.undo(); };
     redoButton.onClick = [this] { controller.redo(); };
     playButton.onClick = [this] { controller.togglePlay(); };
+    followButton.onClick = [this] { controller.toggleFollow(); };
     selectButton.onClick = [this] { if (controller.drawTool) controller.toggleDrawTool(); };
     drawButton.onClick = [this] { if (! controller.drawTool) controller.toggleDrawTool(); };
     gridBox.onChange = [this]
@@ -89,7 +91,8 @@ void Toolbar::resized()
     auto place = [&r] (juce::Component& c, int w, int gap = 4) { c.setBounds (r.removeFromLeft (w)); r.removeFromLeft (gap); };
     place (newButton, 52); place (openButton, 56); place (saveButton, 52); place (exportButton, 62, 14);
     place (undoButton, 52); place (redoButton, 52, 14);
-    place (playButton, 60, 14);
+    place (playButton, 60, 2);
+    place (followButton, 60, 14);
     place (selectButton, 60, 2); place (drawButton, 56, 14);
     place (gridLabel, 36, 4);
     place (gridBox, 74, 4);
@@ -114,6 +117,7 @@ void Toolbar::refresh()
     redoButton.setEnabled (controller.canRedo());
     playButton.setButtonText (controller.audio.isPlaying() ? "Stop" : "Play");
     playButton.setToggleState (controller.audio.isPlaying(), juce::dontSendNotification);
+    followButton.setToggleState (controller.followPlayback, juce::dontSendNotification);
     selectButton.setToggleState (! controller.drawTool, juce::dontSendNotification);
     drawButton.setToggleState (controller.drawTool, juce::dontSendNotification);
     const auto& values = roll::gridValues();

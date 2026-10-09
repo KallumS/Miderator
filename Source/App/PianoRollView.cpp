@@ -162,8 +162,8 @@ void PianoRollView::timerCallback()
         if (t != lastPlayhead)
         {
             lastPlayhead = t;
-            // Keep the playhead in view, a page at a time.
-            timeline.follow (t);
+            // Keep the playhead in view, a page at a time (decision 0033).
+            if (controller.followPlayback) timeline.follow (t);
             lastSounding = controller.audio.soundingNotes();
             repaint();
         }

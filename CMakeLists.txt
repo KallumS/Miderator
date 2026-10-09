@@ -86,7 +86,8 @@ if(MIDERATOR_BUILD_TESTS)
         Tests/TestGenerators.cpp
         Tests/TestMusicXml.cpp
         Tests/TestTemplates.cpp
-        Tests/TestRoll.cpp)
+        Tests/TestRoll.cpp
+        Tests/TestFollow.cpp)
     target_link_libraries(MideratorTests PRIVATE MideratorCore)
     add_test(NAME Core COMMAND MideratorTests)
 endif()

@@ -15,6 +15,7 @@ update the commit below.
 | Noterator commit | Synced |
 | --- | --- |
 | `1cb4015` | 2026-10-09 (the copy Miderator started from) |
+| `270dfb4` | 2026-10-09: `Follow.h` and `TestFollow.cpp` (0033). On Noterator's branch `ccr-ac8da7d9-3sbl5x`, not yet on its main |
 
 ## Shared
 

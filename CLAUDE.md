@@ -43,6 +43,7 @@ gets undone.
 | `Source/Core/` | The music. **No JUCE in here, ever** - it is what makes it testable in seconds. Shared with Noterator, except `Roll.*`. |
 | `Source/Core/Score.*` | Parts of notes in ticks (960 a quarter), meters and keys by bar, tempos by tick. |
 | `Source/Core/Roll.*` | **Miderator's own.** The grid, drawing, moving, stretching, quantising and velocities as functions, and each instrument's warnings read from the notes (0028, 0030, 0032). |
+| `Source/Core/Follow.h` | When the view turns a page with the playhead (0033). Shared. |
 | `Source/Core/Edit.*` | Every change Noterator's editor can make, as a function; Miderator uses most of them. |
 | `Source/Core/Engrave.*` | Notes in, a laid-out page out. Never shown here: it only writes MusicXML (0029). |
 | `Source/Core/Instruments.*` | The one table of what each instrument is (0006). |
@@ -64,7 +65,7 @@ gets undone.
 | `Source/App/AudioEngine.*`, `Exporter.*` | Playback through a rack of synths, one per 16 channels (0023), previews, MIDI input; MIDI, MusicXML and WAV export (0007). |
 | `Source/App/GeneratorPanel.*`, `BlocksPanel.*`, `SettingsList.*` | The Generate tab (0017), the Blocks toolbox (0018, 0024) with a small piano-roll preview, and the settings menus both draw from an adapter. |
 | `Source/App/Panels.*`, `MainComponent.*`, `Theme.*` | Toolbar, Parts and Score tabs, status line, keys and menus, colours (both looks in `theme::rollColours`). |
-| `Tests/Test*.cpp` | Core tests (74), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (12). |
+| `Tests/Test*.cpp` | Core tests (77), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (12). |
 | `tools/` | `RenderRoll.cpp` (MideratorRender, PNGs of the real views), `try_generators.lua`, `sync_engines.sh`, `sync_from_noterator.sh`. |
 
 ## Working in it

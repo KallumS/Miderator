@@ -52,6 +52,7 @@ public:
     bool drawTool = false;        // a click on the roll draws a note (decision 0028)
     bool stepInput = false;       // a MIDI keyboard writes at the caret
     bool lightTheme = false;      // dark unless the user asks for light (decision 0031)
+    bool followPlayback = true;   // the view turns a page with the playhead (decision 0033)
     float zoom = 32.0f;           // pixels per quarter note, across the tracks and the roll
     float rowHeight = 12.0f;      // pixels per key in the piano roll
 
@@ -133,6 +134,7 @@ public:
     //==========================================================================
     // Sound
     void togglePlay();
+    void toggleFollow();
     void playFrom (Tick t);
     void stop();
     void previewPitches (const std::vector<int>& pitches, uint32_t partId, double seconds = 0.9);

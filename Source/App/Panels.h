@@ -28,7 +28,7 @@ private:
     Controller& controller;
     juce::TextButton newButton { "New" }, openButton { "Open" }, saveButton { "Save" }, exportButton { "Export" };
     juce::TextButton undoButton { "Undo" }, redoButton { "Redo" };
-    juce::TextButton playButton { "Play" };
+    juce::TextButton playButton { "Play" }, followButton { "Follow" };
     juce::TextButton selectButton { "Select" }, drawButton { "Draw" };
     juce::Label gridLabel { {}, "Grid" };
     juce::ComboBox gridBox;

@@ -46,3 +46,4 @@ piano roll changed say so at the top. 0026 on are Miderator's own.
 | [0030](0030-a-velocity-lane-and-quantise.md) | A velocity lane under the roll, and quantise | Accepted |
 | [0031](0031-dark-by-default.md) | Dark by default, light on request | Accepted |
 | [0032](0032-warnings-read-from-the-notes.md) | What an instrument cannot play is read from the notes | Accepted |
+| [0033](0033-follow-the-playhead-switchable.md) | The view follows the playhead, a page at a time, and can be switched off (both apps) | Accepted |

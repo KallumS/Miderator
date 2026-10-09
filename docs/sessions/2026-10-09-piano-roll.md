@@ -83,3 +83,14 @@ chose:
 - Noterator's own rough edges carry over: chosen bars are cleared by most
   edits and not brought back by undo; Suggester ignores chosen bars beyond
   reading their notes; templates are fixed.
+
+## Then: Follow (0033)
+
+Asked for an auto-scroll option in both apps. Both already turned the page
+at the right edge, always; now `Follow.h`, written in Noterator and copied
+here with `tools/sync_from_noterator.sh` (its first use), turns it a margin
+before the edge, goes to a playhead that is off the screen, and is switched
+by **Follow** beside Play, the Play menu, or **F** - on by default,
+remembered. Three shared core tests (77 now). The page turning itself has
+not been seen: there is no sound card in the container, so the playhead
+never moves here.
