@@ -2,9 +2,11 @@
     MainComponent - the window: toolbar, tracks and piano roll, panels,
     status line, and the keys and menus that drive them.
 
-    Keys follow the DAWs people already know: Space plays, the arrows move
-    and transpose, Q quantises, D switches between selecting and drawing,
-    Cmd+D duplicates, 1-6 choose the grid.
+    Keys follow the DAWs people already know, with Space as the user asked:
+    Space plays from bar 1 and Shift+Space from the caret, Home and End go
+    to the start and the end, the arrows move and transpose, Q quantises, D
+    switches between selecting and drawing, Cmd+D duplicates, 1-6 choose
+    the grid.
 */
 
 #pragma once
@@ -75,6 +77,8 @@ private:
     void audioSettingsDialog();
     void showHelp();
     void zoomBy (float factor);
+    void returnToStart();
+    void skipToEnd();
     void updateTitle();
 };
 

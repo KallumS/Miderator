@@ -107,3 +107,15 @@ for the first time, through a silent PulseAudio sink: at the default zoom
 the music moves about a pixel a frame (measured from a 60 fps recording:
 mostly 1, sometimes 0 or 2 where Xvfb's frames fall), and in page mode it
 turns a page twice in 14 seconds, as it should. 82 core tests.
+
+## Then: start, end, and Space from bar 1 (0035)
+
+Both repositories' branches had been merged into `main`; the branch was
+started again from `main`. Space now plays from bar 1 and Shift+Space (and
+Play) from the caret; |◀ and ▶| beside Play (Home, End) go to the start and
+to the bar line after the last note. The same change was made in
+Noterator - none of it touches the shared files, so nothing was synced
+(`--check`: 0 differ). An app test covers the controller (13 now). Tried in
+the window through the silent sound card: End showed bars 20-25 with the
+caret at the end, Home went back, a click in bar 4 then Shift+Space played
+from there, Space from bar 1.

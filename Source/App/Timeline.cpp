@@ -37,6 +37,11 @@ void Timeline::reveal (Tick t)
     if (x < scrollX + 10 || x > scrollX + viewWidth - 40) scrollTo (x - viewWidth * 0.15);
 }
 
+void Timeline::showAt (Tick t, double fraction)
+{
+    scrollTo (static_cast<double> (t) * pixelsPerTick() - viewWidth * fraction);
+}
+
 void Timeline::follow (Tick t)
 {
     // Whole pixels, so the notes stay crisp as they move.

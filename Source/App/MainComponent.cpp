@@ -13,7 +13,7 @@ enum MenuIds
     menuNew = 1, menuOpen, menuImport, menuSave, menuSaveAs, menuExportMidi, menuExportMidiBars, menuExportAudio, menuExportAudioBars,
     menuExportXml, menuExportXmlBars,
     menuUndo = 100, menuRedo, menuCut, menuCopy, menuPaste, menuDelete, menuSelectAll, menuDuplicate, menuQuantise,
-    menuPlay = 200, menuFollow, menuFollowSmooth, menuFollowPage, menuDrawTool, menuStepInput, menuSnap, menuTriplet, menuLightTheme, menuZoomIn, menuZoomOut, menuAudioSettings, menuHelp,
+    menuPlay = 200, menuPlayCaret, menuToStart, menuToEnd, menuFollow, menuFollowSmooth, menuFollowPage, menuDrawTool, menuStepInput, menuSnap, menuTriplet, menuLightTheme, menuZoomIn, menuZoomOut, menuAudioSettings, menuHelp,
     menuGridBase = 300,
     menuTemplateBase = 1000
 };
@@ -49,6 +49,8 @@ MainComponent::MainComponent()
     toolbar.onSettings = [this] { showSettingsMenu(); };
     toolbar.onZoomIn = [this] { zoomBy (1.25f); };
     toolbar.onZoomOut = [this] { zoomBy (1.0f / 1.25f); };
+    toolbar.onStart = [this] { returnToStart(); };
+    toolbar.onEnd = [this] { skipToEnd(); };
     scorePanel.onAudioSettings = [this] { audioSettingsDialog(); };
 
     // A MIDI keyboard writes in step input, and is always heard.
@@ -169,7 +171,8 @@ bool MainComponent::keyPressed (const juce::KeyPress& k)
         return false;
     }
 
-    if (code == juce::KeyPress::spaceKey) { c.togglePlay(); return true; }
+    // Space from bar 1, Shift+Space from the caret (decision 0035).
+    if (code == juce::KeyPress::spaceKey) { c.togglePlay (! mods.isShiftDown()); return true; }
     if (code == juce::KeyPress::escapeKey)
     {
         if (c.audio.isPlaying()) c.stop();
@@ -197,7 +200,8 @@ bool MainComponent::keyPressed (const juce::KeyPress& k)
         workspace.timeline.reveal (c.caret);
         return true;
     }
-    if (code == juce::KeyPress::homeKey) { c.setCaret (c.caretPart, 0); workspace.timeline.scrollTo (0); return true; }
+    if (code == juce::KeyPress::homeKey) { returnToStart(); return true; }
+    if (code == juce::KeyPress::endKey) { skipToEnd(); return true; }
 
     const auto lower = juce::CharacterFunctions::toLowerCase (ch);
     if (ch >= '1' && ch <= '6')
@@ -302,7 +306,15 @@ juce::PopupMenu MainComponent::getMenuForIndex (int index, const juce::String&)
     }
     else if (index == 3)
     {
-        item (menuPlay, controller.audio.isPlaying() ? "Stop" : "Play", "Space");
+        if (controller.audio.isPlaying()) item (menuPlay, "Stop", "Space");
+        else
+        {
+            item (menuPlay, "Play from the Start", "Space");
+            item (menuPlayCaret, "Play from the Caret", "Shift+Space");
+        }
+        item (menuToStart, "Return to Start", "Home");
+        item (menuToEnd, "Skip to End", "End");
+        m.addSeparator();
         {
             juce::PopupMenu::Item i ("Follow the Playhead");
             i.itemID = menuFollow;
@@ -364,7 +376,10 @@ void MainComponent::menuItemSelected (int id, int)
         case menuLightTheme: c.lightTheme = ! c.lightTheme; c.viewChanged(); break;
         case menuZoomIn: zoomBy (1.25f); break;
         case menuZoomOut: zoomBy (1.0f / 1.25f); break;
-        case menuPlay: c.togglePlay(); break;
+        case menuPlay: c.togglePlay (true); break;
+        case menuPlayCaret: c.togglePlay (false); break;
+        case menuToStart: returnToStart(); break;
+        case menuToEnd: skipToEnd(); break;
         case menuFollow: c.toggleFollow(); break;
         case menuFollowSmooth: c.setFollowStyle (FollowStyle::smooth); break;
         case menuFollowPage: c.setFollowStyle (FollowStyle::page); break;
@@ -627,6 +642,19 @@ void MainComponent::audioSettingsDialog()
     o.launchAsync();
 }
 
+void MainComponent::returnToStart()
+{
+    controller.returnToStart();
+    workspace.timeline.scrollTo (0);
+}
+
+void MainComponent::skipToEnd()
+{
+    controller.skipToEnd();
+    // The end near the right, so the last bars are in view.
+    workspace.timeline.showAt (controller.caret, 0.8);
+}
+
 void MainComponent::showHelp()
 {
     const juce::String text =
@@ -650,7 +678,8 @@ void MainComponent::showHelp()
         "(drag along the Chords lane for every part; Shift+click stretches the choice)\n"
         "Click the bar numbers to put the caret there\n\n"
         "LISTENING\n"
-        "Space  play from the caret or the chosen bars, or stop\n"
+        "Space  play from bar 1, or stop     Shift+Space  play from the caret\n"
+        "Home  back to the start     End  on to the end of the music\n"
         "F  Follow: the view scrolls along with the music as it plays, or stays put\n"
         "(or turns a page at a time: Play menu)\n"
         "Click a chord in the Chords lane to hear it, or the Scale lane to hear the scale\n"

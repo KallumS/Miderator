@@ -368,6 +368,40 @@ TEST ("app: the warnings follow every edit")
     CHECK (c.warnings.count (low) == 0);
 }
 
+TEST ("app: Space plays from bar 1, Shift+Space from the caret; Home and End go to the start and the end")
+{
+    Controller c (audio());
+    c.newScore ("Piano");
+    drawLine (c, 0, 4 * PPQ, { 60, 62, 64, 65 });                     // bar 2
+    CHECK_EQ (c.musicEnd(), 8 * PPQ);                                 // the bar line after the last note
+    c.setCaret (c.score.parts[0].id, 5 * PPQ);
+
+    c.togglePlay (true);                                              // Space
+    CHECK (c.audio.isPlaying());
+    CHECK_EQ (c.audio.playheadTick(), Tick (0));
+    c.togglePlay (true);                                              // Space again stops it
+    CHECK (! c.audio.isPlaying());
+
+    c.togglePlay (false);                                             // Shift+Space, or the Play button
+    CHECK_EQ (c.audio.playheadTick(), 5 * PPQ);
+    c.returnToStart();                                                // while playing: on from bar 1
+    CHECK (c.audio.isPlaying());
+    CHECK_EQ (c.audio.playheadTick(), Tick (0));
+    CHECK_EQ (c.caret, Tick (0));
+
+    c.skipToEnd();                                                    // stops, and the caret is at the end
+    CHECK (! c.audio.isPlaying());
+    CHECK_EQ (c.caret, 8 * PPQ);
+    c.returnToStart();                                                // stopped: just the caret
+    CHECK (! c.audio.isPlaying());
+    CHECK_EQ (c.caret, Tick (0));
+
+    Controller empty (audio());
+    empty.newScore ("Piano");
+    CHECK_EQ (empty.musicEnd(), empty.score.endTick());               // no notes: the end of the song
+    c.stop();
+}
+
 int main (int argc, char** argv)
 {
     juce::ScopedJuceInitialiser_GUI init;

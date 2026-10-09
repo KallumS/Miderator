@@ -80,6 +80,7 @@ decisions; 0026 on are Miderator's.
 | [0030](decisions/0030-a-velocity-lane-and-quantise.md) | A velocity lane under the roll; quantise and duplicate. |
 | [0032](decisions/0032-warnings-read-from-the-notes.md) | What an instrument cannot play is read from the notes, shown in the roll and the tracks. |
 | [0033](decisions/0033-follow-the-playhead-switchable.md) | While it plays, the view follows the playhead; Follow (F) switches it, remembered. Shared with Noterator. |
+| [0035](decisions/0035-space-plays-from-the-start.md) | Space plays from bar 1, Shift+Space and Play from the caret; |◀ and ▶| (Home, End) go to the start and the end of the music. Both apps. |
 | [0034](decisions/0034-follow-scrolls-smoothly.md) | Following scrolls smoothly by default, the playhead a third of the way across, on a steady clock read once a frame for both views; turning pages is a choice in the Play menu. |
 | [0010](decisions/0010-verify-by-rendering.md) | Drawing changes are checked by rendering them to PNG (`MideratorRender`). |
 | [0014](decisions/0014-chords-and-keys-read-from-the-score.md) | Chord lane: ScaleView's names on beat-by-beat segments, only real harmony named. Key lane: Suggester's finder, the signature breaking ties. |

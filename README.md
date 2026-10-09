@@ -89,7 +89,8 @@ It needs a Mac with Apple silicon (M1 or later).
 | The grid | **1-6** a bar down to 1/32, **T** triplets, **Snap** on or off, **Q** quantise |
 | Velocity | drag across the Velocity lane under the roll |
 | Play it in | **R** for Step input, then play a MIDI keyboard |
-| Hear | **Space** plays from the caret (click the bar numbers to move it) or the chosen bars |
+| Hear | **Space** plays from bar 1; **Shift+Space** (or **Play**) plays from the caret - click the bar numbers or a note to move it |
+| Start and end | **\|◀** beside Play (or **Home**) goes back to bar 1; **▶\|** (or **End**) to the end of the music |
 | Follow the music | **Follow** (or **F**) scrolls along with the music as it plays, the playhead a third of the way across; switch it off to keep the view still. To turn a page at a time instead: **Play** menu, **Turn a Page at a Time** |
 | Take it out | **Export**: the song or the chosen bars as MIDI, MusicXML or WAV |
 | Undo | **Cmd+Z**, **Shift+Cmd+Z** |
