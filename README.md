@@ -86,7 +86,7 @@ It needs a Mac with Apple silicon (M1 or later).
 | Velocity | drag across the Velocity lane under the roll |
 | Play it in | **R** for Step input, then play a MIDI keyboard |
 | Hear | **Space** plays from the caret (click the bar numbers to move it) or the chosen bars |
-| Follow the music | **Follow** (or **F**) turns the page as it plays, just before the music goes out of view; switch it off to keep the view still |
+| Follow the music | **Follow** (or **F**) scrolls along with the music as it plays, the playhead a third of the way across; switch it off to keep the view still. To turn a page at a time instead: **Play** menu, **Turn a Page at a Time** |
 | Take it out | **Export**: the song or the chosen bars as MIDI, MusicXML or WAV |
 | Undo | **Cmd+Z**, **Shift+Cmd+Z** |
 | All the keys | **H** |

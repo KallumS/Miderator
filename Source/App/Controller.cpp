@@ -526,12 +526,22 @@ void Controller::togglePlay()
 void Controller::toggleFollow()
 {
     followPlayback = ! followPlayback;
-    setStatus (followPlayback ? "Follow: the view turns a page with the music as it plays"
-                              : "Follow off: the view stays where you put it while it plays");
+    setStatus (! followPlayback ? "Follow off: the view stays where you put it while it plays"
+               : followStyle == FollowStyle::smooth ? "Follow: the view scrolls along with the music as it plays"
+                                                    : "Follow: the view turns a page with the music as it plays");
+}
+
+void Controller::setFollowStyle (FollowStyle style)
+{
+    followStyle = style;
+    followPlayback = true;
+    setStatus (style == FollowStyle::smooth ? "Follow: the view scrolls along with the music, the playhead a third of the way across"
+                                            : "Follow: the view turns a page just before the music goes out of view");
 }
 
 void Controller::playFrom (Tick t)
 {
+    playheadClock.reset();
     auditioning = false;
     audio.play (score, t);
     sendChangeMessage();
@@ -547,7 +557,8 @@ void Controller::stop()
 Tick Controller::playheadTick() const
 {
     const Tick from = audio.playheadTick();
-    return score.tickAtSeconds (score.secondsAt (from) + audio.playheadSeconds());
+    const double now = juce::Time::getMillisecondCounterHiRes() * 0.001;
+    return score.tickAtSeconds (score.secondsAt (from) + playheadClock.update (audio.playheadSeconds(), now));
 }
 
 void Controller::previewPitches (const std::vector<int>& pitches, uint32_t partId, double seconds)

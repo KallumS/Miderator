@@ -23,7 +23,6 @@ namespace nt
 class ArrangeView : public juce::Component,
                     public juce::SettableTooltipClient,
                     private juce::ChangeListener,
-                    private juce::Timer,
                     private juce::ScrollBar::Listener
 {
 public:
@@ -42,6 +41,10 @@ public:
     static constexpr int rulerHeight = 20, scaleHeight = 20, chordHeight = 26;
     static constexpr int lanesHeight = rulerHeight + scaleHeight + chordHeight;
     static constexpr int trackHeight = 44;
+
+    // Where the playhead is (-1 when nothing plays) and what is sounding,
+    // from the workspace, once a frame.
+    void showPlayhead (Tick t, const std::vector<uint32_t>& sounding);
 
     // Keeps the caret's part in view, as the parts change.
     void revealPart (uint32_t partId);
@@ -64,7 +67,6 @@ private:
     juce::Rectangle<float> soloBox (int index) const;
 
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
-    void timerCallback() override;
     void scrollBarMoved (juce::ScrollBar*, double) override;
     void updateScrollbar();
 

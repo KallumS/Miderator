@@ -12,7 +12,6 @@ ArrangeView::ArrangeView (Controller& c, Timeline& t) : controller (c), timeline
     vbar.setAutoHide (false);
     controller.addChangeListener (this);
     timeline.addChangeListener (this);
-    startTimerHz (30);
 }
 
 ArrangeView::~ArrangeView()
@@ -96,24 +95,12 @@ void ArrangeView::changeListenerCallback (juce::ChangeBroadcaster*)
     repaint();
 }
 
-void ArrangeView::timerCallback()
+void ArrangeView::showPlayhead (Tick t, const std::vector<uint32_t>& sounding)
 {
-    if (controller.audio.isPlaying() && ! controller.auditioning)
-    {
-        const Tick t = controller.playheadTick();
-        if (t != lastPlayhead)
-        {
-            lastPlayhead = t;
-            lastSounding = controller.audio.soundingNotes();
-            repaint();
-        }
-    }
-    else if (lastPlayhead >= 0)
-    {
-        lastPlayhead = -1;
-        lastSounding.clear();
-        repaint();
-    }
+    if (t == lastPlayhead && sounding == lastSounding) return;
+    lastPlayhead = t;
+    lastSounding = sounding;
+    repaint();
 }
 
 //==============================================================================

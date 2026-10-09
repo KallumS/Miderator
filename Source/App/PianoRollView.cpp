@@ -12,7 +12,6 @@ PianoRollView::PianoRollView (Controller& c, Timeline& t) : controller (c), time
     vbar.setAutoHide (false);
     controller.addChangeListener (this);
     timeline.addChangeListener (this);
-    startTimerHz (30);
 }
 
 PianoRollView::~PianoRollView()
@@ -154,26 +153,12 @@ void PianoRollView::changeListenerCallback (juce::ChangeBroadcaster*)
     repaint();
 }
 
-void PianoRollView::timerCallback()
+void PianoRollView::showPlayhead (Tick t, const std::vector<uint32_t>& sounding)
 {
-    if (controller.audio.isPlaying() && ! controller.auditioning)
-    {
-        const Tick t = controller.playheadTick();
-        if (t != lastPlayhead)
-        {
-            lastPlayhead = t;
-            // Keep the playhead in view, a page at a time (decision 0033).
-            if (controller.followPlayback) timeline.follow (t);
-            lastSounding = controller.audio.soundingNotes();
-            repaint();
-        }
-    }
-    else if (lastPlayhead >= 0)
-    {
-        lastPlayhead = -1;
-        lastSounding.clear();
-        repaint();
-    }
+    if (t == lastPlayhead && sounding == lastSounding) return;
+    lastPlayhead = t;
+    lastSounding = sounding;
+    repaint();
 }
 
 //==============================================================================

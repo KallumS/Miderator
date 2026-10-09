@@ -25,7 +25,7 @@ Toolbar::Toolbar (Controller& c) : controller (c)
     undoButton.setTooltip ("Undo (Cmd+Z)");
     redoButton.setTooltip ("Redo (Shift+Cmd+Z)");
     playButton.setTooltip ("Play from the caret or the chosen bars, or stop (Space)");
-    followButton.setTooltip ("Follow (F): while it plays, the view turns a page before the music goes out of view");
+    followButton.setTooltip ("Follow (F): while it plays, the view scrolls along with the music (or turns a page at a time - Play menu)");
     selectButton.setTooltip ("Select (D switches): click a note to choose it, drag it to move it, drag its end to stretch it, double-click to draw one");
     drawButton.setTooltip ("Draw (D switches): click the roll to draw a note, drag to make it longer, click a note to delete it");
     gridBox.setTooltip ("The grid notes snap to, and how long a drawn note is (keys 1-6)");

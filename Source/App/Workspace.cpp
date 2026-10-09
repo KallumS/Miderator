@@ -13,6 +13,7 @@ Workspace::Workspace (Controller& c) : timeline (c), arrange (c, timeline), roll
     hbar.addListener (this);
     timeline.addChangeListener (this);
     controller.addChangeListener (this);
+    startTimerHz (60);
 }
 
 Workspace::~Workspace()
@@ -52,6 +53,25 @@ void Workspace::changeListenerCallback (juce::ChangeBroadcaster* source)
     // scroll inside what there is.
     if (source == &controller) timeline.scrollTo (timeline.scrollX);
     updateScrollbar();
+}
+
+void Workspace::timerCallback()
+{
+    if (controller.audio.isPlaying() && ! controller.auditioning)
+    {
+        const Tick t = controller.playheadTick();
+        if (controller.followPlayback) timeline.follow (t);
+        const auto sounding = controller.audio.soundingNotes();
+        arrange.showPlayhead (t, sounding);
+        roll.showPlayhead (t, sounding);
+        wasPlaying = true;
+    }
+    else if (wasPlaying)
+    {
+        arrange.showPlayhead (-1, {});
+        roll.showPlayhead (-1, {});
+        wasPlaying = false;
+    }
 }
 
 void Workspace::scrollBarMoved (juce::ScrollBar*, double start)

@@ -1,7 +1,7 @@
 # 0033 - The page follows the playhead, a page at a time, and can be switched off
 
 - **Date:** 2026-10-09
-- **Status:** Accepted (Noterator and Miderator alike)
+- **Status:** Accepted (Noterator and Miderator alike); smooth scrolling made the default by [0034](0034-follow-scrolls-smoothly.md), pages kept as a choice
 
 ## Context
 

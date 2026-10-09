@@ -33,7 +33,6 @@ namespace nt
 class PianoRollView : public juce::Component,
                       public juce::SettableTooltipClient,
                       private juce::ChangeListener,
-                      private juce::Timer,
                       private juce::ScrollBar::Listener
 {
 public:
@@ -52,6 +51,10 @@ public:
 
     static constexpr int rulerHeight = 22, velocityHeight = 78, velocityGap = 5;
     static constexpr int keysWidth = 54;   // the keys, at the right of the left column
+
+    // Where the playhead is (-1 when nothing plays) and what is sounding,
+    // from the workspace, once a frame.
+    void showPlayhead (Tick t, const std::vector<uint32_t>& sounding);
 
     // Scrolls so the part's music, or where its instrument sounds best, is in view.
     void centreOnPart();
@@ -101,7 +104,6 @@ private:
     Tick minLength() const;
 
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
-    void timerCallback() override;
     void scrollBarMoved (juce::ScrollBar*, double) override;
     void updateScrollbar();
 

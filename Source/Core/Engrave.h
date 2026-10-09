@@ -161,6 +161,10 @@ struct Layout
     double headerWidth = 0;      // the clef, key and time signature at the very start
 
     double xForTick (Tick t) const;
+    // For a moving playhead, and a page that scrolls with it (decision 0034):
+    // xForTick, but continuous across bar lines - after a bar's last note it
+    // runs on to the next bar's first, so it never jumps the bar line.
+    double playheadX (Tick t) const;
     Tick tickForX (double x) const;
     int measureAtX (double x) const;
     int staffAtY (double y) const;     // nearest staff

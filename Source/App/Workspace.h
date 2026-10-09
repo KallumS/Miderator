@@ -2,6 +2,10 @@
     Workspace - the tracks above, the piano roll below, a divider to drag
     between them, and one scroll bar along the bottom that moves both, so a
     bar is always in the same place in each (decision 0027).
+
+    While the music plays it reads the playhead once a frame, sixty times a
+    second, scrolls to follow it (decisions 0033, 0034) and hands both views
+    the same place, so the tracks and the roll move as one.
 */
 
 #pragma once
@@ -17,6 +21,7 @@ namespace nt
 
 class Workspace : public juce::Component,
                   private juce::ChangeListener,
+                  private juce::Timer,
                   private juce::ScrollBar::Listener
 {
 public:
@@ -51,6 +56,8 @@ private:
     juce::ScrollBar hbar { false };
 
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
+    void timerCallback() override;
+    bool wasPlaying = false;
     void scrollBarMoved (juce::ScrollBar*, double) override;
     void updateScrollbar();
 };

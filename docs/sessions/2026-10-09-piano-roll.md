@@ -94,3 +94,16 @@ by **Follow** beside Play, the Play menu, or **F** - on by default,
 remembered. Three shared core tests (77 now). The page turning itself has
 not been seen: there is no sound card in the container, so the playhead
 never moves here.
+
+## Then: Follow scrolls smoothly (0034)
+
+Asked for the view to move with the playhead instead of flipping pages.
+Made in Noterator (its log `2026-10-09-smooth-follow.md` has the route) and
+copied here: the playhead walks in to a third of the way across, then the
+music moves under it; pages stay a choice in the Play menu. Here, the two
+views' timers became one 60 Hz timer in `Workspace`, so the tracks and the
+roll get the same playhead each frame. Playback was seen in the container
+for the first time, through a silent PulseAudio sink: at the default zoom
+the music moves about a pixel a frame (measured from a 60 fps recording:
+mostly 1, sometimes 0 or 2 where Xvfb's frames fall), and in page mode it
+turns a page twice in 14 seconds, as it should. 83 core tests.

@@ -14,6 +14,7 @@
 #include "AudioEngine.h"
 #include "Detect.h"
 #include "Edit.h"
+#include "Follow.h"
 #include "Generators.h"
 #include "LuaEngine.h"
 #include "Roll.h"
@@ -52,7 +53,8 @@ public:
     bool drawTool = false;        // a click on the roll draws a note (decision 0028)
     bool stepInput = false;       // a MIDI keyboard writes at the caret
     bool lightTheme = false;      // dark unless the user asks for light (decision 0031)
-    bool followPlayback = true;   // the view turns a page with the playhead (decision 0033)
+    bool followPlayback = true;   // the view moves with the playhead (decision 0033)
+    FollowStyle followStyle = FollowStyle::smooth;   // scrolling along, or a page at a time (decision 0034)
     float zoom = 32.0f;           // pixels per quarter note, across the tracks and the roll
     float rowHeight = 12.0f;      // pixels per key in the piano roll
 
@@ -135,9 +137,11 @@ public:
     // Sound
     void togglePlay();
     void toggleFollow();
+    void setFollowStyle (FollowStyle style);
     void playFrom (Tick t);
     void stop();
     void previewPitches (const std::vector<int>& pitches, uint32_t partId, double seconds = 0.9);
+    // Where the playhead is, carried smoothly between the sound's steps.
     Tick playheadTick() const;
 
     //==========================================================================
@@ -164,6 +168,7 @@ public:
 
 private:
     std::vector<Score> undoStack, redoStack;
+    mutable SmoothClock playheadClock;
     std::vector<Note> clipboard;
     bool clipboardFromDrums = false;
     Tick lastWriteStart = 0;

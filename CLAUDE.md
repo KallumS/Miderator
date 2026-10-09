@@ -43,7 +43,7 @@ gets undone.
 | `Source/Core/` | The music. **No JUCE in here, ever** - it is what makes it testable in seconds. Shared with Noterator, except `Roll.*`. |
 | `Source/Core/Score.*` | Parts of notes in ticks (960 a quarter), meters and keys by bar, tempos by tick. |
 | `Source/Core/Roll.*` | **Miderator's own.** The grid, drawing, moving, stretching, quantising and velocities as functions, and each instrument's warnings read from the notes (0028, 0030, 0032). |
-| `Source/Core/Follow.h` | When the view turns a page with the playhead (0033). Shared. |
+| `Source/Core/Follow.h` | How the view follows the playhead - scrolling along or a page at a time - and the steady clock that keeps it smooth (0033, 0034). Shared. |
 | `Source/Core/Edit.*` | Every change Noterator's editor can make, as a function; Miderator uses most of them. |
 | `Source/Core/Engrave.*` | Notes in, a laid-out page out. Never shown here: it only writes MusicXML (0029). |
 | `Source/Core/Instruments.*` | The one table of what each instrument is (0006). |
@@ -58,14 +58,14 @@ gets undone.
 | `Engines/<app>/` | The family's engines, **copied unchanged** (0003), embedded at build time. |
 | `Engines/adapters/` | The only Lua written for the apps: one adapter per engine, protocol in `common.lua`. Shared with Noterator. |
 | `Source/App/Controller.*` | Owns the score, undo, selection, caret, grid and tools; every window piece asks it. |
-| `Source/App/Workspace.*` | The tracks above, the roll below, the divider and the shared scroll bar (0027). |
+| `Source/App/Workspace.*` | The tracks above, the roll below, the divider and the shared scroll bar (0027); reads the playhead once a frame for both views and follows it (0034). |
 | `Source/App/Timeline.*` | The time axis both share, and the drawing along it (grid, ruler, small notes). |
 | `Source/App/ArrangeView.*` | The tracks: names, mute/solo, notes small, the Scale and Chords lanes, choosing bars (0019). |
 | `Source/App/PianoRollView.*` | One part's piano roll: keys, range bracket, notes, the mouse rules (0028), the velocity lane (0030). |
 | `Source/App/AudioEngine.*`, `Exporter.*` | Playback through a rack of synths, one per 16 channels (0023), previews, MIDI input; MIDI, MusicXML and WAV export (0007). |
 | `Source/App/GeneratorPanel.*`, `BlocksPanel.*`, `SettingsList.*` | The Generate tab (0017), the Blocks toolbox (0018, 0024) with a small piano-roll preview, and the settings menus both draw from an adapter. |
 | `Source/App/Panels.*`, `MainComponent.*`, `Theme.*` | Toolbar, Parts and Score tabs, status line, keys and menus, colours (both looks in `theme::rollColours`). |
-| `Tests/Test*.cpp` | Core tests (77), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (12). |
+| `Tests/Test*.cpp` | Core tests (83), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (12). |
 | `tools/` | `RenderRoll.cpp` (MideratorRender, PNGs of the real views), `try_generators.lua`, `sync_engines.sh`, `sync_from_noterator.sh`. |
 
 ## Working in it
@@ -94,7 +94,13 @@ tools/sync_from_noterator.sh ../Noterator --check
   `import -window root`. A 1/16 note at the default zoom is 7 pixels wide:
   aim at its first pixels to move it, its last to stretch it. Popup menus
   open with the *current* item over the box. There is no sound device in the
-  container. Don't `pkill -f` a name that is in your own command line.
+  container, but one can be faked for playback: `apt-get install pulseaudio
+  libasound2-plugins`, start `pulseaudio -D --exit-idle-time=-1 -n
+  --load="module-null-sink sink_name=silent" --load=module-native-protocol-unix`,
+  and put `pcm.!default { type pulse }` in `~/.asoundrc`; the playhead then
+  moves in real time, silently. Record with ffmpeg's `x11grab` to judge
+  motion, from a `RelWithDebInfo` build (Debug draws too slowly to tell).
+  Don't `pkill -f` a name that is in your own command line.
 - **The Mac app is built and tested only on CI** (0012). After pushing, check
   the run (GitHub MCP `actions_list` / `get_job_logs`). The Mac test log
   should say "rendering through Apple General MIDI (built into macOS)".

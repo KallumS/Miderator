@@ -170,6 +170,24 @@ int pitchAtPosition (int pos, Clef clef, const KeyContext& key, const Instrument
 //==============================================================================
 // Layout queries
 
+double Layout::playheadX (Tick t) const
+{
+    for (size_t i = 0; i < measures.size(); ++i)
+    {
+        const auto& m = measures[i];
+        const Tick endT = m.start + m.ticks;
+        if (t >= endT) continue;
+        const Tick lastT = m.columns.empty() ? m.start : m.columns.back().first;
+        if (t <= lastT) break;
+        // From the bar's last column straight to the next bar's first, or
+        // to the final bar line.
+        const double lastX = xForTick (lastT);
+        const double nextX = i + 1 < measures.size() ? xForTick (endT) : m.x + m.width;
+        return lastX + (nextX - lastX) * static_cast<double> (t - lastT) / static_cast<double> (std::max<Tick> (1, endT - lastT));
+    }
+    return xForTick (t);
+}
+
 double Layout::xForTick (Tick t) const
 {
     if (measures.empty()) return 0;

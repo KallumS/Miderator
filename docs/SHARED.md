@@ -16,6 +16,7 @@ update the commit below.
 | --- | --- |
 | `1cb4015` | 2026-10-09 (the copy Miderator started from) |
 | `270dfb4` | 2026-10-09: `Follow.h` and `TestFollow.cpp` (0033). On Noterator's branch `ccr-ac8da7d9-3sbl5x`, not yet on its main |
+| `5291bdc` | 2026-10-09: smooth following and `SmoothClock` in `Follow.h`, `Layout::playheadX` in `Engrave.*`, their tests (0034). Same branch |
 
 ## Shared
 

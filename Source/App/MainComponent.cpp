@@ -13,7 +13,7 @@ enum MenuIds
     menuNew = 1, menuOpen, menuImport, menuSave, menuSaveAs, menuExportMidi, menuExportMidiBars, menuExportAudio, menuExportAudioBars,
     menuExportXml, menuExportXmlBars,
     menuUndo = 100, menuRedo, menuCut, menuCopy, menuPaste, menuDelete, menuSelectAll, menuDuplicate, menuQuantise,
-    menuPlay = 200, menuFollow, menuDrawTool, menuStepInput, menuSnap, menuTriplet, menuLightTheme, menuZoomIn, menuZoomOut, menuAudioSettings, menuHelp,
+    menuPlay = 200, menuFollow, menuFollowSmooth, menuFollowPage, menuDrawTool, menuStepInput, menuSnap, menuTriplet, menuLightTheme, menuZoomIn, menuZoomOut, menuAudioSettings, menuHelp,
     menuGridBase = 300,
     menuTemplateBase = 1000
 };
@@ -74,6 +74,7 @@ MainComponent::MainComponent()
     {
         controller.lightTheme = p->getBoolValue ("lightTheme", false);
         controller.followPlayback = p->getBoolValue ("followPlayback", true);
+        controller.followStyle = p->getValue ("followStyle", "smooth") == "page" ? FollowStyle::page : FollowStyle::smooth;
         controller.zoom = static_cast<float> (juce::jlimit (6.0, 400.0, p->getDoubleValue ("zoom", controller.zoom)));
         controller.rowHeight = static_cast<float> (juce::jlimit (5.0, 28.0, p->getDoubleValue ("rowHeight", controller.rowHeight)));
         controller.viewChanged();
@@ -114,6 +115,8 @@ void MainComponent::changeListenerCallback (juce::ChangeBroadcaster*)
     {
         if (p->getBoolValue ("lightTheme", false) != controller.lightTheme) p->setValue ("lightTheme", controller.lightTheme);
         if (p->getBoolValue ("followPlayback", true) != controller.followPlayback) p->setValue ("followPlayback", controller.followPlayback);
+        const juce::String style = controller.followStyle == FollowStyle::page ? "page" : "smooth";
+        if (p->getValue ("followStyle", "smooth") != style) p->setValue ("followStyle", style);
         if (std::abs (p->getDoubleValue ("zoom", 0.0) - controller.zoom) > 0.01) p->setValue ("zoom", controller.zoom);
         if (std::abs (p->getDoubleValue ("rowHeight", 0.0) - controller.rowHeight) > 0.01) p->setValue ("rowHeight", controller.rowHeight);
     }
@@ -307,6 +310,8 @@ juce::PopupMenu MainComponent::getMenuForIndex (int index, const juce::String&)
             i.shortcutKeyDescription = "F";
             m.addItem (i);
         }
+        m.addItem (menuFollowSmooth, "    Scroll Along with the Music", true, controller.followPlayback && controller.followStyle == FollowStyle::smooth);
+        m.addItem (menuFollowPage, "    Turn a Page at a Time", true, controller.followPlayback && controller.followStyle == FollowStyle::page);
         m.addSeparator();
         item (menuAudioSettings, "Audio and MIDI Devices...");
     }
@@ -361,6 +366,8 @@ void MainComponent::menuItemSelected (int id, int)
         case menuZoomOut: zoomBy (1.0f / 1.25f); break;
         case menuPlay: c.togglePlay(); break;
         case menuFollow: c.toggleFollow(); break;
+        case menuFollowSmooth: c.setFollowStyle (FollowStyle::smooth); break;
+        case menuFollowPage: c.setFollowStyle (FollowStyle::page); break;
         case menuAudioSettings: audioSettingsDialog(); break;
         case menuHelp: showHelp(); break;
         default: break;
@@ -644,7 +651,8 @@ void MainComponent::showHelp()
         "Click the bar numbers to put the caret there\n\n"
         "LISTENING\n"
         "Space  play from the caret or the chosen bars, or stop\n"
-        "F  Follow: the view turns a page with the music as it plays, or stays put\n"
+        "F  Follow: the view scrolls along with the music as it plays, or stays put\n"
+        "(or turns a page at a time: Play menu)\n"
         "Click a chord in the Chords lane to hear it, or the Scale lane to hear the scale\n"
         "Cmd+scroll zooms in time; Alt+scroll makes the keys taller or shorter\n\n"
         "GENERATING\n"

@@ -296,3 +296,26 @@ TEST ("engrave: two hundred bars of eight busy parts lay out in well under a sec
     CHECK_EQ (lay.measures.size(), size_t (200));
     CHECK (secs < 1.0);
 }
+
+TEST ("engrave: a moving playhead glides across the bar lines")
+{
+    // Quarters through four bars. The page's own x jumps at each bar line,
+    // across the line and the space either side of it; a playhead drawn - and
+    // a page scrolled - from it would hitch once a bar.
+    auto s = oneStaff();
+    s.bars = 4;
+    for (int i = 0; i < 16; ++i) add (s, i * PPQ, PPQ, 72);
+    const auto lay = layout (s);
+    double jump = 0, playheadJump = 0;
+    for (Tick t = 0; t + 10 <= 4 * 4 * PPQ; t += 10)
+    {
+        jump = std::max (jump, lay.xForTick (t + 10) - lay.xForTick (t));
+        const double step = lay.playheadX (t + 10) - lay.playheadX (t);
+        CHECK (step >= 0.0);
+        playheadJump = std::max (playheadJump, step);
+    }
+    CHECK (jump > 1.0);              // the page: a space or more at a bar line
+    CHECK (playheadJump < 0.2);      // the playhead: never more than a sliver per 10 ticks
+    // Where there are notes, it is exactly where the notes are.
+    for (int i = 0; i < 16; ++i) CHECK (std::abs (lay.playheadX (i * PPQ) - lay.xForTick (i * PPQ)) < 1e-9);
+}
