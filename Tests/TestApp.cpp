@@ -9,6 +9,7 @@
 
 #include "Controller.h"
 #include "Exporter.h"
+#include "GeneratorPanel.h"
 #include "MidiFile.h"
 #include "ScaleModel.h"
 
@@ -703,4 +704,67 @@ TEST ("app: Escape lets go of everything, the caret's part too, so an idea goes 
     c.letGoOfEverything();
     c.caretToPart (1);
     CHECK (! c.noPartChosen);
+}
+
+TEST ("app: Undo brings back the ideas a Generate replaced, and Redo the new ones, in step with edits")
+{
+    Controller c (audio());
+    c.newScore ("String Quartet");
+    GeneratorPanel panel (c);
+    juce::TextButton* generate = nullptr;
+    juce::ListBox* list = nullptr;
+    for (auto* child : panel.getChildren())
+    {
+        if (auto* b = dynamic_cast<juce::TextButton*> (child); b != nullptr && b->getButtonText() == "Generate") generate = b;
+        if (auto* l = dynamic_cast<juce::ListBox*> (child)) list = l;
+        // The tab chooses Generate Notes on its own a moment after it opens.
+        if (auto* menu = dynamic_cast<juce::ComboBox*> (child); menu != nullptr && menu->onChange) menu->onChange();
+    }
+    CHECK (generate != nullptr && list != nullptr);
+    if (generate == nullptr || list == nullptr) return;
+    // What the list shows, row by row.
+    auto shown = [list]
+    {
+        juce::StringArray rows;
+        auto* model = list->getListBoxModel();
+        for (int i = 0; i < model->getNumRows(); ++i) rows.add (model->getTooltipForRow (i));
+        return rows.joinIntoString ("|");
+    };
+    auto notes = [&c] { return c.score.parts[0].notes.size(); };
+
+    generate->onClick();
+    const auto first = shown();
+    CHECK (first.isNotEmpty());
+    list->selectRow (2);                                // the idea liked
+    c.edit ("A note", [] (Score& s) { Note n; n.start = 0; n.length = PPQ; n.pitch = 72; s.parts[0].notes.push_back (n); });
+    CHECK_EQ (notes(), size_t (1));
+    generate->onClick();                                // one Generate too many
+    const auto second = shown();
+    CHECK (second != first);
+
+    c.undo();                                           // the ideas come back, the note stays
+    CHECK (shown() == first);
+    CHECK_EQ (list->getSelectedRow(), 2);
+    CHECK_EQ (notes(), size_t (1));
+    c.undo();                                           // then the note goes
+    CHECK_EQ (notes(), size_t (0));
+    CHECK (shown() == first);
+    c.redo();
+    CHECK_EQ (notes(), size_t (1));
+    c.redo();
+    CHECK (shown() == second);
+
+    // A Generate after an Undo drops what Redo had.
+    c.undo();
+    CHECK (shown() == first);
+    generate->onClick();
+    const auto third = shown();
+    CHECK (third != first && third != second);
+    CHECK (! c.canRedo());
+    c.undo();
+    CHECK (shown() == first);
+    c.undo();
+    c.undo();                                           // back past the first Generate: an empty list
+    CHECK (shown().isEmpty());
+    CHECK (! c.canUndo());
 }

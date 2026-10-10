@@ -48,23 +48,39 @@ void Controller::ensureCaretPart()
     }
 }
 
-void Controller::edit (const juce::String& what, const std::function<void (Score&)>& fn)
+void Controller::pushUndo (Step step)
 {
-    undoStack.push_back (score);
+    undoStack.push_back (std::move (step));
     if (undoStack.size() > 300) undoStack.erase (undoStack.begin());
     redoStack.clear();
+}
+
+void Controller::edit (const juce::String& what, const std::function<void (Score&)>& fn)
+{
+    pushUndo ({ false, score });
     fn (score);
     dirty = true;
     status = what;
     refresh();
 }
 
+void Controller::generated() { pushUndo ({ true, {} }); }
+
 void Controller::undo()
 {
     if (undoStack.empty()) return;
-    redoStack.push_back (score);
-    score = undoStack.back();
+    auto step = std::move (undoStack.back());
     undoStack.pop_back();
+    if (step.results)
+    {
+        // A Generate undone: the ideas listed before it come back (0049).
+        if (stepResults) stepResults (-1);
+        redoStack.push_back (std::move (step));
+        setStatus ("Undone: the ideas from before that Generate are back");
+        return;
+    }
+    redoStack.push_back ({ false, score });
+    score = std::move (step.score);
     dirty = true;
     status = "Undone";
     refresh();
@@ -73,9 +89,17 @@ void Controller::undo()
 void Controller::redo()
 {
     if (redoStack.empty()) return;
-    undoStack.push_back (score);
-    score = redoStack.back();
+    auto step = std::move (redoStack.back());
     redoStack.pop_back();
+    if (step.results)
+    {
+        if (stepResults) stepResults (1);
+        undoStack.push_back (std::move (step));
+        setStatus ("Redone: the ideas from that Generate are back");
+        return;
+    }
+    undoStack.push_back ({ false, score });
+    score = std::move (step.score);
     dirty = true;
     status = "Redone";
     refresh();

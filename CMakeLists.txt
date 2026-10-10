@@ -188,7 +188,10 @@ if(MIDERATOR_BUILD_TESTS)
         Tests/TestApp.cpp
         Source/App/Controller.cpp
         Source/App/AudioEngine.cpp
-        Source/App/Exporter.cpp)
+        Source/App/Exporter.cpp
+        Source/App/GeneratorPanel.cpp
+        Source/App/SettingsList.cpp
+        Source/App/Theme.cpp)
     target_include_directories(MideratorAppTests PRIVATE Source/App Tests)
     target_compile_definitions(MideratorAppTests PRIVATE
         JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_PLUGINHOST_AU=1 JUCE_PLUGINHOST_VST3=0)

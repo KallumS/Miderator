@@ -13,3 +13,4 @@ Miderator was copied from it.
 | [2026-10-07, evening](2026-10-07-templates.md) | Templates for whole sections, full orchestra and big band; a synth per sixteen channels so every part keeps its sound; Bass and Drums out of Blocks; Generate, Suggest and Vary Notes. |
 | [2026-10-09](2026-10-09-piano-roll.md) | Miderator: Noterator copied, its notation replaced by tracks and a piano roll, a velocity lane, quantise, dark by default. |
 | [2026-10-10, Escape](2026-10-10-escape.md) | Escape lets go of everything - notes, bars and the caret's part - so an idea goes to every part, a single line to the top one (0048). Both apps. |
+| [2026-10-10, Undo](2026-10-10-undo-generate.md) | Undo brings back the ideas a Generate replaced (0049). Both apps. |

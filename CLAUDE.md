@@ -66,7 +66,7 @@ gets undone.
 | `Source/App/AudioEngine.*`, `Exporter.*` | Playback through a rack of synths, one per 16 channels (0023), previews, MIDI input; MIDI, MusicXML and WAV export (0007). |
 | `Source/App/GeneratorPanel.*`, `BlocksPanel.*`, `SettingsList.*` | The Generate tab (0017), the Blocks toolbox (0018, 0024) with a small piano-roll preview, and the settings menus both draw from an adapter. |
 | `Source/App/Panels.*`, `MainComponent.*`, `Theme.*` | Toolbar, Parts tab, status line, keys and menus (File holds New, Open, Save, Export, Undo, the song's settings, Sound, Step input and Light, 0037-0039), colours (both looks in `theme::rollColours`). |
-| `Tests/Test*.cpp` | Core tests (100), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (20). |
+| `Tests/Test*.cpp` | Core tests (100), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (21). |
 | `tools/` | `RenderRoll.cpp` (MideratorRender, PNGs of the real views), `try_generators.lua`, `sync_engines.sh`, `sync_from_noterator.sh`. `build-mac.command`, at the top, builds the app on the user's Mac (0045). |
 
 ## Working in it
@@ -191,7 +191,8 @@ elsewhere (0044), `build-mac.command` (0045), Blocks chords named in the
 Chords lane from their own root (0046) and each chord offering the
 inversions it has (0047), since merged into `main`; then Escape letting
 go of everything, the caret's part too, so an idea goes to every part
-(0048), on the branch `claude/adoring-feynman-bihxp2`. Not built yet, roughly in the order
+(0048), and Undo bringing back the ideas a Generate replaced (0049), on
+the branch `claude/adoring-feynman-bihxp2`. Not built yet, roughly in the order
 the user is likely to want them: drawable CC lanes; articulations; VST3/CLAP
 instruments and SoundFonts; real-time recording; Windows. Known rough edges
 are in the latest session log's "Not done yet".

@@ -874,6 +874,7 @@ void MainComponent::showHelp()
         "Choose some bars (or click a part's name), choose a generator, press\n"
         "Generate, click a result to hear it, and Insert to put it in.\n"
         "Esc lets go of everything - notes, bars and the part - so an idea goes to every part.\n"
+        "Cmd+Z after Generate brings back the ideas it replaced.\n"
         "Generate Notes fills the bars chosen: the tune on top, the bass below,\n"
         "chords between. Suggest Notes and Vary Notes work on the notes you select.\n\n"
         "BLOCKS\n"

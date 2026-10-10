@@ -7,6 +7,9 @@
     instrument. The settings are each generator's own, drawn from what its
     adapter says it has, so nothing here knows what Good Idea or the Catalogue
     can do - a setting added to an engine shows up here by itself.
+
+    Every list Generate (or More) makes is kept, and each is a step in Undo:
+    an idea lost to one Generate too many comes back with Cmd+Z (0049).
 */
 
 #pragma once
@@ -42,6 +45,21 @@ private:
     int seed = 1;
     std::string current;
     std::vector<std::string> listed;   // ids, in the order of the menu
+
+    // What each Generate listed, oldest first, and which one Undo has the
+    // list at (decision 0049). The first is the empty list before any.
+    struct Listed
+    {
+        std::vector<GeneratedResult> results;
+        std::string generator;
+        int seed = 1;
+        int row = -1;
+        juce::String message;
+    };
+    std::vector<Listed> history { Listed {} };
+    size_t shown = 0;
+    bool quiet = false;                // a list brought back is not auditioned
+    void showListed (int direction);
 
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
     int getNumRows() override { return static_cast<int> (found.size()); }

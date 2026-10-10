@@ -77,6 +77,11 @@ public:
     bool canRedo() const { return ! redoStack.empty(); }
     void undo();
     void redo();
+    // A Generate is a step of its own in Undo (decision 0049): undoing it
+    // brings back the ideas listed before it, redoing it the ones after.
+    // The Generate tab keeps the lists and is told to step through them.
+    void generated();
+    std::function<void (int direction)> stepResults;   // -1 back, +1 forward
     void selectionChanged();
     void viewChanged();           // zoom, theme, grid: a repaint, no undo
     void setStatus (const juce::String& s);
@@ -200,7 +205,10 @@ public:
     int keyRootAt (Tick t) const { return score.keyAtBar (score.barAt (t)).root; }
 
 private:
-    std::vector<Score> undoStack, redoStack;
+    // The score as it was before an edit - or, marked `results`, a Generate.
+    struct Step { bool results = false; Score score; };
+    std::vector<Step> undoStack, redoStack;
+    void pushUndo (Step step);
     mutable SmoothClock playheadClock;
     std::vector<Note> clipboard;
     bool clipboardFromDrums = false;

@@ -26,6 +26,7 @@ GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
         const int i = generator.getSelectedId() - 1;
         if (i < 0 || i >= static_cast<int> (listed.size())) return;
         current = listed[static_cast<size_t> (i)];
+        if (! found.empty()) history[shown].row = results.getSelectedRow();
         found.clear();
         results.updateContent();
         message.setText ({}, juce::dontSendNotification);
@@ -62,10 +63,15 @@ GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
     if (! controller.lua.ok())
         message.setText ("The generators did not load:\n" + juce::String (controller.lua.error()), juce::dontSendNotification);
     controller.addChangeListener (this);
+    controller.stepResults = [this] (int direction) { showListed (direction); };
     generator.setSelectedId (1);
 }
 
-GeneratorPanel::~GeneratorPanel() { controller.removeChangeListener (this); }
+GeneratorPanel::~GeneratorPanel()
+{
+    controller.stepResults = nullptr;
+    controller.removeChangeListener (this);
+}
 
 bool GeneratorPanel::needsSelection() const
 {
@@ -157,6 +163,7 @@ void GeneratorPanel::run (bool more)
         return;
     }
     message.setColour (juce::Label::textColourId, theme::stepNumber);
+    if (! found.empty()) history[shown].row = results.getSelectedRow();   // for Undo to come back to
     if (more) found.insert (found.end(), out.results.begin(), out.results.end());
     else found = out.results;
     message.setText (out.message.empty() ? juce::String (static_cast<int> (found.size())) + " results. Click one to hear it; Insert puts it in."
@@ -164,6 +171,42 @@ void GeneratorPanel::run (bool more)
     results.updateContent();
     results.repaint();
     if (! more && ! found.empty()) results.selectRow (0, false, true);
+
+    // Kept, and a step in Undo (decision 0049). A Generate after an Undo
+    // drops the lists that Redo would have brought back, as an edit does.
+    history.resize (shown + 1);
+    history.push_back ({ found, current, seed, results.getSelectedRow(), message.getText() });
+    if (history.size() > 301) history.erase (history.begin());
+    shown = history.size() - 1;
+    controller.generated();
+}
+
+void GeneratorPanel::showListed (int direction)
+{
+    const int to = static_cast<int> (shown) + direction;
+    if (to < 0 || to >= static_cast<int> (history.size())) return;
+    if (! found.empty()) history[shown].row = results.getSelectedRow();
+    shown = static_cast<size_t> (to);
+    const auto& l = history[shown];
+    // The list may have come from another generator: that one is chosen again,
+    // so Insert places it as its own generator would.
+    if (! l.generator.empty() && l.generator != current)
+    {
+        current = l.generator;
+        for (size_t i = 0; i < listed.size(); ++i)
+            if (listed[i] == current) generator.setSelectedId (static_cast<int> (i) + 1, juce::dontSendNotification);
+        rebuildSettings();
+    }
+    found = l.results;
+    seed = l.seed;
+    message.setColour (juce::Label::textColourId, theme::stepNumber);
+    message.setText (l.message, juce::dontSendNotification);
+    results.updateContent();
+    results.repaint();
+    const juce::ScopedValueSetter<bool> hush (quiet, true);
+    if (l.row >= 0 && l.row < static_cast<int> (found.size())) results.selectRow (l.row, false, true);
+    else results.deselectAllRows();
+    insertButton.setEnabled (results.getSelectedRow() >= 0);
 }
 
 void GeneratorPanel::insertSelected()
@@ -203,7 +246,7 @@ void GeneratorPanel::paintListBoxItem (int row, juce::Graphics& g, int width, in
 void GeneratorPanel::selectedRowsChanged (int row)
 {
     insertButton.setEnabled (row >= 0);
-    if (row >= 0 && row < static_cast<int> (found.size())) controller.auditionGenerated (found[static_cast<size_t> (row)], needsSelection(), current);
+    if (! quiet && row >= 0 && row < static_cast<int> (found.size())) controller.auditionGenerated (found[static_cast<size_t> (row)], needsSelection(), current);
 }
 
 void GeneratorPanel::listBoxItemDoubleClicked (int row, const juce::MouseEvent&)
