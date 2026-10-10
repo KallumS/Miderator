@@ -193,7 +193,7 @@ Chords lane from their own root (0046) and each chord offering the
 inversions it has (0047), since merged into `main`; then Escape letting
 go of everything, the caret's part too, so an idea goes to every part
 (0048), and Undo bringing back the ideas a Generate replaced (0049), and several parts
-chosen with Cmd, Shift and Cmd+A, and blocks of bars with Cmd (0050), on
+chosen with Cmd, Shift and Cmd+A, and blocks of bars with Cmd (0050), and no More button (0051), on
 the branch `claude/adoring-feynman-bihxp2`. Not built yet, roughly in the order
 the user is likely to want them: drawable CC lanes; articulations; VST3/CLAP
 instruments and SoundFonts; real-time recording; Windows. Known rough edges

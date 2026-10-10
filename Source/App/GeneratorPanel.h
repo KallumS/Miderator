@@ -8,8 +8,9 @@
     adapter says it has, so nothing here knows what Good Idea or the Catalogue
     can do - a setting added to an engine shows up here by itself.
 
-    Every list Generate (or More) makes is kept, and each is a step in Undo:
-    an idea lost to one Generate too many comes back with Cmd+Z (0049).
+    Every list Generate makes is kept, and each is a step in Undo: an idea
+    lost to one Generate too many comes back with Cmd+Z (0049). There is no
+    More button: Generate again does the same (0051).
 */
 
 #pragma once
@@ -38,7 +39,7 @@ private:
     juce::Label description;
     juce::ToggleButton followKey { "Use the score's key" };
     SettingsList settings { controller };
-    juce::TextButton generateButton { "Generate" }, moreButton { "More" }, insertButton { "Insert" }, stopButton { "Stop" };
+    juce::TextButton generateButton { "Generate" }, insertButton { "Insert" }, stopButton { "Stop" };
     juce::ListBox results { "Results", this };
     juce::Label message, target;
     std::vector<GeneratedResult> found;
@@ -52,7 +53,6 @@ private:
     {
         std::vector<GeneratedResult> results;
         std::string generator;
-        int seed = 1;
         int row = -1;
         juce::String message;
     };
@@ -69,7 +69,7 @@ private:
     juce::String getTooltipForRow (int row) override;
 
     void rebuildSettings();
-    void run (bool more);
+    void run();
     void insertSelected();
     bool needsSelection() const;
 };

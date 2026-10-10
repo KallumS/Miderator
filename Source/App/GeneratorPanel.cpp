@@ -8,7 +8,7 @@ namespace nt
 GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
 {
     for (auto* comp : std::initializer_list<juce::Component*> { &generator, &description, &followKey, &settings, &generateButton,
-                                                                 &moreButton, &insertButton, &stopButton, &results, &message, &target })
+                                                                 &insertButton, &stopButton, &results, &message, &target })
         addAndMakeVisible (comp);
     settings.context = [this] { return controller.generatorContext (needsSelection()); };
     settings.onChange = [this] { resized(); };
@@ -47,11 +47,9 @@ GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
     followKey.onClick = [this] { rebuildSettings(); };
 
     generateButton.setTooltip ("Make new results (G)");
-    moreButton.setTooltip ("More results with the same settings");
     insertButton.setTooltip ("Put the chosen result into the caret's part, at the caret's bar (Return)");
     stopButton.setTooltip ("Stop the audition");
-    generateButton.onClick = [this] { run (false); };
-    moreButton.onClick = [this] { run (true); };
+    generateButton.onClick = [this] { run(); };
     insertButton.onClick = [this] { insertSelected(); };
     stopButton.onClick = [this] { controller.stop(); };
 
@@ -96,9 +94,8 @@ void GeneratorPanel::resized()
     target.setBounds (r.removeFromTop (20));
     r.removeFromTop (4);
     auto buttons = r.removeFromTop (30);
-    const int w = (buttons.getWidth() - 12) / 4;
+    const int w = (buttons.getWidth() - 8) / 3;
     generateButton.setBounds (buttons.removeFromLeft (w)); buttons.removeFromLeft (4);
-    moreButton.setBounds (buttons.removeFromLeft (w)); buttons.removeFromLeft (4);
     insertButton.setBounds (buttons.removeFromLeft (w)); buttons.removeFromLeft (4);
     stopButton.setBounds (buttons);
     r.removeFromTop (8);
@@ -149,10 +146,10 @@ void GeneratorPanel::changeListenerCallback (juce::ChangeBroadcaster*)
     insertButton.setEnabled (results.getSelectedRow() >= 0);
 }
 
-void GeneratorPanel::run (bool more)
+void GeneratorPanel::run()
 {
     if (current.empty()) return;
-    seed = more ? seed + 6 : static_cast<int> (juce::Random::getSystemRandom().nextInt (90000)) + 1;
+    seed = static_cast<int> (juce::Random::getSystemRandom().nextInt (90000)) + 1;
     const auto ctx = controller.generatorContext (needsSelection());
     if (followKey.getToggleState()) controller.lua.useKey (current, ctx.root, ctx.scale);
     const auto out = controller.lua.generate (current, ctx, seed, 6);
@@ -165,18 +162,17 @@ void GeneratorPanel::run (bool more)
     }
     message.setColour (juce::Label::textColourId, theme::stepNumber);
     if (! found.empty()) history[shown].row = results.getSelectedRow();   // for Undo to come back to
-    if (more) found.insert (found.end(), out.results.begin(), out.results.end());
-    else found = out.results;
+    found = out.results;
     message.setText (out.message.empty() ? juce::String (static_cast<int> (found.size())) + " results. Click one to hear it; Insert puts it in."
                                          : juce::String (out.message), juce::dontSendNotification);
     results.updateContent();
     results.repaint();
-    if (! more && ! found.empty()) results.selectRow (0, false, true);
+    if (! found.empty()) results.selectRow (0, false, true);
 
     // Kept, and a step in Undo (decision 0049). A Generate after an Undo
     // drops the lists that Redo would have brought back, as an edit does.
     history.resize (shown + 1);
-    history.push_back ({ found, current, seed, results.getSelectedRow(), message.getText() });
+    history.push_back ({ found, current, results.getSelectedRow(), message.getText() });
     if (history.size() > 301) history.erase (history.begin());
     shown = history.size() - 1;
     controller.generated();
@@ -199,7 +195,6 @@ void GeneratorPanel::showListed (int direction)
         rebuildSettings();
     }
     found = l.results;
-    seed = l.seed;
     message.setColour (juce::Label::textColourId, theme::stepNumber);
     message.setText (l.message, juce::dontSendNotification);
     results.updateContent();

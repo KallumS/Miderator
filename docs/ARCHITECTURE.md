@@ -95,6 +95,7 @@ decisions; 0026 on are Miderator's.
 | [0048](decisions/0048-escape-lets-go-of-everything.md) | Escape lets go of everything - selection, chosen bars and the caret's part - so the next idea goes to every part, a single line to the top one. |
 | [0049](decisions/0049-undo-brings-back-generated-ideas.md) | A Generate is a step in Undo: Cmd+Z brings back the list of ideas from before it. |
 | [0050](decisions/0050-choosing-several-parts-and-blocks-of-bars.md) | Cmd and Shift on names choose several parts, Cmd+A every part (again: every note); Cmd on bars adds blocks, each filled on its own. |
+| [0051](decisions/0051-no-more-button.md) | No More button: Generate again makes a fresh list, and Undo brings back the last. |
 | [0035](decisions/0035-space-plays-from-the-start.md) | Space plays from bar 1, Shift+Space and Play from the caret; |◀ and ▶| (Home, End) go to the start and the end of the music. Both apps. |
 | [0034](decisions/0034-follow-scrolls-smoothly.md) | Following scrolls smoothly by default, the playhead a third of the way across, on a steady clock read once a frame for both views; turning pages is a choice in the Play menu. |
 | [0010](decisions/0010-verify-by-rendering.md) | Drawing changes are checked by rendering them to PNG (`MideratorRender`). |

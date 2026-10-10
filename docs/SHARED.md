@@ -29,6 +29,7 @@ update the commit below.
 | `9f5a00f` | 2026-10-10: Blocks offers each chord the inversions it has (0047): Starting Blocks Notation `79b71f4` vendored, the adapter's Inversion menu the chord's own, the lane test over every inversion. On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 | `79321af` | 2026-10-10: the Generate tab keeps every list it made and steps through them with Undo and Redo (0049), `GeneratorPanel.*`. On Noterator's branch `claude/adoring-feynman-bihxp2` |
 | `7e4e38d` | 2026-10-10: the Generate tab names the parts chosen (0050), `GeneratorPanel.cpp`. On Noterator's branch `claude/adoring-feynman-bihxp2` |
+| `d1c9b2a` | 2026-10-10: no More button in the Generate tab (0051), `GeneratorPanel.*`. On Noterator's branch `claude/adoring-feynman-bihxp2` |
 
 ## Shared
 

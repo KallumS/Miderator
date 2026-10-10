@@ -30,6 +30,12 @@ timeline adds bars.
   to the bottom one, across a staff between that is not chosen; the marks by
   the names say which are.
 
+## Then: no More button (0051)
+
+The user found More useless next to Generate, now that Undo brings back a
+replaced list. Removed from `GeneratorPanel` (shared): Generate, Insert and
+Stop share the row; every Generate is a fresh list.
+
 ## Not done yet
 
 Rough edges left from today's three changes (0048-0050), for whoever comes
