@@ -260,3 +260,22 @@ where bars 3 onwards read a second C6. The user then said arpeggios can be
 ignored: only the Chord block reports a root. A tool call reported as failed
 had written the Controller change it was making - found, as before, by
 reading the file before editing it. 100 core tests, 19 app tests.
+
+## Then: ScaleView Pro reads with Blocks' dictionary (its 0011)
+
+The second half of the user's "both": ScaleView Pro itself now takes
+Starting Blocks as its dictionary (ScaleView-for-Reaper `df4ea43`, its
+decision 0011). Where the notes are a Blocks chord - one of its 78 types on
+any root with any of its notes in the bass, or one of the key's own chords -
+the name is on one of Blocks' roots, the reader's cost choosing between
+them. Here that reaches the lane for chords that were not inserted from
+Blocks: `ScaleModel.h` from the plugin's `b34d6f7` (Noterator's `5fae0da`), and the
+Suggester's and Variator's readers from their `40c14bc` and `417ed44`
+(Noterator's `58b10f1`). Most of the lane reads as before; suspended and quartal
+voicings change (G D F A, `G7sus2` before, reads `Fadd9/G`).
+
+**What looked broken and was not:** the Mac build of `5fae0da` and the one
+before it failed with the 0046 test reading an empty name where Linux read
+`C6`. The test was the fault: `detectChords (...).front().name` inside
+`CHECK_EQ` read a temporary already destroyed - the rule in CLAUDE.md, broken
+a second time. Held in a variable (Noterator's `006bd88`). 100 core tests, 19 app tests.
