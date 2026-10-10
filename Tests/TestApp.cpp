@@ -652,3 +652,55 @@ TEST ("app: clicking a part's name lets go of bars chosen in other parts, so an 
     c.choosePart (viola);
     CHECK (c.range.active());
 }
+
+TEST ("app: Escape lets go of everything, the caret's part too, so an idea goes to every part")
+{
+    Controller c (audio());
+    c.newScore ("String Quartet");
+    const auto violin = c.score.parts[0].id, viola = c.score.parts[2].id;
+    GeneratedResult tune;
+    tune.length = 4 * PPQ;
+    GeneratedPart melody;
+    melody.name = "Melody";
+    for (int i = 0; i < 4; ++i) { Note n; n.start = i * PPQ; n.length = PPQ; n.pitch = 64 + i; melody.notes.push_back (n); }
+    tune.parts = { melody };
+    GeneratedResult chords;
+    chords.length = 4 * PPQ;
+    GeneratedPart harmony;
+    harmony.name = "Chords";
+    for (int i = 0; i < 2; ++i)
+        for (int pitch : { 60, 64, 67, 72 }) { Note n; n.start = i * 2 * PPQ; n.length = 2 * PPQ; n.pitch = pitch; harmony.notes.push_back (n); }
+    chords.parts = { harmony };
+
+    // The viola chosen, bars chosen across it, notes selected.
+    c.setCaret (viola, 0);
+    c.selectRange (0, 1, 1, 2);
+    c.setCaret (viola, 0);
+    CHECK (c.range.active());
+    CHECK_EQ (c.lineTarget(), viola);
+
+    c.letGoOfEverything();                              // Escape
+    CHECK (! c.range.active());
+    CHECK (c.selection.empty());
+    CHECK (c.noPartChosen);
+    CHECK_EQ (c.lineTarget(), violin);                  // a single line: the top part
+
+    c.insertGenerated (tune, false, "good-idea");
+    CHECK_EQ (c.score.partById (violin)->notes.size(), size_t (4));
+    CHECK (c.score.partById (viola)->notes.empty());
+    CHECK (c.noPartChosen);                             // still nothing chosen for the next idea
+    c.setCaret (c.caretPart, 4 * PPQ);                  // the caret moved along the ruler: still nothing
+    CHECK (c.noPartChosen);
+
+    c.insertGenerated (chords, false, "good-idea");     // chords: every part
+    for (const auto& p : c.score.parts) CHECK (! p.notes.empty());
+    CHECK (c.noPartChosen);
+
+    // Choosing a part again ends it.
+    c.choosePart (viola);
+    CHECK (! c.noPartChosen);
+    CHECK_EQ (c.lineTarget(), viola);
+    c.letGoOfEverything();
+    c.caretToPart (1);
+    CHECK (! c.noPartChosen);
+}

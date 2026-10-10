@@ -179,13 +179,8 @@ bool MainComponent::keyPressed (const juce::KeyPress& k)
 
     // Space from bar 1, Shift+Space from the caret (decision 0035).
     if (code == juce::KeyPress::spaceKey) { c.togglePlay (! mods.isShiftDown()); return true; }
-    if (code == juce::KeyPress::escapeKey)
-    {
-        if (c.audio.isPlaying()) c.stop();
-        else if (c.stepInput) c.toggleStepInput();
-        else c.select ({});
-        return true;
-    }
+    // Escape lets go of everything, the caret's part too (decision 0048).
+    if (code == juce::KeyPress::escapeKey) { c.letGoOfEverything(); return true; }
     if (code == juce::KeyPress::deleteKey || code == juce::KeyPress::backspaceKey) { c.deleteSelection(); return true; }
     if (code == juce::KeyPress::upKey || code == juce::KeyPress::downKey)
     {
@@ -878,6 +873,7 @@ void MainComponent::showHelp()
         "GENERATING\n"
         "Choose some bars (or click a part's name), choose a generator, press\n"
         "Generate, click a result to hear it, and Insert to put it in.\n"
+        "Esc lets go of everything - notes, bars and the part - so an idea goes to every part.\n"
         "Generate Notes fills the bars chosen: the tune on top, the bass below,\n"
         "chords between. Suggest Notes and Vary Notes work on the notes you select.\n\n"
         "BLOCKS\n"

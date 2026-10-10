@@ -211,7 +211,7 @@ struct PartsPanel::Row : public juce::Component
         autoCC.setToggleState (p->autoCC, juce::dontSendNotification);
         autoCC.setEnabled (instrumentById (p->instrument).cc != CCShape::none);
         volume.setValue (p->volume, juce::dontSendNotification);
-        current = controller.caretPart == partId;
+        current = controller.caretPart == partId && ! controller.noPartChosen;
         repaint();
     }
 
@@ -403,6 +403,7 @@ void StatusBar::paint (juce::Graphics& g)
         const auto beat = s.meterAtBar (bar).beatTicks();
         where = juce::String (p->name) + " in the roll, caret at bar " + juce::String (bar + 1) + " beat " + juce::String (1.0 + static_cast<double> (inBar) / static_cast<double> (beat), 2);
         if (! controller.selection.empty()) where += "   |   " + juce::String (static_cast<int> (controller.selection.size())) + " selected";
+        if (controller.noPartChosen) where += "   |   no part chosen";
     }
     g.setColour (theme::text);
     const auto middle = r.withTrimmedRight (320);

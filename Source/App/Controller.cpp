@@ -99,7 +99,18 @@ void Controller::choosePart (uint32_t partId)
 {
     if (range.active() && std::find (range.parts.begin(), range.parts.end(), partId) == range.parts.end())
         range = {};
+    if (score.partById (partId) != nullptr) noPartChosen = false;
     setCaret (partId, caret);
+}
+
+void Controller::letGoOfEverything()
+{
+    if (audio.isPlaying() || auditioning) stop();
+    stepInput = false;
+    selection.clear();
+    range = {};
+    noPartChosen = true;
+    setStatus ("Nothing chosen: ideas go to every part, a single line to the top one");
 }
 
 void Controller::moveCaret (int direction)
@@ -114,6 +125,7 @@ void Controller::caretToPart (int direction)
     if (i < 0) return;
     const int j = std::clamp (i + direction, 0, static_cast<int> (score.parts.size()) - 1);
     caretPart = score.parts[static_cast<size_t> (j)].id;
+    noPartChosen = false;
     if (const auto* p = caretPartPtr()) audio.setLiveInstrument (p->instrument);
     sendChangeMessage();
 }
@@ -128,6 +140,7 @@ uint32_t Controller::drawNoteAt (uint32_t partId, Tick at, int pitch, Tick lengt
     range = {};
     selection = { id };
     caretPart = partId;
+    noPartChosen = false;
     previewPitches ({ pitch }, partId, 0.5);
     sendChangeMessage();
     return id;
@@ -388,6 +401,7 @@ void Controller::selectRange (int a, int b, int fromPart, int toPart)
             for (const auto& n : p->notes)
                 if (n.start >= from && n.start < to) selection.insert (n.id);
     caretPart = range.parts.front();
+    noPartChosen = false;
     caret = from;
     sendChangeMessage();
 }
@@ -437,6 +451,7 @@ uint32_t Controller::addPart (const std::string& instrumentId)
         s.parts.push_back (p);
     });
     caretPart = id;
+    noPartChosen = false;
     sendChangeMessage();
     return id;
 }
@@ -625,6 +640,7 @@ void Controller::newScore (const juce::String& name)
     range = {};
     caret = 0;
     caretPart = score.parts.empty() ? 0 : score.parts.front().id;
+    noPartChosen = false;
     file = juce::File();
     dirty = false;
     status = "New score: " + name;
@@ -713,6 +729,7 @@ bool Controller::load (const juce::File& f, juce::String& error)
     range = {};
     caret = 0;
     caretPart = score.parts.empty() ? 0 : score.parts.front().id;
+    noPartChosen = false;
     dirty = false;
     status = "Opened " + f.getFileName();
     refresh();
@@ -765,7 +782,8 @@ GeneratorContext Controller::generatorContext (bool withSelection) const
 
 uint32_t Controller::lineTarget() const
 {
-    if (! range.active()) return caretPart;
+    if (! range.active())
+        return noPartChosen && ! score.parts.empty() ? score.parts.front().id : caretPart;
     for (auto id : range.parts)
         if (id == caretPart) return id;
     return range.parts.front();

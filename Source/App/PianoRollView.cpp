@@ -222,8 +222,9 @@ void PianoRollView::paint (juce::Graphics& g)
     g.fillRect (0, rulerHeight - 1, Timeline::left, 1);
     if (const auto* p = part())
     {
+        // Marked as chosen - unless Escape let go of it (decision 0048).
         g.setColour (theme::accent);
-        g.fillRect (0, 3, 3, rulerHeight - 6);
+        if (! controller.noPartChosen) g.fillRect (0, 3, 3, rulerHeight - 6);
         g.setColour (theme::text);
         g.setFont (juce::FontOptions (13.0f, juce::Font::bold));
         g.drawText (p->name, juce::Rectangle<int> (10, 0, Timeline::left - 14, rulerHeight - 1), juce::Justification::centredLeft, true);
@@ -579,6 +580,7 @@ void PianoRollView::mouseDown (const juce::MouseEvent& e)
         dragEnd = hit->end();
         dragPitch = hit->pitch;
         controller.caret = hit->start;
+        controller.noPartChosen = false;         // a note clicked: its part is chosen (0048)
         controller.select (sel);
         controller.previewPitches ({ dragPitch }, pt->id, 0.5);
         if (sel.count (dragNote) == 0) return;   // Shift-clicked off

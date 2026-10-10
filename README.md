@@ -108,6 +108,7 @@ keeps working for every future version.
 | Show a part in the piano roll | click its name in the tracks (**Alt+Up/Down** for the next) |
 | Choose bars | click a bar in a track; drag across bars and tracks for more; drag along the Chords lane for every part; **Esc** lets go |
 | Generate | **Generate** tab: choose a generator, **Generate**, click a result to hear it, **Insert** - into the chosen bars, or the part in the roll |
+| Every instrument at once | **Esc** lets go of everything - notes, bars and the instrument - so the next idea goes to every part (a single melody to the top one); click a name to choose one again |
 | Blocks | **Blocks** tab: choose a kind, click a degree to see and hear it, **Insert** at the caret |
 | Draw notes | double-click the roll, or **D** for the Draw tool: click to draw, drag to make it longer, click a note to delete it |
 | Select | click a note; **Shift**-click for more; drag on empty space to lasso |

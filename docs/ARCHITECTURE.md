@@ -92,6 +92,7 @@ decisions; 0026 on are Miderator's.
 | [0045](decisions/0045-built-on-the-users-own-mac.md) | `build-mac.command` builds the app on the user's Mac and puts it in Applications; CI still builds and tests every push. |
 | [0046](decisions/0046-blocks-chords-keep-their-root.md) | A Blocks chord carries its root into the score; the Chords lane names it from there while its notes are unchanged. |
 | [0047](decisions/0047-blocks-offers-a-chords-real-inversions.md) | Blocks offers each chord its own inversions: two for a triad, three for a seventh, up to six for a thirteenth. |
+| [0048](decisions/0048-escape-lets-go-of-everything.md) | Escape lets go of everything - selection, chosen bars and the caret's part - so the next idea goes to every part, a single line to the top one. |
 | [0035](decisions/0035-space-plays-from-the-start.md) | Space plays from bar 1, Shift+Space and Play from the caret; |◀ and ▶| (Home, End) go to the start and the end of the music. Both apps. |
 | [0034](decisions/0034-follow-scrolls-smoothly.md) | Following scrolls smoothly by default, the playhead a third of the way across, on a steady clock read once a frame for both views; turning pages is a choice in the Play menu. |
 | [0010](decisions/0010-verify-by-rendering.md) | Drawing changes are checked by rendering them to PNG (`MideratorRender`). |

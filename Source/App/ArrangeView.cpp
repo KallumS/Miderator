@@ -185,7 +185,7 @@ void ArrangeView::paintHeaders (juce::Graphics& g, const theme::RollColours& c)
         const int index = static_cast<int> (i);
         const float top = trackTop (index);
         if (top > static_cast<float> (area.getBottom()) || top + trackHeight < static_cast<float> (area.getY())) continue;
-        const bool current = p.id == controller.caretPart;
+        const bool current = p.id == controller.caretPart && ! controller.noPartChosen;
         const juce::Rectangle<float> box (2.0f, top + 1.0f, static_cast<float> (Timeline::left) - 4.0f, static_cast<float> (trackHeight) - 2.0f);
         g.setColour (current ? c.headerActive : c.header);
         g.fillRoundedRectangle (box, 3.0f);
