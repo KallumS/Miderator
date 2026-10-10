@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace nt
 {
@@ -275,6 +276,60 @@ bool silentIn (const Part& p, Tick from, Tick to)
     return true;
 }
 } // namespace
+
+void markChordRoot (Score& score, const GeneratedResult& result, Tick at, Tick length)
+{
+    if (result.chordRoot < 0 || length <= 0) return;
+    ChordRoot cr;
+    cr.start = at;
+    cr.end = at + length;
+    cr.root = result.chordRoot % 12;
+    for (const auto& gp : result.parts)
+        if (! gp.drums)
+            for (const auto& n : gp.notes)
+                if (n.start < length) cr.pitchClasses.push_back (((n.pitch % 12) + 12) % 12);
+    std::sort (cr.pitchClasses.begin(), cr.pitchClasses.end());
+    cr.pitchClasses.erase (std::unique (cr.pitchClasses.begin(), cr.pitchClasses.end()), cr.pitchClasses.end());
+    if (cr.pitchClasses.empty()) return;
+    auto& list = score.chordRoots;
+    list.erase (std::remove_if (list.begin(), list.end(),
+                                [&cr] (const ChordRoot& o) { return o.start < cr.end && o.end > cr.start; }),
+                list.end());
+    list.push_back (cr);
+    std::sort (list.begin(), list.end(), [] (const ChordRoot& x, const ChordRoot& y) { return x.start < y.start; });
+}
+
+void addAudition (Score& score, const GeneratedResult& result, Tick at, Tick length)
+{
+    const Tick end = length > 0 ? at + length : std::numeric_limits<Tick>::max();
+    bool anySolo = false;
+    for (const auto& p : score.parts) anySolo = anySolo || p.solo;
+    for (bool drums : { false, true })
+    {
+        Part p;
+        for (const auto& gp : result.parts)
+            if (gp.drums == drums)
+                for (auto n : gp.notes)
+                {
+                    n.start += at;
+                    if (n.start >= end || n.length <= 0) continue;
+                    n.length = std::min (n.length, end - n.start);
+                    n.voice = 0;
+                    n.id = score.newId();
+                    p.notes.push_back (n);
+                }
+        if (p.notes.empty()) continue;
+        std::sort (p.notes.begin(), p.notes.end(), [] (const Note& a, const Note& b)
+                   { return a.start != b.start ? a.start < b.start : a.pitch < b.pitch; });
+        p.id = score.newId();
+        p.instrument = drums ? "kit" : "pno";
+        p.name = drums ? "Audition (drums)" : "Audition";
+        p.autoCC = false;
+        p.solo = anySolo;
+        score.parts.push_back (std::move (p));
+    }
+    score.fitBars();
+}
 
 InsertReport insertResult (Score& score, const GeneratedResult& result, uint32_t targetPartId, Tick at,
                            const InsertOptions& options)

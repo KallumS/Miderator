@@ -131,6 +131,20 @@ TEST ("edit: deleting bars pulls the music after them back")
     CHECK_EQ (s.parts[0].notes[0].start, 8 * PPQ);
 }
 
+TEST ("edit: a chord's recorded root moves with inserted bars and goes with deleted ones (0046)")
+{
+    Score s;
+    s.bars = 4;
+    s.chordRoots = { { 0, 4 * PPQ, 0, { 0, 4, 7 } }, { 8 * PPQ, 12 * PPQ, 7, { 2, 7, 11 } } };
+    insertBars (s, 0, 1);
+    CHECK_EQ (s.chordRoots[0].start, 4 * PPQ);
+    CHECK_EQ (s.chordRoots[1].end, 16 * PPQ);
+    deleteBars (s, 1, 1);                                    // the first chord's bar
+    CHECK_EQ (s.chordRoots.size(), size_t (1));
+    CHECK_EQ (s.chordRoots[0].start, 8 * PPQ);
+    CHECK_EQ (s.chordRoots[0].root, 7);
+}
+
 TEST ("file: a score survives saving and loading")
 {
     auto s = twoParts();
@@ -141,6 +155,7 @@ TEST ("file: a score survives saving and loading")
     writeNote (s, s.parts[0].id, 0, PPQ, 61, 0, 90);
     writeNote (s, s.parts[1].id, PPQ / 3, PPQ * 2 / 3, 40, 1);
     s.parts[1].mute = true;
+    s.chordRoots = { { 0, 4 * PPQ, 9, { 0, 4, 7, 9 } } };   // decision 0046
     const auto text = saveScore (s);
     const auto back = loadScore (text);
     CHECK (back.ok);
@@ -155,6 +170,8 @@ TEST ("file: a score survives saving and loading")
     CHECK (back.score.keys[1] == s.keys[1]);
     CHECK (back.score.meters[1] == s.meters[1]);
     CHECK (std::abs (back.score.tempos[0].bpm - 96.5) < 1e-9);
+    CHECK_EQ (back.score.chordRoots.size(), size_t (1));
+    CHECK (back.score.chordRoots == s.chordRoots);
     CHECK (! loadScore ("{ \"format\": \"something else\" }").ok);
     CHECK (! loadScore ("not json").ok);
 }

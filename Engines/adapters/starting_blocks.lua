@@ -53,7 +53,15 @@ local LIST = {
       end
       return values, shown, {}
     end }),
-  C.setting("inv", "Inversion", range(0, 3), E.INVERSIONS, { when = cat("Chord", "Arpeggio") }),
+  -- Only the inversions this chord has: two for a triad, three for a seventh,
+  -- up to six for a thirteenth (Starting Blocks' decision 0007).
+  C.setting("inv", "Inversion", {}, {}, {
+    when = cat("Chord", "Arpeggio"),
+    dynamic = function(st)
+      local values, shown = {}, E.inversionNames(st)
+      for i = 1, #shown do values[i] = i - 1 end
+      return values, shown, {}
+    end }),
   C.setting("chop", "Strike every", range(1, #E.RATES), names(E.RATES), { when = cat("Chord") }),
   C.setting("pattern", "Direction", range(1, #E.DIRECTIONS), E.DIRECTIONS, { when = cat("Arpeggio") }),
   C.setting("runDir", "Direction", range(1, #E.DIRECTIONS), E.DIRECTIONS, { when = cat("Run") }),
@@ -100,8 +108,12 @@ function A.generate(st, ctx, seed, count)
     st.degree = d
     local block = E.generate(st)
     local title = ("%s  %s"):format(E.degreeNumeral(st, d), block.name)
+    -- A chord says the root it was built on, so the Chords lane names it as
+    -- it was made (decision 0046). A broken chord - an arpeggio - is a line,
+    -- and is read like one.
+    local root = st.cat == "Chord" and E.scalePitch(st, d) % 12 or nil
     out[#out + 1] = { title = title, detail = E.noteName(st, d) .. "  " .. E.degreeTitle(st, d), beats = block.beats,
-                      parts = { { name = st.cat, drums = false, notes = C.notes(block.notes) } } }
+                      root = root, parts = { { name = st.cat, drums = false, notes = C.notes(block.notes) } } }
   end
   st.degree = 0
   return { results = out }

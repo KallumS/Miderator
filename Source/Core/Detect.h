@@ -66,4 +66,9 @@ std::vector<KeySpan> detectKeys (const Score& score, bool leanOnSignature = fals
 // Whatever is sounding at one moment, named - what a click on a chord plays.
 std::string nameSounding (const std::vector<int>& pitches, int keyRoot, int keyScale);
 
+// The same, read from a root known in advance (decision 0046): ScaleView's own
+// reading from that root, in ScaleView's words, the bass after a slash as
+// ScaleView would put it. A root not among the pitches: nameSounding.
+std::string nameFromRoot (const std::vector<int>& pitches, int root, int keyRoot, int keyScale);
+
 } // namespace nt

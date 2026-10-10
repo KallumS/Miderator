@@ -67,6 +67,7 @@ struct GeneratedResult
 {
     std::string title, detail;
     Tick length = 0;
+    int chordRoot = -1;               // the pitch class a chord was made on, if the engine said (0046)
     std::vector<GeneratedPart> parts;
 };
 

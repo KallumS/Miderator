@@ -347,7 +347,7 @@ void ArrangeView::mouseDown (const juce::MouseEvent& e)
             });
             return;
         }
-        controller.setCaret (partId, controller.caret);
+        controller.choosePart (partId);
         controller.setStatus (juce::String (s.parts[static_cast<size_t> (index)].name) + " in the piano roll");
         return;
     }

@@ -22,7 +22,7 @@ const Kind kindList[] = {
 };
 
 // The block placed alone, as it would go into the caret's part: what the
-// preview draws and what is heard.
+// preview draws. What is heard is the block on a piano (decision 0043).
 Score scoreOfBlock (const Controller& c, const GeneratedResult& r)
 {
     Score s;
@@ -38,7 +38,11 @@ Score scoreOfBlock (const Controller& c, const GeneratedResult& r)
     p.instrument = cp != nullptr ? cp->instrument : std::string ("pno");
     p.name = instrumentById (p.instrument).name;
     s.parts.push_back (p);
-    insertResult (s, r, p.id, 0);
+    // As the block goes in: every note of it, thinned for no instrument
+    // (decision 0036's one exception).
+    InsertOptions options;
+    options.fitPolyphony = false;
+    insertResult (s, r, p.id, 0, options);
     // A chord the caret's instrument cannot play went to a part of its own:
     // show that one alone.
     if (s.parts.size() > 1 && s.parts.front().notes.empty()) s.parts.erase (s.parts.begin());
@@ -231,7 +235,7 @@ void BlocksPanel::choose (int index, bool play)
     preview->set (scoreOfBlock (controller, blocks[static_cast<size_t> (index)]));
     if (play)
     {
-        controller.audio.play (preview->score, 0);
+        controller.audio.play (controller.auditionAlone (blocks[static_cast<size_t> (index)]), 0);
         controller.auditioning = true;
     }
 }

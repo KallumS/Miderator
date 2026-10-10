@@ -307,6 +307,34 @@ std::string nameSounding (const std::vector<int>& pitches, int keyRoot, int keyS
     return scaleview::chordName (held, key);
 }
 
+std::string nameFromRoot (const std::vector<int>& pitches, int root, int keyRoot, int keyScale)
+{
+    if (pitches.empty()) return {};
+    std::array<bool, 12> classes {};
+    std::array<int, 12> voices {};
+    for (int p : pitches) { classes[pcIndex (p)] = true; ++voices[pcIndex (p)]; }
+    const size_t r = pcIndex (root);
+    if (! classes[r]) return nameSounding (pitches, keyRoot, keyScale);
+    const auto key = scaleview::buildKey (keyRoot, keyScale);
+    const int bass = static_cast<int> (pcIndex (*std::min_element (pitches.begin(), pitches.end())));
+    std::array<bool, 12> has {};
+    int count = 0;
+    for (size_t pc = 0; pc < 12; ++pc)
+        if (classes[pc]) { has[(pc + 12 - r) % 12] = true; ++count; }
+    std::string quality;
+    if (count == 1) return scaleview::chordNoteName (static_cast<int> (r), key);
+    // Two notes, as ScaleView names them: a fifth, or a third with its fifth
+    // said to be missing; any other interval as ScaleView reads it from there.
+    if (count == 2 && has[7]) quality = "5";
+    else if (count == 2 && has[4]) quality = "maj(no5)";
+    else if (count == 2 && has[3]) quality = "min(no5)";
+    else quality = scaleview::analyse (has, static_cast<int> (r), bass).name;
+    std::string name = scaleview::chordNoteName (static_cast<int> (r), key) + quality;
+    if (! scaleview::readAsRootPosition (static_cast<int> (r), bass, voices, key))
+        name += "/" + scaleview::chordNoteName (bass, key);
+    return name;
+}
+
 std::vector<ChordSpan> detectChords (const Score& score, Tick from, Tick to,
                                      const std::vector<uint32_t>& onlyParts)
 {
@@ -412,6 +440,58 @@ std::vector<ChordSpan> detectChords (const Score& score, Tick from, Tick to,
             continue;
         }
         out.push_back (span);
+    }
+
+    // A chord made on a known root (decision 0046) is named from it, for as
+    // long as the notes sounding there are still exactly its notes.
+    for (const auto& cr : score.chordRoots)
+    {
+        const Tick a = std::max (cr.start, from), b = std::min (cr.end, to);
+        if (b <= a) continue;
+        std::map<int, int> lowestOf;
+        for (const auto& n : notes)
+        {
+            if (n.start + n.length <= a || n.start >= b) continue;
+            const int pc = static_cast<int> (pcIndex (n.pitch));
+            auto it = lowestOf.find (pc);
+            if (it == lowestOf.end() || n.pitch < it->second) lowestOf[pc] = n.pitch;
+        }
+        std::vector<int> pcs;
+        for (const auto& [pc, p] : lowestOf) pcs.push_back (pc);
+        if (pcs != cr.pitchClasses) continue;
+        ChordSpan span;
+        span.start = a;
+        span.end = b;
+        for (const auto& [pc, p] : lowestOf) span.pitches.push_back (p);
+        std::sort (span.pitches.begin(), span.pitches.end());
+        const auto& k = score.keyAtBar (score.barAt (a));
+        span.name = nameFromRoot (span.pitches, cr.root, k.root, k.scale);
+        // What the reader found there gives way; around it, it stays - but
+        // rests after the chord go on holding it, as they hold any chord.
+        auto soundsIn = [&notes] (Tick x, Tick y)
+        {
+            for (const auto& n : notes) if (n.start < y && n.start + n.length > x) return true;
+            return false;
+        };
+        std::vector<ChordSpan> kept;
+        for (const auto& o : out)
+        {
+            if (o.end <= a || o.start >= b) { kept.push_back (o); continue; }
+            if (o.start < a) { auto left = o; left.end = a; kept.push_back (left); }
+            if (o.end > b)
+            {
+                if (soundsIn (b, o.end)) { auto right = o; right.start = b; kept.push_back (right); }
+                else span.end = std::max (span.end, o.end);
+            }
+        }
+        kept.push_back (span);
+        std::sort (kept.begin(), kept.end(), [] (const ChordSpan& x, const ChordSpan& y) { return x.start < y.start; });
+        out.clear();
+        for (const auto& k2 : kept)
+        {
+            if (! out.empty() && out.back().name == k2.name && out.back().end == k2.start) { out.back().end = k2.end; continue; }
+            out.push_back (k2);
+        }
     }
     return out;
 }

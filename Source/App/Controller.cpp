@@ -95,6 +95,13 @@ void Controller::setCaret (uint32_t partId, Tick t)
     sendChangeMessage();
 }
 
+void Controller::choosePart (uint32_t partId)
+{
+    if (range.active() && std::find (range.parts.begin(), range.parts.end(), partId) == range.parts.end())
+        range = {};
+    setCaret (partId, caret);
+}
+
 void Controller::moveCaret (int direction)
 {
     caret = std::clamp<Tick> (roll::snap (score, caret, grid) + direction * grid.step(), 0, score.endTick());
@@ -842,7 +849,15 @@ void Controller::insertGenerated (const GeneratedResult& r, bool fromSelection, 
 {
     InsertReport report;
     Tick at = 0;
-    edit ("Inserted " + juce::String (r.title), [&] (Score& s) { at = place (s, r, fromSelection, generatorId, report); });
+    edit ("Inserted " + juce::String (r.title), [&] (Score& s)
+    {
+        at = place (s, r, fromSelection, generatorId, report);
+        // A Blocks chord keeps the root it was made on, for the Chords lane
+        // (decision 0046) - as far as the chosen bars, if bars are chosen.
+        Tick length = r.length;
+        if (range.active() && ! fromSelection) length = std::min (length, s.barStart (range.last + 1) - at);
+        markChordRoot (s, r, at, length);
+    });
     // Say so when an instrument was given fewer notes than the idea had.
     juce::StringArray thinned;
     for (const auto id : report.thinnedParts)
@@ -872,37 +887,55 @@ void Controller::insertGenerated (const GeneratedResult& r, bool fromSelection, 
     sendChangeMessage();
 }
 
-void Controller::auditionGenerated (const GeneratedResult& r, bool fromSelection, const std::string& generatorId)
+Score Controller::auditionScore (const GeneratedResult& r, bool fromSelection, const std::string& generatorId,
+                                Tick& from, Tick& to) const
 {
-    // Heard in place, on the parts it would go to (decision 0041), with the
-    // music around it - except a block, heard on its own.
+    // Heard in place, where it would go (decision 0041), with the music
+    // around it - except a block, heard on its own. Either way on a piano,
+    // every note of it, whatever the parts it goes to can play (0043).
     if (range.active() || (fromSelection && ! selection.empty()) || generatorId != "starting-blocks")
     {
         Score temp = score;
         InsertReport report;
         const Tick at = place (temp, r, fromSelection, generatorId, report);
-        temp.normalise();
+        // The parts it would go to are left silent there; the piano plays it.
+        deleteNotes (temp, report.newNotes);
+        for (auto id : report.newParts)
+            temp.parts.erase (std::remove_if (temp.parts.begin(), temp.parts.end(),
+                                              [id] (const Part& p) { return p.id == id; }), temp.parts.end());
         Tick length = std::max<Tick> (r.length, PPQ);
         if (range.active() && (! fromSelection || generatorId == "midi-variator"))
             length = score.barStart (range.last + 1) - at;
-        audio.play (temp, at, at + length);
-        auditioning = true;
-        sendChangeMessage();
-        return;
+        addAudition (temp, r, at, length);
+        temp.normalise();
+        from = at;
+        to = at + length;
+        return temp;
     }
+    from = 0;
+    to = -1;   // to its end
+    return auditionAlone (r);
+}
+
+Score Controller::auditionAlone (const GeneratedResult& r) const
+{
     Score temp;
     temp.tempos = score.tempos;
-    temp.meters = { score.meterAtBar (score.barAt (caret)) };
+    const int bar = score.barAt (caret);
+    temp.meters = { score.meterAtBar (bar) };
     temp.meters.front().bar = 0;
-    Part target;
-    target.id = temp.newId();
-    const auto* cp = caretPartPtr();
-    target.instrument = cp != nullptr ? cp->instrument : std::string ("pno");
-    target.name = "Audition";
-    temp.parts.push_back (target);
-    insertResult (temp, r, target.id, 0);
+    temp.keys = { score.keyAtBar (bar) };
+    temp.keys.front().bar = 0;
+    addAudition (temp, r, 0, 0);
     temp.normalise();
-    audio.play (temp, 0);
+    return temp;
+}
+
+void Controller::auditionGenerated (const GeneratedResult& r, bool fromSelection, const std::string& generatorId)
+{
+    Tick from = 0, to = 0;
+    const Score temp = auditionScore (r, fromSelection, generatorId, from, to);
+    audio.play (temp, from, to);
     auditioning = true;
     sendChangeMessage();
 }

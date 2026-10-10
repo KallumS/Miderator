@@ -159,6 +159,8 @@ struct Key
     std::string label { "No scale selected" };
     bool hasScale { false };
     bool usesFlats { false };   // which way the key leans, for chord symbols
+    int rootPitchClass { 0 };   // the selected key, for Blocks' chords on its degrees
+    int scaleIndex { -1 };
 
     Key()
     {
@@ -214,6 +216,8 @@ inline Key buildKey (int rootIndex, int scaleIndex)
 
     key.label = std::string (root.name) + " " + scale.name;
     key.hasScale = true;
+    key.rootPitchClass = rootPc;
+    key.scaleIndex = scaleIndex;
     return key;
 }
 
@@ -664,6 +668,103 @@ inline bool readAsRootPosition (int root, int bass, const std::array<int, 12>& v
     return tonic[static_cast<size_t> (root)];
 }
 
+/*  Blocks' chords: which roots a chord can have (ScaleView Pro, October 2026).
+
+    Starting Blocks builds its chords from two tables: chord types stacked on
+    a root, and chords taken from the key itself on each of its degrees. The
+    user's call is that Blocks has the correct construction, so it is the
+    dictionary: where the notes held are a Blocks chord, the name is on a
+    root Blocks builds them on. A chord type counts on any root, in any
+    inversion - any of its notes in the bass - and the key's own chords count
+    on its degrees. Copied unchanged from Starting Blocks' sb_engine.lua
+    (M.CHORDS intervals, M.DIATONIC offsets) at fc4dd32, as Pro has them.
+
+    Notes that are more than one Blocks chord are named on whichever of
+    Blocks' roots the reader prefers, by the same cost as always; notes that
+    are no Blocks chord at all are read as before.
+*/
+inline const std::vector<std::vector<int>> blocksChords {
+    { 0, 4, 7 }, { 0, 3, 7 }, { 0, 3, 6 }, { 0, 4, 8 }, { 0, 4, 6 }, { 0, 7 },
+    { 0, 4, 7, 9 }, { 0, 3, 7, 9 }, { 0, 4, 7, 9, 14 }, { 0, 3, 7, 9, 14 }, { 0, 4, 7, 10 }, { 0, 4, 7, 11 },
+    { 0, 3, 7, 10 }, { 0, 3, 7, 11 }, { 0, 3, 6, 10 }, { 0, 3, 6, 9 }, { 0, 4, 8, 10 }, { 0, 4, 8, 11 },
+    { 0, 4, 6, 10 }, { 0, 3, 6, 11 }, { 0, 4, 7, 9, 10 },
+    { 0, 4, 7, 10, 14 }, { 0, 4, 7, 11, 14 }, { 0, 3, 7, 10, 14 }, { 0, 3, 7, 11, 14 }, { 0, 4, 7, 10, 14, 17 },
+    { 0, 4, 7, 11, 14, 17 }, { 0, 3, 7, 10, 14, 17 }, { 0, 4, 7, 10, 14, 17, 21 }, { 0, 4, 7, 11, 14, 17, 21 },
+    { 0, 3, 7, 10, 14, 17, 21 },
+    { 0, 4, 7, 10, 13 }, { 0, 4, 7, 10, 15 }, { 0, 4, 7, 10, 18 }, { 0, 4, 7, 10, 20 }, { 0, 4, 8, 10, 13 },
+    { 0, 4, 8, 10, 15 }, { 0, 4, 6, 10, 13 }, { 0, 4, 8, 10, 13, 15 }, { 0, 4, 7, 10, 13, 21 },
+    { 0, 4, 7, 11, 18 }, { 0, 3, 6, 10, 14 }, { 0, 4, 8, 10, 14 }, { 0, 4, 6, 10, 14 }, { 0, 4, 7, 10, 14, 18 },
+    { 0, 4, 8, 11, 18 }, { 0, 4, 6, 10, 13, 21 },
+    { 0, 2, 7 }, { 0, 5, 7 }, { 0, 5, 7, 10 }, { 0, 5, 7, 10, 14 }, { 0, 5, 7, 11 }, { 0, 4, 7, 14 },
+    { 0, 3, 7, 14 }, { 0, 4, 5, 7 }, { 0, 4, 7, 17 }, { 0, 4, 7, 21 }, { 0, 2, 4, 7 }, { 0, 2, 3, 7 },
+    { 0, 5, 10 }, { 0, 5, 10, 15 }, { 0, 7, 14 }, { 0, 2, 4 }, { 0, 1, 2 }, { 0, 2, 4, 5 },
+    { 0, 6, 10, 16, 21, 26 }, { 0, 4, 6, 7, 10, 13 }, { 0, 6, 10, 15 }, { 0, 5, 10, 15, 19 }, { 0, 5, 6, 7 },
+    { 0, 1, 6 }, { 0, 6, 7 }, { 0, 1, 4, 5, 8, 9 }, { 0, 7, 9, 13, 16 }, { 0, 8, 11, 16, 21 }, { 0, 4, 10 },
+    { 0, 4, 6, 10 }, { 0, 4, 7, 10 },
+};
+
+// Scale degrees above the one chosen: triad, 7th, 9th, 11th, 13th, 6th,
+// sus2, sus4, 5th.
+inline const std::vector<std::vector<int>> blocksDiatonic {
+    { 0, 2, 4 }, { 0, 2, 4, 6 }, { 0, 2, 4, 6, 8 }, { 0, 2, 4, 6, 8, 10 }, { 0, 2, 4, 6, 8, 10, 12 },
+    { 0, 2, 4, 5 }, { 0, 1, 4 }, { 0, 3, 4 }, { 0, 4 },
+};
+
+// A set of pitch classes as a 12-bit mask, read from a root.
+inline int maskFrom (const std::array<bool, 12>& classes, int root)
+{
+    int mask = 0;
+    for (int pc = 0; pc < 12; ++pc)
+        if (classes[static_cast<size_t> (pc)]) mask |= 1 << ((pc - root + 12) % 12);
+    return mask;
+}
+
+// Every chord type, as the pitch classes it holds above its root.
+inline bool isBlocksType (int mask)
+{
+    static const std::array<bool, 4096> types = []
+    {
+        std::array<bool, 4096> t {};
+        for (const auto& shape : blocksChords)
+        {
+            int m = 0;
+            for (const int interval : shape) m |= 1 << (interval % 12);
+            t[static_cast<size_t> (m)] = true;
+        }
+        return t;
+    }();
+    return types[static_cast<size_t> (mask)];
+}
+
+/*  The roots Blocks builds these notes on: a chord type on any root, or one
+    of the key's own chords on its degrees - with no scale selected, C
+    major's, the key the reader assumes. Empty if Blocks builds them on none.
+*/
+inline std::array<bool, 12> blocksRoots (const std::array<bool, 12>& classes, const Key& key)
+{
+    std::array<bool, 12> roots {};
+    const int rootPc = key.hasScale ? key.rootPitchClass : 0;
+    const auto& intervals = scales[static_cast<size_t> (key.hasScale ? key.scaleIndex : 0)].intervals;
+    const int n = static_cast<int> (intervals.size());
+    const auto pitch = [&] (int degree)
+    {
+        const int octave = degree / n;
+        return rootPc + intervals[static_cast<size_t> (degree - octave * n)] + 12 * octave;
+    };
+    const int held = maskFrom (classes, 0);
+    for (int degree = 0; degree < n; ++degree)
+        for (const auto& offsets : blocksDiatonic)
+        {
+            int mask = 0;
+            for (const int o : offsets) mask |= 1 << (pitch (degree + o) % 12);
+            if (mask == held) roots[static_cast<size_t> (pitch (degree) % 12)] = true;
+        }
+    for (int root = 0; root < 12; ++root)
+        if (classes[static_cast<size_t> (root)] && isBlocksType (maskFrom (classes, root)))
+            roots[static_cast<size_t> (root)] = true;
+    return roots;
+}
+
 /*  Names the chord made by the notes being held, or an empty string when
     nothing is. heldNotes are MIDI note numbers; the lowest is the bass, which
     is found separately from the root and named after a slash when they differ -
@@ -688,6 +789,48 @@ inline std::string chordName (const std::vector<int>& heldNotes, const Key& key)
     int count = 0;
     for (const bool held : classes) if (held) ++count;
     if (count == 1) return chordNoteName (bass, key);
+
+    /*  A Blocks chord is named on one of Blocks' roots for it, chosen the way
+        the reader below chooses - the cheaper reading, then the key, then no
+        slash, then the commoner quality. Named in the reader's own words from
+        that root - two notes as the reader names two notes from a root - with
+        the bass after a slash as everywhere else. */
+    {
+        const auto blocks = blocksRoots (classes, key);
+        const auto& lit = key.hasScale ? key.lit : assumedKey;
+        struct Pick { int root = -1; std::string quality; int cost = 0, fit = 0, rank = 0; bool slash = false; };
+        Pick pick;
+        for (int root = 0; root < 12; ++root)
+        {
+            if (! blocks[static_cast<size_t> (root)]) continue;
+            std::array<bool, 12> has {};
+            for (int pc = 0; pc < 12; ++pc)
+                if (classes[static_cast<size_t> (pc)])
+                    has[static_cast<size_t> (((pc - root) % 12 + 12) % 12)] = true;
+            const Reading reading = analyse (has, root, bass);
+            std::string quality = reading.name;
+            if (count == 2)
+                quality = has[7] ? "5" : has[4] ? "maj(no5)" : has[3] ? "min(no5)" : quality;
+            int fit = lit[static_cast<size_t> (root)] ? 100 : 0;
+            for (int pc = 0; pc < 12; ++pc)
+                if (classes[static_cast<size_t> (pc)] && lit[static_cast<size_t> (pc)]) ++fit;
+            const bool slash = root != bass;
+            if (pick.root < 0
+                || reading.cost < pick.cost
+                || (reading.cost == pick.cost && fit > pick.fit)
+                || (reading.cost == pick.cost && fit == pick.fit && pick.slash && ! slash)
+                || (reading.cost == pick.cost && fit == pick.fit && slash == pick.slash
+                    && reading.rank < pick.rank))
+                pick = { root, quality, reading.cost, fit, reading.rank, slash };
+        }
+        if (pick.root >= 0)
+        {
+            std::string name = chordNoteName (pick.root, key) + pick.quality;
+            if (! readAsRootPosition (pick.root, bass, voices, key))
+                name += "/" + chordNoteName (bass, key);
+            return name;
+        }
+    }
 
     const auto spellOut = [&]
     {

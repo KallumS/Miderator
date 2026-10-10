@@ -83,6 +83,10 @@ public:
     //==========================================================================
     // Writing
     void setCaret (uint32_t partId, Tick t);
+    // A part's name clicked: the caret goes to that part, and bars chosen in
+    // other parts are let go, so the next idea goes to the part clicked
+    // (decision 0044). Bars chosen that include it stay chosen.
+    void choosePart (uint32_t partId);
     void moveCaret (int direction);                  // a grid step either way
     void caretToPart (int direction);
     // A note drawn on the roll: `length` 0 means one grid step.
@@ -176,6 +180,14 @@ public:
     // fills the selected bars when there are some (decision 0019).
     void insertGenerated (const GeneratedResult& r, bool fromSelection, const std::string& generatorId);
     void auditionGenerated (const GeneratedResult& r, bool fromSelection, const std::string& generatorId);
+    // What an audition plays (decision 0043): every note of the result on a
+    // piano, where it would go, with the music around it and the parts it
+    // would replace silent there - or, a block at the caret, on its own.
+    // [from, to) is the stretch to play.
+    Score auditionScore (const GeneratedResult& r, bool fromSelection, const std::string& generatorId,
+                         Tick& from, Tick& to) const;
+    // The result on its own, from bar 1, in the caret's metre and key.
+    Score auditionAlone (const GeneratedResult& r) const;
 
     const Part* caretPartPtr() const { return score.partById (caretPart); }
     int keyRootAt (Tick t) const { return score.keyAtBar (score.barAt (t)).root; }

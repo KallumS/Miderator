@@ -80,6 +80,25 @@ The app is built automatically on GitHub every time the code changes.
 
 It needs a Mac with Apple silicon (M1 or later).
 
+### Or build it on your own Mac
+
+`build-mac.command`, at the top of the code, builds Miderator on your Mac and puts
+it in Applications - no GitHub build needed.
+
+1. Once: install [Homebrew](https://brew.sh) (copy its one line into
+   Terminal). The script installs everything else itself, and offers
+   Apple's Command Line Tools if they are missing.
+2. Download the code (the green **Code** button, then **Download ZIP**),
+   unzip it, and keep `build-mac.command` somewhere handy, such as the
+   Desktop.
+3. Double-click it (the first time: right-click, **Open**, **Open**). Press
+   Return for the latest version, or type a branch name to try one before
+   it is merged. The first build takes 10 to 30 minutes; later ones are
+   quicker.
+
+Each run fetches the newest code into `~/Developer/Miderator`, so the same file
+keeps working for every future version.
+
 ## Using it
 
 | | |

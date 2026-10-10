@@ -16,6 +16,10 @@ through embedded Lua:
   (Midi Variator). In the code they keep their engine names.
 - Blocks tab: Starting Blocks as a toolbox of chords, arpeggios, runs and
   intervals, placed at the caret one after another.
+- A Blocks chord keeps the name it was made with in the Chords lane, even
+  where its notes are another chord's too (C E G A: I6 or vi7 inverted);
+  each chord offers the inversions it has - a triad two, a seventh three,
+  up to six for a thirteenth.
 - Tracks along the top (choose bars there and Generate Notes fills them),
   one part's piano roll below with a velocity lane; select, drag, stretch,
   Alt-copy, draw, quantise, step input from a MIDI keyboard; dark by
@@ -77,9 +81,13 @@ where to download the new app.
 - A fix to the generators, the instruments, templates, files or playback
   belongs in Noterator first; the session will ask for that repository if it
   needs it, and copy the change across.
-- The latest work is on the branch `ccr-ac8da7d9-3sbl5x` in both Miderator
-  and Noterator until you merge it. To put it on the main branches, ask a
-  session to open pull requests - Noterator's first, or together.
-- If you want the app to open with a normal double-click, the session can set
-  up Apple Developer ID signing - it needs your Apple Developer account, added
-  to the repository as secrets.
+- The latest work is on the branch `ccr-ac8da7d9-3sbl5x`, not yet merged,
+  in eight repositories: Noterator, Miderator, ScaleView-for-Reaper (ScaleView
+  Pro takes Starting Blocks as its chord dictionary), ScaleView (the plugin),
+  Midi-Suggester, Midi-Variator (the same chord reader), Starting-Blocks and
+  Starting-Blocks-Notation (each chord's own inversions). Merge them all; to
+  put them on the main branches, ask a session to open the pull requests.
+- ScaleView Pro, Midi Suggester and Midi Variator then need a new ReaPack
+  release for REAPER users to get the new chord names; nothing is published
+  yet.
+

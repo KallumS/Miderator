@@ -196,3 +196,121 @@ that expected a two-bar idea twice in four bars now expects it once. A tune
 with a second voice splits, the upper parts the tune. The Generate tab's
 "Into" line was too long for "Baritone Saxophone" and was shortened. In the
 window: a motif with nothing chosen went into Violin I alone. 96 core tests, 17 app tests.
+
+## Then: auditions play every note, on a piano (0043)
+
+After merging 0042 the user found that auditioning Generate Notes and the
+Blocks preview played one note at a time, and asked for every note, always
+on a piano. The cause was 0036: the audition played the result as placed,
+fitted to each part (chords into a violin, one note), and the Blocks preview
+was fitted to the caret's violin though the block itself goes in unthinned.
+`addAudition` (shared) adds the result as it was made - every note on a
+piano, drums on a kit, soloed if anything is - and `Controller::auditionScore`
+plays it where it would go, the parts it replaces silent there;
+`auditionAlone` plays a block on its own. The app test failed with the old
+audition put back. In Miderator's window, the Blocks preview with the caret
+on Violin I shows the whole C major chord again. The branch was restarted
+from `main` after the user merged 0042. 97 core tests, 18 app tests.
+
+## Then: a name click, inversions, and building on the user's Mac (0044, 0045)
+
+The user found that after choosing bars and inserting, clicking another
+part's name left Insert unable to put anything there. In the window: bars of
+Violin I chosen, an idea in, Viola's name clicked, Insert - and the idea went
+into Violin I's chosen bars again. A name click only moved the caret; it now
+goes through `Controller::choosePart`, which lets go of bars chosen in other
+parts (0044). The app test failed with the old click ("got 0, wanted 4" notes
+in the viola), then passed; the window showed the idea in the viola.
+
+**What looked broken and was not:** the user saw the Chords lane disagree with
+Blocks on inversions. A probe through every Blocks chord, degree and
+inversion: triads read right in every inversion (C/E, Dmin/F...). The
+differences are notes that are another chord's too - vi7 in first inversion
+is C E G A, the same four notes as I6, read C6; ii7 over F reads F6, iii7 G6,
+viiø7 Dmin6; inverted 6th chords read as minor sevenths; a sus2 inverted is
+another root's sus4; inverted 9ths to 13ths read from their bass. Every name
+accounts for exactly the notes. ScaleView Pro prefers the reading with the
+bass as root (`COST_INVERSION`), measured and pinned there; the lane reads
+notes, not what Blocks was asked for. Nothing changed; a change would be made
+and measured in ScaleView Pro first.
+
+The user asked for the build-it-yourself file offered earlier:
+`build-mac.command` (0045), rehearsed on Linux with fake `uname`,
+`xcode-select`, `cmake`, `codesign`, `osascript` and `open`: a first fetch of
+`main`, an update to a branch, and a wrong branch name. shellcheck is clean.
+Not yet run on a Mac. 97 core tests, 19 app tests.
+
+## Then: every Blocks chord checked against the Chords lane (0046)
+
+The user saw the lane disagree with Blocks over inversions and asked for
+every chord in every key to be checked, Blocks being right wherever they
+disagree. A harness ran Blocks itself in all 288 keys - every family, type,
+degree and inversion, 670,248 chords - through the lane's reader and scored
+each name with ScaleView's `check_symbol.py`: none claimed wrong notes, 48%
+were named from another root, and 19% share their exact notes and bass with
+a Blocks chord on another root, so no reading of notes alone can get them
+all. With the user's choice (both: Blocks chords keep their names, and
+ScaleView Pro moves towards Blocks), a Blocks chord now carries its root
+into the score (`ChordRoot`), and the lane names it from there: the same
+sweep through the real insert path reads 670,248 of 670,248 on Blocks' root
+and bass. The test of four keys fails with the root not recorded; a test of
+rests holding the name failed on the first version, which split the empty
+bars after a chord off under the reader's name - seen in Miderator's window,
+where bars 3 onwards read a second C6. The user then said arpeggios can be
+ignored: only the Chord block reports a root. A tool call reported as failed
+had written the Controller change it was making - found, as before, by
+reading the file before editing it. 100 core tests, 19 app tests.
+
+## Then: ScaleView Pro reads with Blocks' dictionary (its 0011)
+
+The second half of the user's "both": ScaleView Pro itself now takes
+Starting Blocks as its dictionary (ScaleView-for-Reaper `df4ea43`, its
+decision 0011). Where the notes are a Blocks chord - one of its 78 types on
+any root with any of its notes in the bass, or one of the key's own chords -
+the name is on one of Blocks' roots, the reader's cost choosing between
+them. Here that reaches the lane for chords that were not inserted from
+Blocks: `ScaleModel.h` from the plugin's `b34d6f7` (Noterator's `5fae0da`), and the
+Suggester's and Variator's readers from their `40c14bc` and `417ed44`
+(Noterator's `58b10f1`). Most of the lane reads as before; suspended and quartal
+voicings change (G D F A, `G7sus2` before, reads `Fadd9/G`).
+
+**What looked broken and was not:** the Mac build of `5fae0da` and the one
+before it failed with the 0046 test reading an empty name where Linux read
+`C6`. The test was the fault: `detectChords (...).front().name` inside
+`CHECK_EQ` read a temporary already destroyed - the rule in CLAUDE.md, broken
+a second time. Held in a variable (Noterator's `006bd88`). 100 core tests, 19 app tests.
+
+## Then: each chord offers the inversions it has (0047)
+
+The user set out how inversions work - a triad two, a seventh three, an
+extended chord one per note after the root - and Blocks offered Root to 3rd
+on everything. Made in Starting Blocks (its 0007, `2facd93`), copied into
+Starting Blocks Notation (its 0015, `79b71f4`) and vendored in Noterator (`9f5a00f`), synced here; the
+adapter's Inversion menu is now the chord's own (`dynamic`).
+
+Writing the engine's sweep found two faults the old fixed row hid: the
+notes lifted under an inversion went on the end (an Up arpeggio of an
+inverted ninth fell back down at the top), and a lifted note went up one
+octave only, leaving a wide chord's root under its new bass.
+
+Every Blocks chord in all 288 keys and every inversion it has - 735,822
+chords, 65,574 of them new 4th to 6th inversions - has the right note in the
+bass and reads in the Chords lane on Blocks' root over it. 100 core tests, 19 app tests.
+
+## At the end of the session
+
+Asked whether ScaleView Pro could read Blocks chords nearer 100% without a
+recorded root: measured (ScaleView-for-Reaper's session log of 2026-10-10),
+it names 100% of the key's own chords and of every chord whose notes are all
+in the key as Blocks would, and 90.35% of all Blocks chords; the rest have
+notes outside the key. The user chose to leave it there. In these apps a
+chord inserted from Blocks reads right regardless (0046).
+
+Not done yet, from this stretch:
+
+- Nothing of 0043-0047 has been tried by the user on a Mac.
+- The eight `ccr-ac8da7d9-3sbl5x` branches (listed in docs/NEXT-SESSION.md)
+  are not merged, and ScaleView Pro, Midi Suggester and Midi Variator are
+  not released through ReaPack.
+- Neither Starting Blocks script has been run in REAPER with the new
+  Inversion row.

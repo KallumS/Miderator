@@ -1,7 +1,9 @@
 #include "Check.h"
 
+#include "Detect.h"
 #include "Generators.h"
 #include "LuaEngine.h"
+#include "ScaleModel.h"
 
 #include <algorithm>
 #include <map>
@@ -441,4 +443,140 @@ TEST ("generators: Generate Notes' chord phrases never give a string part two no
         }
     e.reset ("good-idea");
     CHECK_EQ (results, 12);
+}
+
+TEST ("generators: an audition is every note on a piano, drums on a kit, cut where it ends")
+{
+    Score s;
+    Part vn;
+    vn.id = s.newId();
+    vn.instrument = "vln1";
+    vn.solo = true;
+    s.parts.push_back (vn);
+    GeneratedResult r;
+    r.length = 8 * PPQ;
+    GeneratedPart chords;
+    chords.name = "Chords";
+    for (int bar = 0; bar < 2; ++bar)
+        for (int pitch : { 60, 64, 67, 71 })
+            { Note n; n.start = bar * 4 * PPQ; n.length = 4 * PPQ; n.pitch = pitch; chords.notes.push_back (n); }
+    GeneratedPart melody;
+    melody.name = "Melody";
+    for (int i = 0; i < 8; ++i) { Note n; n.start = i * PPQ; n.length = PPQ; n.pitch = 96 + i; melody.notes.push_back (n); }
+    GeneratedPart kit;
+    kit.name = "Drums";
+    kit.drums = true;
+    { Note n; n.start = 0; n.length = PPQ / 4; n.pitch = 36; kit.notes.push_back (n); }
+    r.parts = { chords, melody, kit };
+
+    addAudition (s, r, 4 * PPQ, 6 * PPQ);   // from bar 2, a bar and a half of it
+    CHECK_EQ (s.parts.size(), size_t (3));
+    if (s.parts.size() != 3) return;
+    CHECK (s.parts[0].notes.empty());       // the violin is left alone
+    const auto& piano = s.parts[1];
+    CHECK_EQ (piano.instrument, std::string ("pno"));
+    CHECK (piano.solo);                      // heard, with the violin soloed
+    CHECK_EQ (polyphonyOf (piano.notes), 5); // the chord and the tune, not thinned
+    CHECK_EQ (piano.notes.size(), size_t (8 + 6));
+    for (const auto& n : piano.notes)
+    {
+        CHECK (n.start >= 4 * PPQ);
+        CHECK (n.end() <= 10 * PPQ);
+        CHECK (n.pitch >= 60);               // not moved into any register
+    }
+    CHECK_EQ (s.parts[2].instrument, std::string ("kit"));
+    CHECK_EQ (s.parts[2].notes.size(), size_t (1));
+}
+
+TEST ("generators: every Blocks chord reads in the Chords lane on the root Blocks built it on (0046)")
+{
+    // Every family, chord, degree and inversion in four keys - the whole
+    // sweep, 288 keys and 670,248 chords, is in the 2026-10-09 session log.
+    LuaEngine e;
+    const std::string g = "starting-blocks";
+    GeneratorContext ctx;
+    ctx.instrument = "pno";
+    auto indexOf = [] (const std::vector<GeneratorSetting>& st, const std::string& id)
+    {
+        for (size_t i = 0; i < st.size(); ++i) if (st[i].id == id) return static_cast<int> (i);
+        return -1;
+    };
+    auto find = [] (const auto& list, const std::string& name)
+    {
+        for (size_t i = 0; i < list.size(); ++i) if (name == list[i].name) return static_cast<int> (i);
+        return -1;
+    };
+    int chords = 0, wrong = 0;
+    std::string firstWrong;
+    for (const auto& [rootName, scaleName] : std::vector<std::pair<std::string, std::string>> {
+             { "C", "Major" }, { "A", "Minor (Natural)" }, { "F#", "Major" }, { "Eb", "Dorian" } })
+    {
+        const int root = find (scaleview::roots, rootName), scale = find (scaleview::scales, scaleName);
+        CHECK (root >= 0 && scale >= 0);
+        const auto key = scaleview::buildKey (root, scale);
+        e.reset (g);
+        const auto families = e.settings (g, ctx)[static_cast<size_t> (indexOf (e.settings (g, ctx), "family"))].names.size();
+        for (int f = 0; f < static_cast<int> (families); ++f)
+        {
+            e.reset (g);
+            e.set (g, "family", f, ctx);
+            const std::string typeId = f == 0 ? "dia" : "chord";
+            const auto st = e.settings (g, ctx);
+            const int ti = indexOf (st, typeId);
+            CHECK (ti >= 0);
+            if (ti < 0) return;
+            const auto types = st[static_cast<size_t> (ti)].names.size();
+            for (int t = 0; t < static_cast<int> (types); ++t)
+            {
+                // As many inversions as the chord has notes, less one.
+                e.reset (g);
+                e.set (g, "family", f, ctx);
+                e.set (g, typeId, t, ctx);
+                const auto withType = e.settings (g, ctx);
+                const auto inversions = static_cast<int> (withType[static_cast<size_t> (indexOf (withType, "inv"))].names.size());
+                for (int inv = 0; inv < inversions; ++inv)
+                {
+                    e.reset (g);
+                    e.useKey (g, root, scale);
+                    e.set (g, "family", f, ctx);
+                    e.set (g, typeId, t, ctx);
+                    e.set (g, "inv", inv, ctx);
+                    for (const auto& r : e.generate (g, ctx, 1, 0).results)
+                    {
+                        CHECK (r.chordRoot >= 0);
+                        Score s;
+                        s.keys = { KeySig { 0, root, scale } };
+                        Part p;
+                        p.id = s.newId();
+                        p.instrument = "pno";
+                        s.parts = { p };
+                        InsertOptions o;
+                        o.fitPolyphony = false;
+                        insertResult (s, r, s.parts[0].id, 0, o);
+                        markChordRoot (s, r, 0, r.length);
+                        int lowest = 128;
+                        for (const auto& n : s.parts[0].notes) if (n.start == 0) lowest = std::min (lowest, n.pitch);
+                        const auto spans = detectChords (s, 0, r.length);
+                        const std::string name = spans.empty() ? std::string() : spans.front().name;
+                        const auto rootName2 = scaleview::chordNoteName (r.chordRoot, key);
+                        const auto bassName = scaleview::chordNoteName (lowest % 12, key);
+                        // Named from Blocks' root, and over its bass: a slash
+                        // exactly when the lowest note is not the root.
+                        // (A 6/9 chord has a slash of its own: a bass is a note name.)
+                        const auto cut = name.rfind ('/');
+                        const bool slashed = cut != std::string::npos && cut + 1 < name.size()
+                                             && name[cut + 1] >= 'A' && name[cut + 1] <= 'G';
+                        const bool ok = name.rfind (rootName2, 0) == 0
+                                        && (lowest % 12 == r.chordRoot ? ! slashed
+                                                                       : slashed && name.substr (name.rfind ('/') + 1) == bassName);
+                        ++chords;
+                        if (! ok && ++wrong == 1) firstWrong = rootName + " " + scaleName + ": " + r.title + " -> " + name;
+                    }
+                }
+            }
+        }
+    }
+    CHECK (chords > 9000);
+    CHECK_EQ (wrong, 0);
+    CHECK_EQ (firstWrong, std::string());
 }
