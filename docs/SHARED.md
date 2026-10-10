@@ -24,6 +24,7 @@ update the commit below.
 | `271bbc7` | 2026-10-09: `addAudition`, every note of a result on a piano for an audition, and its test (0043). On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 | `cba16c5` | 2026-10-09: Blocks chords keep their root (`ChordRoot`, `nameFromRoot`, `markChordRoot`), the adapter's root, and their tests (0046). On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 | `5fae0da` | 2026-10-10: `ScaleModel.h` from ScaleView `b34d6f7` - Starting Blocks' chords decide which roots a chord can have (ScaleView Pro `df4ea43`). On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
+| `58b10f1` | 2026-10-10: Midi Suggester `40c14bc` and Midi Variator `417ed44` vendored - their chord readers take ScaleView Pro's Blocks dictionary too. On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 
 ## Shared
 

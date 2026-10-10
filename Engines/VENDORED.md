@@ -8,8 +8,8 @@ then run `tools/sync_engines.sh` and update this table.
 | --- | --- | --- | --- |
 | `good-idea/` | KallumS/Good-Idea | 4f32b6b | gi_theory.lua, gi_idea.lua |
 | `midi-catalogue/` | KallumS/Midi-Catalogue | a49db5d | mc_theory.lua, mc_orchestra.lua, mc_catalogue.lua |
-| `midi-suggester/` | KallumS/Midi-Suggester | 6ed412b | ms_theory.lua, ms_read.lua, ms_harmony.lua, ms_melody.lua |
-| `midi-variator/` | KallumS/Midi-Variator | eb926a0 | mv_theory.lua, mv_vary.lua |
+| `midi-suggester/` | KallumS/Midi-Suggester | 40c14bc | ms_theory.lua, ms_read.lua, ms_harmony.lua, ms_melody.lua |
+| `midi-variator/` | KallumS/Midi-Variator | 417ed44 | mv_theory.lua, mv_vary.lua |
 | `starting-blocks/` | KallumS/Starting-Blocks-Notation | 30f7ba8 | sb_engine.lua |
 
 Also vendored: `Source/Core/ScaleModel.h` from KallumS/ScaleView at `b34d6f7`
