@@ -66,7 +66,7 @@ gets undone.
 | `Source/App/AudioEngine.*`, `Exporter.*` | Playback through a rack of synths, one per 16 channels (0023), previews, MIDI input; MIDI, MusicXML and WAV export (0007). |
 | `Source/App/GeneratorPanel.*`, `BlocksPanel.*`, `SettingsList.*` | The Generate tab (0017), the Blocks toolbox (0018, 0024) with a small piano-roll preview, and the settings menus both draw from an adapter. |
 | `Source/App/Panels.*`, `MainComponent.*`, `Theme.*` | Toolbar, Parts tab, status line, keys and menus (File holds New, Open, Save, Export, Undo, the song's settings, Sound, Step input and Light, 0037-0039), colours (both looks in `theme::rollColours`). |
-| `Tests/Test*.cpp` | Core tests (100), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (21). |
+| `Tests/Test*.cpp` | Core tests (100), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (22). |
 | `tools/` | `RenderRoll.cpp` (MideratorRender, PNGs of the real views), `try_generators.lua`, `sync_engines.sh`, `sync_from_noterator.sh`. `build-mac.command`, at the top, builds the app on the user's Mac (0045). |
 
 ## Working in it
@@ -137,8 +137,9 @@ tools/sync_from_noterator.sh ../Noterator --check
   the user chose (0019). **Where a result lands is decided in
   `Controller::place`**: chosen bars (one part takes all of it, several share
   it), a block at the caret, the selection, and with nothing chosen every
-  part from the caret's bar (0041); a single line goes to one part
-  (`lineTarget`), and chosen bars are filled once, never repeated (0042).
+  part from the caret's bar (0041) - or only the parts chosen by name
+  (0050); a single line goes to one part (`lineTarget`: the first chosen),
+  and chosen bars are filled once, never repeated (0042), block by block (0050).
   No part is ever added for a result.
 - **Every generated line is fitted to the part it lands in** (0036,
   `fitToPolyphony`, shared): no more notes at once than the instrument
@@ -191,7 +192,8 @@ elsewhere (0044), `build-mac.command` (0045), Blocks chords named in the
 Chords lane from their own root (0046) and each chord offering the
 inversions it has (0047), since merged into `main`; then Escape letting
 go of everything, the caret's part too, so an idea goes to every part
-(0048), and Undo bringing back the ideas a Generate replaced (0049), on
+(0048), and Undo bringing back the ideas a Generate replaced (0049), and several parts
+chosen with Cmd, Shift and Cmd+A, and blocks of bars with Cmd (0050), on
 the branch `claude/adoring-feynman-bihxp2`. Not built yet, roughly in the order
 the user is likely to want them: drawable CC lanes; articulations; VST3/CLAP
 instruments and SoundFonts; real-time recording; Windows. Known rough edges

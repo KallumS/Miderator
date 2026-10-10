@@ -175,11 +175,11 @@ void PianoRollView::paint (juce::Graphics& g)
         paintRows (g, c);
         paint::grid (g, grid, timeline, controller.score, controller.grid, c, true);
 
-        // The chosen bars, where they cover this part.
-        const auto& r = controller.range;
+        // The chosen bars, where they cover this part - every block (0050).
         const auto& s = controller.score;
-        if (r.active() && std::find (r.parts.begin(), r.parts.end(), controller.caretPart) != r.parts.end())
+        for (const auto& r : controller.range.blocks())
         {
+            if (! r.has (controller.caretPart)) continue;
             const float x1 = timeline.xOf (s.barStart (r.first)), x2 = timeline.xOf (s.barStart (r.last + 1));
             g.setColour (c.selected.withAlpha (controller.lightTheme ? 0.10f : 0.06f));
             g.fillRect (x1, static_cast<float> (grid.getY()), x2 - x1, static_cast<float> (grid.getHeight()));
@@ -224,7 +224,7 @@ void PianoRollView::paint (juce::Graphics& g)
     {
         // Marked as chosen - unless Escape let go of it (decision 0048).
         g.setColour (theme::accent);
-        if (! controller.noPartChosen) g.fillRect (0, 3, 3, rulerHeight - 6);
+        if (controller.isPartChosen (controller.caretPart)) g.fillRect (0, 3, 3, rulerHeight - 6);
         g.setColour (theme::text);
         g.setFont (juce::FontOptions (13.0f, juce::Font::bold));
         g.drawText (p->name, juce::Rectangle<int> (10, 0, Timeline::left - 14, rulerHeight - 1), juce::Justification::centredLeft, true);
@@ -580,7 +580,7 @@ void PianoRollView::mouseDown (const juce::MouseEvent& e)
         dragEnd = hit->end();
         dragPitch = hit->pitch;
         controller.caret = hit->start;
-        controller.noPartChosen = false;         // a note clicked: its part is chosen (0048)
+        controller.workIn (controller.caretPart);   // a note clicked: its part is chosen (0048, 0050)
         controller.select (sel);
         controller.previewPitches ({ dragPitch }, pt->id, 0.5);
         if (sel.count (dragNote) == 0) return;   // Shift-clicked off

@@ -54,7 +54,7 @@ private:
     Timeline& timeline;
     juce::ScrollBar vbar { true };
     double scrollY = 0;
-    bool selectingBars = false, allParts = false, settingCaret = false;
+    bool selectingBars = false, allParts = false, settingCaret = false, addingBars = false;
     int anchorBar = 0, anchorPart = 0;
     Tick lastPlayhead = -1;
     std::vector<uint32_t> lastSounding;

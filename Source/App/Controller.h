@@ -22,6 +22,8 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include <algorithm>
+
 #include <map>
 
 namespace nt
@@ -29,12 +31,29 @@ namespace nt
 
 // Whole bars across some parts, chosen by dragging over the page: where a
 // generator's music goes (decision 0019).
-struct BarRange
+struct Bars
 {
     int first = -1, last = -1;
     std::vector<uint32_t> parts;   // top to bottom
     bool active() const { return first >= 0 && last >= first && ! parts.empty(); }
     int bars() const { return active() ? last - first + 1 : 0; }
+    bool has (uint32_t partId) const { return std::find (parts.begin(), parts.end(), partId) != parts.end(); }
+};
+
+// The bars chosen: the block chosen last, and any chosen before it with Cmd
+// held (decision 0050). Each block is filled on its own.
+struct BarRange : Bars
+{
+    std::vector<Bars> more;
+    // Every block: those added first, this one last.
+    std::vector<Bars> blocks() const
+    {
+        std::vector<Bars> all;
+        for (const auto& b : more)
+            if (b.active()) all.push_back (b);
+        if (active()) all.push_back (static_cast<const Bars&> (*this));
+        return all;
+    }
 };
 
 class Controller : public juce::ChangeBroadcaster
@@ -49,6 +68,9 @@ public:
     BarRange range;               // set: the selection is everything in these bars
     uint32_t caretPart = 0;       // the part the piano roll shows and writes into
     bool noPartChosen = false;    // Escape let go of the caret's part too (decision 0048)
+    // Two or more parts chosen by name, in the order chosen (decision 0050);
+    // empty: the caret's part alone, or none.
+    std::vector<uint32_t> chosenParts;
     Tick caret = 0;               // where playback starts and pasting and step input go
     roll::Grid grid;              // what notes snap to
     bool drawTool = false;        // a click on the roll draws a note (decision 0028)
@@ -98,6 +120,18 @@ public:
     // goes to every part, a single line to the top one (decision 0048).
     // Choosing a part again, by name, by click or by keys, ends it.
     void letGoOfEverything();
+    // A part's name clicked with Cmd (add it, or take it away) or Shift
+    // (every part from the one clicked before) held (decision 0050). An
+    // idea then goes to the parts chosen, a single line to the first chosen.
+    void clickPart (uint32_t partId, bool add, bool extend);
+    // The parts chosen, in the order chosen: several, the caret's, or none.
+    std::vector<uint32_t> partsChosen() const;
+    bool isPartChosen (uint32_t partId) const;
+    // "every part", or the parts chosen by name - for the Generate tab.
+    juce::String partsText() const;
+    // A note clicked, drawn or written there: that part is chosen, unless it
+    // is already one of several chosen.
+    void workIn (uint32_t partId);
     void moveCaret (int direction);                  // a grid step either way
     void caretToPart (int direction);
     // A note drawn on the roll: `length` 0 means one grid step.
@@ -129,12 +163,17 @@ public:
     void previewSelection();
     // Bars `a` to `b` across the parts at indices `fromPart` to `toPart`,
     // in either order; the notes in them become the selection.
-    void selectRange (int a, int b, int fromPart, int toPart);
+    // `keepOthers`: the blocks added with Cmd stay chosen (decision 0050).
+    void selectRange (int a, int b, int fromPart, int toPart, bool keepOthers = false);
+    // Bars added to those chosen, with Cmd held (0050). The same single bar
+    // again takes it away.
+    void addRange (int a, int b, int fromPart, int toPart);
     // "Bars 2-5, Violin I to Cello", for whatever shows the range.
     // The part a single line of music goes to (decision 0042): the caret's,
     // or with bars chosen the caret's among them, else the top one - and
     // the top one when Escape let go of every part (0048).
     uint32_t lineTarget() const;
+    uint32_t lineTargetIn (const Bars& block) const;
     juce::String rangeText() const;
     // The bars the range or the selection covers, or the caret's bar.
     std::pair<int, int> selectedBars() const;
@@ -209,6 +248,9 @@ private:
     struct Step { bool results = false; Score score; };
     std::vector<Step> undoStack, redoStack;
     void pushUndo (Step step);
+    uint32_t partAnchor = 0;      // the part a Shift-click on a name counts from
+    void setChosen (const std::vector<uint32_t>& parts, uint32_t shown);
+    Selection notesInBlocks() const;
     mutable SmoothClock playheadClock;
     std::vector<Note> clipboard;
     bool clipboardFromDrums = false;

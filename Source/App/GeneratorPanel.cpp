@@ -121,12 +121,13 @@ void GeneratorPanel::rebuildSettings()
 void GeneratorPanel::changeListenerCallback (juce::ChangeBroadcaster*)
 {
     // Nothing chosen: chords shared across every part from the caret's bar
-    // (0041), a single line into the caret's part (0042).
+    // (0041), a single line into the caret's part (0042) - or across the
+    // parts chosen by name, a single line to the first chosen (0050).
     juce::String into = "Into: ";
     const juce::String bar = "from bar " + juce::String (controller.score.barAt (controller.caret) + 1);
     const auto* line = controller.score.partById (controller.lineTarget());
     const juce::String lineName = line != nullptr ? juce::String (line->name) : juce::String();
-    if (controller.score.parts.size() > 1) into += bar + " - chords to every part, one line to " + lineName;
+    if (controller.score.parts.size() > 1) into += bar + " - chords to " + controller.partsText() + ", one line to " + lineName;
     else into += lineName + ", " + bar;
     if (controller.range.active() && (! needsSelection() || current == "midi-variator"))
     {

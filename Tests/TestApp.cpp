@@ -768,3 +768,101 @@ TEST ("app: Undo brings back the ideas a Generate replaced, and Redo the new one
     CHECK (shown().isEmpty());
     CHECK (! c.canUndo());
 }
+
+TEST ("app: Cmd and Shift on names choose several parts, Cmd+A every part then every note, Cmd adds bars")
+{
+    auto chordsAndTune = [] (GeneratedResult& tune, GeneratedResult& chords)
+    {
+        tune.length = chords.length = 4 * PPQ;
+        GeneratedPart melody;
+        melody.name = "Melody";
+        for (int i = 0; i < 4; ++i) { Note n; n.start = i * PPQ; n.length = PPQ; n.pitch = 64 + i; melody.notes.push_back (n); }
+        tune.parts = { melody };
+        GeneratedPart harmony;
+        harmony.name = "Chords";
+        for (int i = 0; i < 2; ++i)
+            for (int pitch : { 60, 64, 67, 72 }) { Note n; n.start = i * 2 * PPQ; n.length = 2 * PPQ; n.pitch = pitch; harmony.notes.push_back (n); }
+        chords.parts = { harmony };
+    };
+    GeneratedResult tune, chords;
+    chordsAndTune (tune, chords);
+
+    Controller c (audio());
+    c.newScore ("String Quartet");
+    const auto violin = c.score.parts[0].id, second = c.score.parts[1].id, viola = c.score.parts[2].id, cello = c.score.parts[3].id;
+    auto has = [&c] (uint32_t id) { return ! c.score.partById (id)->notes.empty(); };
+
+    // Violin II clicked, then Viola with Cmd: those two, Violin II first.
+    c.choosePart (second);
+    c.clickPart (viola, true, false);
+    CHECK (c.chosenParts == (std::vector<uint32_t> { second, viola }));
+    CHECK (c.isPartChosen (second) && c.isPartChosen (viola) && ! c.isPartChosen (violin));
+    CHECK_EQ (c.lineTarget(), second);
+    CHECK (c.partsText() == "Violin II and Viola");
+    c.insertGenerated (chords, false, "good-idea");           // chords: those two alone
+    CHECK (! has (violin) && has (second) && has (viola) && ! has (cello));
+    c.undo();
+    c.insertGenerated (tune, false, "good-idea");             // a tune: the first chosen
+    CHECK (! has (violin) && has (second) && ! has (viola) && ! has (cello));
+    c.undo();
+
+    // Cmd on a chosen one takes it away.
+    c.clickPart (viola, true, false);
+    CHECK (c.chosenParts.empty());
+    CHECK_EQ (c.caretPart, second);
+    CHECK (c.isPartChosen (second) && ! c.isPartChosen (viola));
+
+    // Cello clicked, then Violin II with Shift: the three, Cello first.
+    c.choosePart (cello);
+    c.clickPart (second, false, true);
+    CHECK (c.chosenParts == (std::vector<uint32_t> { cello, viola, second }));
+    CHECK_EQ (c.lineTarget(), cello);
+
+    // Cmd+A with a part chosen: every part, the top one first; again: every note too.
+    c.insertGenerated (chords, false, "good-idea");
+    CHECK (! has (violin) && has (second) && has (viola) && has (cello));
+    c.choosePart (viola);
+    c.selectAll();
+    CHECK_EQ (c.chosenParts.size(), size_t (4));
+    CHECK_EQ (c.lineTarget(), violin);
+    CHECK (c.selection.empty());
+    c.selectAll();
+    size_t notes = 0;
+    for (const auto& p : c.score.parts) notes += p.notes.size();
+    CHECK_EQ (c.selection.size(), notes);
+    // Nothing chosen (Escape), then Cmd+A: every note and every part at once.
+    c.letGoOfEverything();
+    CHECK (c.chosenParts.empty() && c.selection.empty());
+    c.selectAll();
+    CHECK_EQ (c.selection.size(), notes);
+    CHECK_EQ (c.chosenParts.size(), size_t (4));
+    // A plain click on a name: that part alone again.
+    c.choosePart (viola);
+    CHECK (c.chosenParts.empty() && c.isPartChosen (viola) && ! c.isPartChosen (violin));
+
+    // Bars: bar 1 of Violin I, then bar 3 of the Cello with Cmd - each filled on its own.
+    Controller d (audio());
+    d.newScore ("String Quartet");
+    auto inBar = [&d] (size_t part, int bar)
+    {
+        const auto& ns = d.score.parts[part].notes;
+        return ! ns.empty() && std::all_of (ns.begin(), ns.end(), [&] (const Note& n)
+               { return n.start >= d.score.barStart (bar) && n.end() <= d.score.barStart (bar + 1); });
+    };
+    d.selectRange (0, 0, 0, 0);
+    d.addRange (2, 2, 3, 3);
+    CHECK_EQ (d.range.blocks().size(), size_t (2));
+    CHECK (d.rangeText() == "Bar 1, Violin I; Bar 3, Cello");
+    d.insertGenerated (chords, false, "good-idea");
+    CHECK (inBar (0, 0));
+    CHECK (inBar (3, 2));
+    CHECK (d.score.parts[1].notes.empty() && d.score.parts[2].notes.empty());
+    CHECK_EQ (d.range.blocks().size(), size_t (2));          // still chosen, for the next idea
+    // The same bar with Cmd again: let go of.
+    d.addRange (2, 2, 3, 3);
+    CHECK_EQ (d.range.blocks().size(), size_t (1));
+    // A plain click: that bar alone.
+    d.addRange (2, 2, 3, 3);
+    d.selectRange (1, 1, 1, 1);
+    CHECK_EQ (d.range.blocks().size(), size_t (1));
+}

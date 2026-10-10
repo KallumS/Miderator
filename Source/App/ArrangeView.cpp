@@ -142,9 +142,8 @@ void ArrangeView::paint (juce::Graphics& g)
             g.fillRect (static_cast<float> (timeArea.getX()), top + static_cast<float> (trackHeight) - 1.0f, static_cast<float> (timeArea.getWidth()), 1.0f);
         }
 
-        // The chosen bars: a tint with an outline (decision 0019).
-        const auto& r = controller.range;
-        if (r.active())
+        // The chosen bars: a tint with an outline (decision 0019), every block (0050).
+        for (const auto& r : controller.range.blocks())
         {
             const int top = s.partIndex (r.parts.front()), bottom = s.partIndex (r.parts.back());
             if (top >= 0 && bottom >= 0)
@@ -185,7 +184,7 @@ void ArrangeView::paintHeaders (juce::Graphics& g, const theme::RollColours& c)
         const int index = static_cast<int> (i);
         const float top = trackTop (index);
         if (top > static_cast<float> (area.getBottom()) || top + trackHeight < static_cast<float> (area.getY())) continue;
-        const bool current = p.id == controller.caretPart && ! controller.noPartChosen;
+        const bool current = controller.isPartChosen (p.id);
         const juce::Rectangle<float> box (2.0f, top + 1.0f, static_cast<float> (Timeline::left) - 4.0f, static_cast<float> (trackHeight) - 2.0f);
         g.setColour (current ? c.headerActive : c.header);
         g.fillRoundedRectangle (box, 3.0f);
@@ -283,7 +282,7 @@ void ArrangeView::mouseDown (const juce::MouseEvent& e)
     focusWindow (*this);
     const auto p = e.position;
     auto& s = controller.score;
-    selectingBars = allParts = settingCaret = false;
+    selectingBars = allParts = settingCaret = addingBars = false;
 
     // The ruler: the caret goes there.
     if (p.y < rulerHeight)
@@ -347,6 +346,13 @@ void ArrangeView::mouseDown (const juce::MouseEvent& e)
             });
             return;
         }
+        // Cmd adds a part to those chosen, Shift every part from the one
+        // clicked before (decision 0050).
+        if (e.mods.isCommandDown() || e.mods.isShiftDown())
+        {
+            controller.clickPart (partId, e.mods.isCommandDown(), e.mods.isShiftDown());
+            return;
+        }
         controller.choosePart (partId);
         controller.setStatus (juce::String (s.parts[static_cast<size_t> (index)].name) + " in the piano roll");
         return;
@@ -365,7 +371,10 @@ void ArrangeView::mouseDown (const juce::MouseEvent& e)
     anchorBar = bar;
     anchorPart = index;
     selectingBars = true;
-    controller.selectRange (bar, bar, index, index);
+    // Cmd adds these bars to those chosen (decision 0050).
+    addingBars = e.mods.isCommandDown();
+    if (addingBars) controller.addRange (bar, bar, index, index);
+    else controller.selectRange (bar, bar, index, index);
     controller.caret = roll::snapDown (s, timeline.tickAt (p.x), controller.grid);
     controller.setStatus (controller.rangeText() + " chosen - drag to choose more, Generate fills them");
 }
@@ -389,7 +398,7 @@ void ArrangeView::mouseDrag (const juce::MouseEvent& e)
     const auto bottomId = controller.score.parts[static_cast<size_t> (std::max (anchorPart, part))].id;
     if (! r.active() || r.first != first || r.last != lastBar || r.parts.front() != topId || r.parts.back() != bottomId)
     {
-        controller.selectRange (anchorBar, bar, anchorPart, part);
+        controller.selectRange (anchorBar, bar, anchorPart, part, addingBars);
         controller.setStatus (controller.rangeText() + " chosen");
     }
     selectingBars = true;
@@ -399,7 +408,7 @@ void ArrangeView::mouseUp (const juce::MouseEvent&)
 {
     if (selectingBars && controller.range.active())
         controller.setStatus (controller.rangeText() + " chosen - Generate fills them; Esc lets go");
-    selectingBars = allParts = settingCaret = false;
+    selectingBars = allParts = settingCaret = addingBars = false;
 }
 
 void ArrangeView::mouseDoubleClick (const juce::MouseEvent& e)

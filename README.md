@@ -110,6 +110,8 @@ keeps working for every future version.
 | Generate | **Generate** tab: choose a generator, **Generate**, click a result to hear it, **Insert** - into the chosen bars, or the part in the roll |
 | Every instrument at once | **Esc** lets go of everything - notes, bars and the instrument - so the next idea goes to every part (a single melody to the top one); click a name to choose one again |
 | Lost an idea? | **Cmd+Z** after a **Generate** brings back the ideas listed before it; **Shift+Cmd+Z** goes forward again |
+| Several instruments | **Cmd**-click names to add or take away one; **Shift**-click to choose every one in between; **Cmd+A** chooses every instrument (press it again for every note too). An idea goes to the instruments chosen, a single melody to the first chosen |
+| Bars here and there | **Cmd**-click (or Cmd-drag) bars to add them to the chosen bars; each block is filled on its own |
 | Blocks | **Blocks** tab: choose a kind, click a degree to see and hear it, **Insert** at the caret |
 | Draw notes | double-click the roll, or **D** for the Draw tool: click to draw, drag to make it longer, click a note to delete it |
 | Select | click a note; **Shift**-click for more; drag on empty space to lasso |

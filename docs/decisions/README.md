@@ -63,3 +63,4 @@ piano roll changed say so at the top. 0026 on are Miderator's own.
 | [0047](0047-blocks-offers-a-chords-real-inversions.md) | Blocks offers each chord the inversions it has | Accepted |
 | [0048](0048-escape-lets-go-of-everything.md) | Escape lets go of everything, the caret's part too | Accepted |
 | [0049](0049-undo-brings-back-generated-ideas.md) | Undo brings back the ideas a Generate replaced | Accepted |
+| [0050](0050-choosing-several-parts-and-blocks-of-bars.md) | Choosing several parts by name, and blocks of bars with Cmd | Accepted |
