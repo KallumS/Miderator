@@ -527,7 +527,14 @@ TEST ("generators: every Blocks chord reads in the Chords lane on the root Block
             if (ti < 0) return;
             const auto types = st[static_cast<size_t> (ti)].names.size();
             for (int t = 0; t < static_cast<int> (types); ++t)
-                for (int inv = 0; inv < 4; ++inv)
+            {
+                // As many inversions as the chord has notes, less one.
+                e.reset (g);
+                e.set (g, "family", f, ctx);
+                e.set (g, typeId, t, ctx);
+                const auto withType = e.settings (g, ctx);
+                const auto inversions = static_cast<int> (withType[static_cast<size_t> (indexOf (withType, "inv"))].names.size());
+                for (int inv = 0; inv < inversions; ++inv)
                 {
                     e.reset (g);
                     e.useKey (g, root, scale);
@@ -566,6 +573,7 @@ TEST ("generators: every Blocks chord reads in the Chords lane on the root Block
                         if (! ok && ++wrong == 1) firstWrong = rootName + " " + scaleName + ": " + r.title + " -> " + name;
                     }
                 }
+            }
         }
     }
     CHECK (chords > 9000);

@@ -26,6 +26,7 @@ update the commit below.
 | `5fae0da` | 2026-10-10: `ScaleModel.h` from ScaleView `b34d6f7` - Starting Blocks' chords decide which roots a chord can have (ScaleView Pro `df4ea43`). On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 | `58b10f1` | 2026-10-10: Midi Suggester `40c14bc` and Midi Variator `417ed44` vendored - their chord readers take ScaleView Pro's Blocks dictionary too. On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 | `006bd88` | 2026-10-10: `TestDetect.cpp` holds `detectChords'` result before reading it (the Mac read a destroyed temporary). On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
+| `9f5a00f` | 2026-10-10: Blocks offers each chord the inversions it has (0047): Starting Blocks Notation `79b71f4` vendored, the adapter's Inversion menu the chord's own, the lane test over every inversion. On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 
 ## Shared
 

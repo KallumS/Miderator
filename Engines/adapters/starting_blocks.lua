@@ -53,7 +53,15 @@ local LIST = {
       end
       return values, shown, {}
     end }),
-  C.setting("inv", "Inversion", range(0, 3), E.INVERSIONS, { when = cat("Chord", "Arpeggio") }),
+  -- Only the inversions this chord has: two for a triad, three for a seventh,
+  -- up to six for a thirteenth (Starting Blocks' decision 0007).
+  C.setting("inv", "Inversion", {}, {}, {
+    when = cat("Chord", "Arpeggio"),
+    dynamic = function(st)
+      local values, shown = {}, E.inversionNames(st)
+      for i = 1, #shown do values[i] = i - 1 end
+      return values, shown, {}
+    end }),
   C.setting("chop", "Strike every", range(1, #E.RATES), names(E.RATES), { when = cat("Chord") }),
   C.setting("pattern", "Direction", range(1, #E.DIRECTIONS), E.DIRECTIONS, { when = cat("Arpeggio") }),
   C.setting("runDir", "Direction", range(1, #E.DIRECTIONS), E.DIRECTIONS, { when = cat("Run") }),

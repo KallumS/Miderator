@@ -279,3 +279,20 @@ before it failed with the 0046 test reading an empty name where Linux read
 `C6`. The test was the fault: `detectChords (...).front().name` inside
 `CHECK_EQ` read a temporary already destroyed - the rule in CLAUDE.md, broken
 a second time. Held in a variable (Noterator's `006bd88`). 100 core tests, 19 app tests.
+
+## Then: each chord offers the inversions it has (0047)
+
+The user set out how inversions work - a triad two, a seventh three, an
+extended chord one per note after the root - and Blocks offered Root to 3rd
+on everything. Made in Starting Blocks (its 0007, `2facd93`), copied into
+Starting Blocks Notation (its 0015, `79b71f4`) and vendored in Noterator (`9f5a00f`), synced here; the
+adapter's Inversion menu is now the chord's own (`dynamic`).
+
+Writing the engine's sweep found two faults the old fixed row hid: the
+notes lifted under an inversion went on the end (an Up arpeggio of an
+inverted ninth fell back down at the top), and a lifted note went up one
+octave only, leaving a wide chord's root under its new bass.
+
+Every Blocks chord in all 288 keys and every inversion it has - 735,822
+chords, 65,574 of them new 4th to 6th inversions - has the right note in the
+bass and reads in the Chords lane on Blocks' root over it. 100 core tests, 19 app tests.

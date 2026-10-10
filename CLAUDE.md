@@ -187,8 +187,9 @@ was the Score tab, Undo, Sound, Step input and Light (0038, 0039), and
 generated music orchestrated across the chosen parts, or every part
 with nothing chosen, a single line to one part (0040-0042); then auditions that
 play every note on a piano (0043), a name click that lets go of bars chosen
-elsewhere (0044), `build-mac.command` (0045) and Blocks chords named in the
-Chords lane from their own root (0046), on the branch
+elsewhere (0044), `build-mac.command` (0045), Blocks chords named in the
+Chords lane from their own root (0046) and each chord offering the
+inversions it has (0047), on the branch
 `ccr-ac8da7d9-3sbl5x`. Not built yet, roughly in the order
 the user is likely to want them: drawable CC lanes; articulations; VST3/CLAP
 instruments and SoundFonts; real-time recording; Windows. Known rough edges
