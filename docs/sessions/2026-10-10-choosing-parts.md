@@ -29,3 +29,21 @@ timeline adds bars.
 - With two parts chosen in Noterator the caret runs from the top chosen staff
   to the bottom one, across a staff between that is not chosen; the marks by
   the names say which are.
+
+## Not done yet
+
+Rough edges left from today's three changes (0048-0050), for whoever comes
+next:
+
+- A block from the Blocks toolbox still goes into the caret's part even
+  with no part or several parts chosen (the Blocks tab names it). It could go
+  to the first chosen, or the top one.
+- Vary Notes and export with several blocks of bars chosen use the bars from
+  the first chosen to the last, not each block.
+- Noterator's caret runs from the top chosen staff to the bottom one,
+  across staves between that are not chosen.
+- Chosen parts are not saved with the song (nothing about the view is, 0002)
+  and Undo does not bring a choice back.
+- The branch `claude/adoring-feynman-bihxp2` (0048-0050) is not merged yet in
+  either app; the user tested 0048 on their Mac and liked it, 0049 and 0050
+  only as builds.
