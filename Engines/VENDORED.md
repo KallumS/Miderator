@@ -12,8 +12,9 @@ then run `tools/sync_engines.sh` and update this table.
 | `midi-variator/` | KallumS/Midi-Variator | eb926a0 | mv_theory.lua, mv_vary.lua |
 | `starting-blocks/` | KallumS/Starting-Blocks-Notation | 30f7ba8 | sb_engine.lua |
 
-Also vendored: `Source/Core/ScaleModel.h` from KallumS/ScaleView at `da943f1`
+Also vendored: `Source/Core/ScaleModel.h` from KallumS/ScaleView at `b34d6f7`
 (unchanged) - the plugin's port of ScaleView Pro's engine at
-ScaleView-for-Reaper `f9e2691`, diffed against Pro itself,
+ScaleView-for-Reaper `df4ea43` (Starting Blocks' chords decide which roots a
+chord can have), diffed against Pro itself,
 Lua 5.4.7 in `ThirdParty/lua` (without lua.c, luac.c and the test files), and
 Bravura in `Resources/Fonts`.
