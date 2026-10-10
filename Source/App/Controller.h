@@ -174,6 +174,11 @@ public:
     // the top one when Escape let go of every part (0048).
     uint32_t lineTarget() const;
     uint32_t lineTargetIn (const Bars& block) const;
+    // The parts with notes selected, top to bottom.
+    std::vector<uint32_t> partsWithSelection() const;
+    // Vary Notes on music in several parts: the variation goes after it,
+    // shared across those parts as if they were chosen (decision 0052).
+    bool variesAcrossParts (const std::string& generatorId) const;
     juce::String rangeText() const;
     // The bars the range or the selection covers, or the caret's bar.
     std::pair<int, int> selectedBars() const;

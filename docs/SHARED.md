@@ -30,6 +30,7 @@ update the commit below.
 | `79321af` | 2026-10-10: the Generate tab keeps every list it made and steps through them with Undo and Redo (0049), `GeneratorPanel.*`. On Noterator's branch `claude/adoring-feynman-bihxp2` |
 | `7e4e38d` | 2026-10-10: the Generate tab names the parts chosen (0050), `GeneratorPanel.cpp`. On Noterator's branch `claude/adoring-feynman-bihxp2` |
 | `d1c9b2a` | 2026-10-10: no More button in the Generate tab (0051), `GeneratorPanel.*`. On Noterator's branch `claude/adoring-feynman-bihxp2` |
+| `72f57c7` | 2026-10-10: the Generate tab says where Vary Notes on several parts goes (0052), `GeneratorPanel.cpp`. On Noterator's branch `claude/adoring-feynman-bihxp2` |
 
 ## Shared
 

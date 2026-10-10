@@ -36,6 +36,15 @@ The user found More useless next to Generate, now that Undo brings back a
 replaced list. Removed from `GeneratorPanel` (shared): Generate, Insert and
 Stop share the row; every Generate is a fresh list.
 
+## Then: Vary Notes across several parts (0052)
+
+With bars 1-4 chosen across the quartet, Vary Notes replaced bars 1-4 of
+one part with everyone's notes. Now music in several parts is varied after
+its last bar, shared across those parts (`variesAcrossParts`, first in
+`place`; the Generate tab and the audition follow). Test: a real Vary Notes
+over four bars of a quartet, by bars and by notes; it failed with the check
+turned off (the variation inside bars 1-4).
+
 ## Not done yet
 
 Rough edges left from today's three changes (0048-0050), for whoever comes

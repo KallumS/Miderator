@@ -65,3 +65,4 @@ piano roll changed say so at the top. 0026 on are Miderator's own.
 | [0049](0049-undo-brings-back-generated-ideas.md) | Undo brings back the ideas a Generate replaced | Accepted |
 | [0050](0050-choosing-several-parts-and-blocks-of-bars.md) | Choosing several parts by name, and blocks of bars with Cmd | Accepted |
 | [0051](0051-no-more-button.md) | No More button in the Generate tab | Accepted |
+| [0052](0052-vary-notes-across-parts-goes-after.md) | Vary Notes on several parts goes after the music, across those parts | Accepted |

@@ -866,3 +866,53 @@ TEST ("app: Cmd and Shift on names choose several parts, Cmd+A every part then e
     d.selectRange (1, 1, 1, 1);
     CHECK_EQ (d.range.blocks().size(), size_t (1));
 }
+
+TEST ("app: Vary Notes on bars of several parts goes after them, shared across those parts")
+{
+    for (int byNotes = 0; byNotes < 2; ++byNotes)
+    {
+        Controller c (audio());
+        c.newScore ("String Quartet");
+        // Four bars of chords across the quartet.
+        GeneratedResult chords;
+        chords.length = 16 * PPQ;
+        GeneratedPart harmony;
+        harmony.name = "Chords";
+        const int roots[] = { 60, 65, 67, 60 };
+        for (int bar = 0; bar < 4; ++bar)
+            for (int i : { 0, 4, 7, 12 }) { Note n; n.start = bar * 4 * PPQ; n.length = 4 * PPQ; n.pitch = roots[bar] + i; harmony.notes.push_back (n); }
+        chords.parts = { harmony };
+        c.letGoOfEverything();
+        c.insertGenerated (chords, false, "good-idea");
+        const Tick bar5 = c.score.barStart (4);
+        std::vector<size_t> before;
+        for (const auto& p : c.score.parts) before.push_back (p.notes.size());
+        for (const auto& p : c.score.parts) CHECK (! p.notes.empty());
+
+        // Bars 1-4 of every part chosen - or every note in them selected.
+        if (byNotes != 0)
+        {
+            Selection all;
+            for (const auto& p : c.score.parts) for (const auto& n : p.notes) all.insert (n.id);
+            c.letGoOfEverything();
+            c.select (all);
+        }
+        else c.selectRange (0, 3, 0, 3);
+        CHECK (c.variesAcrossParts ("midi-variator"));
+        c.lua.reset ("midi-variator");
+        const auto out = c.lua.generate ("midi-variator", c.generatorContext (true), 7, 1);
+        CHECK (! out.results.empty());
+        if (out.results.empty()) return;
+        c.insertGenerated (out.results.front(), true, "midi-variator");
+
+        // Bars 1-4 untouched; the variation from bar 5, in more than one part.
+        int partsAfter = 0;
+        for (size_t i = 0; i < c.score.parts.size(); ++i)
+        {
+            const auto& ns = c.score.parts[i].notes;
+            CHECK_EQ (static_cast<size_t> (std::count_if (ns.begin(), ns.end(), [bar5] (const Note& n) { return n.start < bar5; })), before[i]);
+            if (std::any_of (ns.begin(), ns.end(), [bar5] (const Note& n) { return n.start >= bar5; })) ++partsAfter;
+        }
+        CHECK (partsAfter > 1);
+    }
+}

@@ -28,7 +28,7 @@ across the instruments by section and register, a single melody to one
 instrument; chosen bars filled once; ideas auditioned on a piano before
 Insert; Follow (the view scrolls with the music); Space plays from bar 1,
 Shift+Space from the cursor; MIDI, MusicXML and WAV out, MIDI and MusicXML in.
-Added most recently (decisions 0048-0051, both apps):
+Added most recently (decisions 0048-0052, both apps):
 - Escape lets go of everything - notes, bars and the highlighted instrument -
   so the next idea goes to every instrument, a single melody to the top one.
 - Every Generate is a step in Undo: Cmd+Z brings back the ideas a Generate
@@ -38,6 +38,8 @@ Added most recently (decisions 0048-0051, both apps):
   to the instruments chosen, a single melody to the first chosen. Cmd-click
   bars to add them to the chosen bars; each block is filled on its own.
 - The Generate tab's More button is gone: Generate again does the same.
+- Vary Notes on bars or notes of several instruments puts the variation
+  after them, shared across those instruments.
 
 I'm not technical: explain things in plain words, show me screenshots of what
 changed, and make sure each change reaches me as the downloadable Mac app
@@ -84,7 +86,7 @@ docs/sessions/ (and its line in docs/sessions/README.md), add a decision
 record in docs/decisions/ (with its line in docs/decisions/README.md and
 docs/ARCHITECTURE.md) for any choice someone could reasonably make the other
 way - numbered after the highest in either app, which share one sequence
-(0051 is the latest) - update CLAUDE.md and README.md if what the app does or
+(0052 is the latest) - update CLAUDE.md and README.md if what the app does or
 a rule changed, rewrite docs/NEXT-SESSION.md, push, check that the GitHub
 Actions runs are green on both Linux and macOS (the Mac test log should say
 it rendered through Apple General MIDI), and tell me where to download both
@@ -95,7 +97,8 @@ new apps.
 
 - **Waiting to be merged:** the branch `claude/adoring-feynman-bihxp2` in
   Noterator and Miderator holds Escape (0048), Undo for generated ideas
-  (0049), the instrument and bar shortcuts (0050) and no More button (0051). Its last builds passed
+  (0049), the instrument and bar shortcuts (0050), no More button (0051)
+  and Vary Notes across several parts (0052). Its last builds passed
   on GitHub (Noterator run 65, Miderator run 42). No pull request is open for
   it yet: ask a session to open them, or open them on GitHub yourself.
 - **Already merged:** the earlier branch `ccr-ac8da7d9-3sbl5x` (up to 0047)

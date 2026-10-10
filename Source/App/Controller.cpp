@@ -993,6 +993,20 @@ uint32_t Controller::lineTarget() const
     return lineTargetIn (range);
 }
 
+std::vector<uint32_t> Controller::partsWithSelection() const
+{
+    std::vector<uint32_t> parts;
+    for (const auto& p : score.parts)
+        for (const auto& n : p.notes)
+            if (selection.count (n.id) != 0) { parts.push_back (p.id); break; }
+    return parts;
+}
+
+bool Controller::variesAcrossParts (const std::string& generatorId) const
+{
+    return generatorId == "midi-variator" && partsWithSelection().size() > 1;
+}
+
 uint32_t Controller::lineTargetIn (const Bars& block) const
 {
     if (block.has (caretPart)) return caretPart;
@@ -1006,6 +1020,15 @@ Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, 
     // 0036) - except a block from the toolbox, which goes in as it is.
     InsertOptions base;
     base.fitPolyphony = generatorId != "starting-blocks";
+    // Vary Notes on music in several parts - bars chosen across them, or
+    // notes selected in them: the variation follows the last bar of it,
+    // shared across those parts as if they were chosen (decision 0052).
+    if (fromSelection && variesAcrossParts (generatorId))
+    {
+        const Tick at = s.barStart (selectedBars().second + 1);
+        report = insertIntoRange (s, r, partsWithSelection(), at, at + std::max<Tick> (r.length, PPQ), base);
+        return at;
+    }
     if (range.active())
     {
         // Selected bars: the music fills them (decision 0019).
@@ -1166,7 +1189,7 @@ Score Controller::auditionScore (const GeneratedResult& r, bool fromSelection, c
             to = end;
             return temp;
         }
-        if (range.active() && (! fromSelection || generatorId == "midi-variator"))
+        if (range.active() && (! fromSelection || generatorId == "midi-variator") && ! variesAcrossParts (generatorId))
             length = score.barStart (range.last + 1) - at;
         addAudition (temp, r, at, length);
         temp.normalise();
