@@ -43,12 +43,12 @@ GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
     target.setColour (juce::Label::textColourId, theme::text);
 
     followKey.setToggleState (true, juce::dontSendNotification);
-    followKey.setTooltip ("Write in the key the score is in at the caret, rather than the generator's own setting");
+    followKey.setTooltip ("Write in the key of the music at the cursor, instead of the generator's own key setting");
     followKey.onClick = [this] { rebuildSettings(); };
 
-    generateButton.setTooltip ("Make new results (G)");
-    insertButton.setTooltip ("Put the chosen result into the caret's part, at the caret's bar (Return)");
-    stopButton.setTooltip ("Stop the audition");
+    generateButton.setTooltip ("Make a new list of ideas (G)");
+    insertButton.setTooltip ("Add the chosen idea to the score, where the Into line says (Return)");
+    stopButton.setTooltip ("Stop playing the idea");
     generateButton.onClick = [this] { run(); };
     insertButton.onClick = [this] { insertSelected(); };
     stopButton.onClick = [this] { controller.stop(); };
@@ -59,7 +59,7 @@ GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
     results.setOutlineThickness (1);
 
     if (! controller.lua.ok())
-        message.setText ("The generators did not load:\n" + juce::String (controller.lua.error()), juce::dontSendNotification);
+        message.setText (ui ("The generators couldn’t be loaded:\n") + juce::String (controller.lua.error()), juce::dontSendNotification);
     controller.addChangeListener (this);
     controller.stepResults = [this] (int direction) { showListed (direction); };
     generator.setSelectedId (1);
@@ -124,15 +124,15 @@ void GeneratorPanel::changeListenerCallback (juce::ChangeBroadcaster*)
     const juce::String bar = "from bar " + juce::String (controller.score.barAt (controller.caret) + 1);
     const auto* line = controller.score.partById (controller.lineTarget());
     const juce::String lineName = line != nullptr ? juce::String (line->name) : juce::String();
-    if (controller.score.parts.size() > 1) into += bar + " - chords to " + controller.partsText() + ", one line to " + lineName;
+    if (controller.score.parts.size() > 1) into += bar + ui (" — chords to ") + controller.partsText() + ", one line to " + lineName;
     else into += lineName + ", " + bar;
     if (controller.range.active() && (! needsSelection() || current == "midi-variator") && ! controller.variesAcrossParts (current))
     {
         into = "Into: " + controller.rangeText();
-        if (! needsSelection() && controller.range.parts.size() > 1) into += " - one line to " + lineName;
+        if (! needsSelection() && controller.range.parts.size() > 1) into += ui (" — one line to ") + lineName;
         if (needsSelection())
-            into = controller.selection.empty() ? juce::String ("There is no music in the chosen bars to vary")
-                 : controller.rangeText() + "  |  the variation replaces it";
+            into = controller.selection.empty() ? juce::String ("Choose bars with music in them to vary.")
+                 : controller.rangeText() + ui (" — the variation replaces them");
     }
     // Vary Notes on music in several parts goes after it, across them (0052).
     else if (needsSelection() && ! controller.selection.empty() && controller.variesAcrossParts (current))
@@ -144,10 +144,10 @@ void GeneratorPanel::changeListenerCallback (juce::ChangeBroadcaster*)
     else if (needsSelection())
     {
         const auto [a, b] = controller.selectedBars();
-        const juce::String bars = "bar" + juce::String (a == b ? " " : "s ") + juce::String (a + 1) + (a == b ? juce::String() : "-" + juce::String (b + 1));
-        into = controller.selection.empty() ? juce::String ("Select some music in the score for this one")
+        const juce::String bars = "bar" + juce::String (a == b ? " " : "s ") + juce::String (a + 1) + (a == b ? juce::String() : ui ("–") + juce::String (b + 1));
+        into = controller.selection.empty() ? juce::String ("Select some notes in the score to use this generator.")
              : juce::String (static_cast<int> (controller.selection.size())) + " notes in " + bars
-               + (current == "midi-variator" ? "  |  goes after them" : "  |  goes beside them");
+               + (current == "midi-variator" ? ui (" — the variation goes after them") : ui (" — ideas go beside them"));
     }
     target.setText (into, juce::dontSendNotification);
     insertButton.setEnabled (results.getSelectedRow() >= 0);
@@ -162,7 +162,7 @@ void GeneratorPanel::run()
     const auto out = controller.lua.generate (current, ctx, seed, 6);
     if (! out.error.empty())
     {
-        message.setText ("The generator failed - this is a bug, please report it:\n" + juce::String (out.error).upToFirstOccurrenceOf ("\n", false, false),
+        message.setText ("The generator stopped with an error. Report this as a bug:\n" + juce::String (out.error).upToFirstOccurrenceOf ("\n", false, false),
                          juce::dontSendNotification);
         message.setColour (juce::Label::textColourId, theme::warn);
         return;
@@ -170,7 +170,7 @@ void GeneratorPanel::run()
     message.setColour (juce::Label::textColourId, theme::stepNumber);
     if (! found.empty()) history[shown].row = results.getSelectedRow();   // for Undo to come back to
     found = out.results;
-    message.setText (out.message.empty() ? juce::String (static_cast<int> (found.size())) + " results. Click one to hear it; Insert puts it in."
+    message.setText (out.message.empty() ? juce::String (static_cast<int> (found.size())) + " ideas. Click one to hear it, then click Insert."
                                          : juce::String (out.message), juce::dontSendNotification);
     results.updateContent();
     results.repaint();
@@ -240,7 +240,7 @@ void GeneratorPanel::paintListBoxItem (int row, juce::Graphics& g, int width, in
     for (const auto& p : r.parts) notes += static_cast<int> (p.notes.size());
     juce::String sub;
     for (const auto& p : r.parts) sub += (sub.isEmpty() ? "" : ", ") + juce::String (p.name);
-    sub += "  |  " + juce::String (static_cast<double> (r.length) / PPQ, 1) + " beats, " + juce::String (notes) + " notes";
+    sub += ui ("  ·  ") + juce::String (static_cast<double> (r.length) / PPQ, 1) + " beats, " + juce::String (notes) + " notes";
     g.setColour (theme::textDim);
     g.setFont (juce::FontOptions (12.0f));
     g.drawText (sub, 10, 22, width - 16, 18, juce::Justification::centredLeft, true);

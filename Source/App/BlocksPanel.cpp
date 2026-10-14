@@ -158,8 +158,8 @@ BlocksPanel::BlocksPanel (Controller& c) : controller (c)
     settings.context = [this] { return context(); };
     settings.onChange = [this] { remake(); resized(); };
 
-    playButton.setTooltip ("Hear the chosen block again");
-    insertButton.setTooltip ("Put the chosen block at the caret, and move the caret past it");
+    playButton.setTooltip ("Play the chosen block again");
+    insertButton.setTooltip ("Add the chosen block at the cursor and move the cursor past it");
     playButton.onClick = [this] { choose (chosen, true); };
     insertButton.onClick = [this] { insertChosen(); };
 
@@ -202,7 +202,7 @@ void BlocksPanel::remake()
 
     const auto& root = scaleview::roots[static_cast<size_t> (std::clamp (ctx.root, 0, static_cast<int> (scaleview::roots.size()) - 1))];
     const auto& scale = scaleview::scales[static_cast<size_t> (std::clamp (ctx.scale, 0, static_cast<int> (scaleview::scales.size()) - 1))];
-    key.setText (juce::String ("In ") + root.name + " " + juce::String (scale.name).toLowerCase() + ", the score's key at the caret",
+    key.setText (juce::String ("In ") + root.name + " " + juce::String (scale.name).toLowerCase() + ", the song's key at the cursor",
                  juce::dontSendNotification);
 
     degrees.clear();
@@ -218,7 +218,7 @@ void BlocksPanel::remake()
         b->onDoubleClick = [this, i] { choose (static_cast<int> (i), false); insertChosen(); };
         addAndMakeVisible (b);
     }
-    if (! out.error.empty()) key.setText ("Starting Blocks failed - this is a bug: " + juce::String (out.error), juce::dontSendNotification);
+    if (! out.error.empty()) key.setText ("Starting Blocks stopped with an error. Report this as a bug: " + juce::String (out.error), juce::dontSendNotification);
     choose (std::clamp (chosen, 0, std::max (0, static_cast<int> (blocks.size()) - 1)), false);
 }
 

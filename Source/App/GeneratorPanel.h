@@ -37,7 +37,7 @@ private:
     Controller& controller;
     juce::ComboBox generator;
     juce::Label description;
-    juce::ToggleButton followKey { "Use the score's key" };
+    juce::ToggleButton followKey { "Use the music's key" };
     SettingsList settings { controller };
     juce::TextButton generateButton { "Generate" }, insertButton { "Insert" }, stopButton { "Stop" };
     juce::ListBox results { "Results", this };

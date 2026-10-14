@@ -66,3 +66,4 @@ piano roll changed say so at the top. 0026 on are Miderator's own.
 | [0050](0050-choosing-several-parts-and-blocks-of-bars.md) | Choosing several parts by name, and blocks of bars with Cmd | Accepted |
 | [0051](0051-no-more-button.md) | No More button in the Generate tab | Accepted |
 | [0052](0052-vary-notes-across-parts-goes-after.md) | Vary Notes on several parts goes after the music, across those parts | Accepted |
+| [0053](0053-writing-the-way-the-mac-does.md) | The apps' text follows Apple's writing guidelines | Accepted |

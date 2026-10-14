@@ -5,6 +5,7 @@
 #include "ScoreFile.h"
 #include "Spelling.h"
 #include "Templates.h"
+#include "Theme.h"
 
 namespace nt
 {
@@ -99,7 +100,7 @@ void Controller::undo()
         // A Generate undone: the ideas listed before it come back (0049).
         if (stepResults) stepResults (-1);
         redoStack.push_back (std::move (step));
-        setStatus ("Undone: the ideas from before that Generate are back");
+        setStatus (ui ("Undo Generate — the earlier ideas are back"));
         return;
     }
     redoStack.push_back ({ false, score });
@@ -118,7 +119,7 @@ void Controller::redo()
     {
         if (stepResults) stepResults (1);
         undoStack.push_back (std::move (step));
-        setStatus ("Redone: the ideas from that Generate are back");
+        setStatus (ui ("Redo Generate — those ideas are back"));
         return;
     }
     undoStack.push_back ({ false, score });
@@ -186,7 +187,7 @@ void Controller::clickPart (uint32_t partId, bool add, bool extend)
     setChosen (chosen, partId);
     if (chosen.empty()) setStatus ("No part chosen: ideas go to every part");
     else if (chosen.size() == 1) setStatus (juce::String (score.partById (chosen.front())->name) + " chosen");
-    else setStatus (partsText() + " chosen - an idea goes to them, a single line to " + juce::String (score.partById (chosen.front())->name));
+    else setStatus (partsText() + ui (" chosen — an idea goes to them, a single line to ") + juce::String (score.partById (chosen.front())->name));
 }
 
 void Controller::setChosen (const std::vector<uint32_t>& parts, uint32_t shown)
@@ -316,7 +317,7 @@ void Controller::setGrid (Tick base, bool triplet)
 void Controller::toggleSnap()
 {
     grid.snap = ! grid.snap;
-    setStatus (grid.snap ? "Notes snap to the grid" : "Snap off: notes go exactly where they are put");
+    setStatus (grid.snap ? "Snap is on: notes snap to the grid" : "Snap is off: notes go exactly where you put them");
 }
 
 void Controller::toggleDrawTool()
@@ -330,7 +331,7 @@ void Controller::toggleStepInput()
 {
     stepInput = ! stepInput;
     if (stepInput) caret = roll::snap (score, caret, grid);
-    setStatus (stepInput ? "Step input: play a MIDI keyboard to write notes at the caret, one grid step each"
+    setStatus (stepInput ? "Step input is on: play a MIDI keyboard to write notes at the cursor, one grid step each"
                          : "Step input off");
 }
 
@@ -361,7 +362,7 @@ void Controller::selectAll()
     noPartChosen = false;
     if (all.size() > 1) chosenParts = all;
     status = notesToo ? juce::String ("Everything chosen: every part and all ") + juce::String (static_cast<int> (selection.size())) + " notes"
-                      : juce::String ("Every part chosen - Cmd+A again selects every note too");
+                      : ui ("Every part chosen — press ⌘A again to select every note too");
     sendChangeMessage();
 }
 
@@ -398,7 +399,7 @@ void Controller::transposeSelection (int semitones)
     const auto ids = selection;
     bool ok = true;
     edit (semitones % 12 == 0 ? "Moved by an octave" : "Transposed", [&] (Score& s) { ok = transposeNotes (s, ids, semitones); });
-    if (! ok) { undo(); setStatus ("That would go past the ends of the MIDI range."); return; }
+    if (! ok) { undo(); setStatus ("Nothing moved: that would take notes outside the MIDI range."); return; }
     previewSelection();
 }
 
@@ -416,14 +417,14 @@ void Controller::dragSelection (Tick by, int semitones, bool copy)
     {
         std::vector<uint32_t> made;
         edit ("Copied notes", [&] (Score& s) { made = roll::copyNotesBy (s, ids, by, semitones); });
-        if (made.empty()) { undo(); setStatus ("That would go past the start, or the ends of the MIDI range."); return; }
+        if (made.empty()) { undo(); setStatus ("Nothing changed: that would take notes before the start or outside the MIDI range."); return; }
         selection = Selection (made.begin(), made.end());
     }
     else
     {
         bool ok = true;
         edit (semitones != 0 && by == 0 ? "Transposed" : "Moved", [&] (Score& s) { ok = roll::moveNotes (s, ids, by, semitones); });
-        if (! ok) { undo(); setStatus ("That would go past the start, or the ends of the MIDI range."); return; }
+        if (! ok) { undo(); setStatus ("Nothing changed: that would take notes before the start or outside the MIDI range."); return; }
     }
     if (semitones != 0) previewSelection();
     sendChangeMessage();
@@ -454,7 +455,7 @@ void Controller::quantiseSelection()
     if (ids.empty())
         if (const auto* p = caretPartPtr())
             for (const auto& n : p->notes) ids.insert (n.id);
-    if (ids.empty()) { setStatus ("Nothing to quantise"); return; }
+    if (ids.empty()) { setStatus ("There are no notes to quantise."); return; }
     const Tick step = grid.step();
     edit ("Quantised to " + juce::String (grid.name()), [&] (Score& s) { roll::quantise (s, ids, step); });
 }
@@ -601,7 +602,7 @@ juce::String Controller::rangeText() const
     for (const auto& b : range.blocks())
     {
         juce::String t = b.first == b.last ? "Bar " + juce::String (b.first + 1)
-                                           : "Bars " + juce::String (b.first + 1) + "-" + juce::String (b.last + 1);
+                                           : "Bars " + juce::String (b.first + 1) + ui ("–") + juce::String (b.last + 1);
         const auto* top = score.partById (b.parts.front());
         const auto* bottom = score.partById (b.parts.back());
         if (top != nullptr) t += ", " + juce::String (top->name);
@@ -771,13 +772,13 @@ void Controller::skipToEnd()
 {
     if (audio.isPlaying()) stop();
     caret = musicEnd();
-    setStatus ("To the end of the music: bar " + juce::String (score.barAt (caret) + 1));
+    setStatus ("At the end of the music: bar " + juce::String (score.barAt (caret) + 1));
 }
 
 void Controller::toggleFollow()
 {
     followPlayback = ! followPlayback;
-    setStatus (! followPlayback ? "Follow off: the view stays where you put it while it plays"
+    setStatus (! followPlayback ? "Follow is off: the view stays where you put it while the music plays"
                : followStyle == FollowStyle::smooth ? "Follow: the view scrolls along with the music as it plays"
                                                     : "Follow: the view turns a page with the music as it plays");
 }
@@ -843,7 +844,7 @@ void Controller::newScore (const juce::String& name)
     chosenParts.clear();
     file = juce::File();
     dirty = false;
-    status = "New score: " + name;
+    status = "New song: " + name;
     refresh();
 }
 
@@ -871,7 +872,7 @@ bool readMxl (const juce::File& f, std::string& text, juce::String& error)
     const auto* entry = path.isEmpty() ? nullptr : zip.getEntry (path);
     if (entry == nullptr) { error = f.getFileName() + " has no score inside it."; return false; }
     std::unique_ptr<juce::InputStream> in (zip.createStreamForEntry (*entry));
-    if (in == nullptr) { error = "Could not unpack " + f.getFileName(); return false; }
+    if (in == nullptr) { error = "The compressed MusicXML file couldn't be unpacked. It may be damaged."; return false; }
     juce::MemoryBlock mb;
     in->readIntoMemoryBlock (mb);
     text.assign (static_cast<const char*> (mb.getData()), mb.getSize());
@@ -888,7 +889,7 @@ bool Controller::readScoreFile (const juce::File& f, Score& out, juce::String& e
         else
         {
             juce::MemoryBlock mb;
-            if (! f.loadFileAsData (mb)) { error = "Could not read " + f.getFileName(); return false; }
+            if (! f.loadFileAsData (mb)) { error = "The file couldn't be read. Check that it still exists and that you can open it."; return false; }
             text.assign (static_cast<const char*> (mb.getData()), mb.getSize());
         }
         auto r = readMusicXml (text);
@@ -898,7 +899,7 @@ bool Controller::readScoreFile (const juce::File& f, Score& out, juce::String& e
         return true;
     }
     juce::MemoryBlock mb;
-    if (! f.loadFileAsData (mb)) { error = "Could not read " + f.getFileName(); return false; }
+    if (! f.loadFileAsData (mb)) { error = "The file couldn't be read. Check that it still exists and that you can open it."; return false; }
     if (f.hasFileExtension ("miderator;noterator"))
     {
         auto r = loadScore (mb.toString().toStdString());
@@ -965,7 +966,7 @@ bool Controller::importFile (const juce::File& f, juce::String& error)
 bool Controller::save (const juce::File& f, juce::String& error)
 {
     const auto text = saveScore (score);
-    if (! f.replaceWithText (text)) { error = "Could not write " + f.getFullPathName(); return false; }
+    if (! f.replaceWithText (text)) { error = "There was a problem writing " + f.getFullPathName() + ". Check that the folder exists and you can save there."; return false; }
     file = f;
     dirty = false;
     setStatus ("Saved " + f.getFileName());
@@ -1133,12 +1134,12 @@ void Controller::insertGenerated (const GeneratedResult& r, bool fromSelection, 
         if (const auto* p = score.partById (id))
             thinned.addIfNotAlreadyThere (juce::String (p->name) + (instrumentById (p->instrument).role == 'B' ? ": bottom notes only" : ": top notes only"));
     if (! thinned.isEmpty())
-        status += " - " + thinned.joinIntoString (", ");
+        status += ui (" — ") + thinned.joinIntoString (", ");
     // And when a line had nowhere to go: no part is added for it (0041).
     juce::StringArray left;
     for (const auto& name : report.unplaced) left.addIfNotAlreadyThere (juce::String (name));
     if (! left.isEmpty())
-        status += " - " + left.joinIntoString (", ") + " left out: no part for " + (left.size() == 1 ? "it" : "them");
+        status += ui (" — ") + left.joinIntoString (", ") + " left out, with no part to play " + (left.size() == 1 ? "it" : "them");
     if (range.active() && (! fromSelection || generatorId == "midi-variator"))
     {
         // The bars stay selected, so another idea can go straight into them.

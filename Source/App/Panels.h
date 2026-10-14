@@ -45,9 +45,9 @@ private:
     // New, Open, Save, Export, Undo, the score's settings, the sound, the
     // input mode and the look: one menu (decisions 0037, 0038, 0039)
     juce::TextButton fileButton { "File" };
-    TransportButton startButton { "Return to start", TransportButton::Kind::start };
+    TransportButton startButton { "Go to Start", TransportButton::Kind::start };
     juce::TextButton playButton { "Play" };
-    TransportButton endButton { "Skip to end", TransportButton::Kind::end };
+    TransportButton endButton { "Go to End", TransportButton::Kind::end };
     juce::TextButton followButton { "Follow" };
     juce::TextButton selectButton { "Select" }, drawButton { "Draw" };
     juce::Label gridLabel { {}, "Grid" };
@@ -74,7 +74,7 @@ private:
     juce::Viewport viewport;
     juce::Component rows;
     std::vector<std::unique_ptr<Row>> rowList;
-    juce::TextButton addButton { "Add instrument..." };
+    juce::TextButton addButton { ui ("Add Instrument…") };
     juce::Label info;
     size_t lastCount = 0;
 

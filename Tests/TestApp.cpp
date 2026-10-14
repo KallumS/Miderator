@@ -78,7 +78,7 @@ TEST ("app: chosen bars are filled by Good Idea, across the parts chosen")
     drawLine (c, 0, 0, { 72, 74, 76, 77 });                           // bar 1, first violin
     c.selectRange (1, 4, 0, 3);                                       // bars 2-5, all four
     CHECK (c.range.active());
-    CHECK_EQ (c.rangeText(), juce::String ("Bars 2-5, Violin I to Cello"));
+    CHECK_EQ (c.rangeText(), juce::String::fromUTF8 ("Bars 2–5, Violin I to Cello"));   // an en dash (0053)
     const auto ctx = c.generatorContext (false);
     CHECK_EQ (ctx.rangeBars, 4);
     const auto out = c.lua.generate ("good-idea", ctx, 7, 3);
@@ -274,7 +274,7 @@ TEST ("app: notes drawn, dragged, copied and stretched on the roll, each one und
     CHECK_EQ (c.score.parts[0].notes[0].pitch, 67);
     c.dragSelection (-4 * PPQ, 0, false);                    // past the start: refused
     CHECK_EQ (c.score.parts[0].notes[0].start, 2 * PPQ);
-    CHECK_EQ (c.status, juce::String ("That would go past the start, or the ends of the MIDI range."));
+    CHECK_EQ (c.status, juce::String ("Nothing changed: that would take notes before the start or outside the MIDI range."));
 
     c.dragSelection (PPQ, 0, true);                          // Alt-drag: a copy
     CHECK_EQ (c.score.parts[0].notes.size(), size_t (2));

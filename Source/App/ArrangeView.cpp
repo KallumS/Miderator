@@ -322,7 +322,7 @@ void ArrangeView::mouseDown (const juce::MouseEvent& e)
             {
                 controller.audio.preview (c.pitches, "pno", 1.2, 90);
                 controller.select (notesInRange (s, c.start, c.end));
-                controller.setStatus (juce::String (c.name) + " - bar " + juce::String (s.barAt (c.start) + 1));
+                controller.setStatus (juce::String (c.name) + ui (" — bar ") + juce::String (s.barAt (c.start) + 1));
                 return;
             }
         return;
@@ -376,7 +376,7 @@ void ArrangeView::mouseDown (const juce::MouseEvent& e)
     if (addingBars) controller.addRange (bar, bar, index, index);
     else controller.selectRange (bar, bar, index, index);
     controller.caret = roll::snapDown (s, timeline.tickAt (p.x), controller.grid);
-    controller.setStatus (controller.rangeText() + " chosen - drag to choose more, Generate fills them");
+    controller.setStatus (controller.rangeText() + " chosen. Drag to choose more; Generate fills them.");
 }
 
 void ArrangeView::mouseDrag (const juce::MouseEvent& e)
@@ -407,7 +407,7 @@ void ArrangeView::mouseDrag (const juce::MouseEvent& e)
 void ArrangeView::mouseUp (const juce::MouseEvent&)
 {
     if (selectingBars && controller.range.active())
-        controller.setStatus (controller.rangeText() + " chosen - Generate fills them; Esc lets go");
+        controller.setStatus (controller.rangeText() + " chosen. Generate fills them; Esc lets go.");
     selectingBars = allParts = settingCaret = addingBars = false;
 }
 
@@ -450,7 +450,7 @@ void ArrangeView::mouseWheelMove (const juce::MouseEvent& e, const juce::MouseWh
 
 juce::String ArrangeView::tooltipAt (juce::Point<float> p) const
 {
-    if (p.y < rulerHeight) return p.x >= Timeline::left ? "Click to put the caret here: playback starts from it" : juce::String();
+    if (p.y < rulerHeight) return p.x >= Timeline::left ? "Click to move the cursor here. Playback and pasting start from the cursor." : juce::String();
     if (p.y < rulerHeight + scaleHeight) return "The scale the music is in, read from the notes. Click to hear it.";
     if (p.y < lanesHeight) return "The chords, read from every part together. Click one to hear it; drag along here to choose bars in every part.";
     const auto& s = controller.score;
@@ -460,9 +460,9 @@ juce::String ArrangeView::tooltipAt (juce::Point<float> p) const
     {
         if (muteBox (index).contains (p)) return "Mute";
         if (soloBox (index).contains (p)) return "Solo";
-        return "Click to show this part in the piano roll; double-click to select all of it";
+        return ui ("Click to show this part in the piano roll; double-click to select all its notes. ⌘-click adds the part to the choice; ⇧-click chooses every part between.");
     }
-    return "Click a bar to choose it, drag to choose more bars and parts: Generate fills them";
+    return ui ("Click a bar to choose it, or drag to choose more bars and parts. ⌘-click adds bars. Generate fills them.");
 }
 
 } // namespace nt

@@ -40,19 +40,19 @@ Toolbar::Toolbar (Controller& c) : controller (c)
     gridLabel.setColour (juce::Label::textColourId, theme::textDim);
     gridLabel.setJustificationType (juce::Justification::centredRight);
 
-    fileButton.setTooltip ("New, Open, Save, Export, Undo and Redo, the song's settings, the sound, step input and the light look");
-    playButton.setTooltip ("Play from the caret, or stop (Shift+Space; Space plays from bar 1)");
-    startButton.setTooltip ("Return to the start (Home) - if it is playing, it plays on from bar 1");
-    endButton.setTooltip ("Skip to the end of the music (End)");
-    followButton.setTooltip ("Follow (F): while it plays, the view scrolls along with the music (or turns a page at a time - Play menu)");
-    selectButton.setTooltip ("Select (D switches): click a note to choose it, drag it to move it, drag its end to stretch it, double-click to draw one");
-    drawButton.setTooltip ("Draw (D switches): click the roll to draw a note, drag to make it longer, click a note to delete it");
-    gridBox.setTooltip ("The grid notes snap to, and how long a drawn note is (keys 1-6)");
-    tripletButton.setTooltip ("A triplet grid: three in the space of two (T)");
-    snapButton.setTooltip ("Notes snap to the grid when they are drawn, moved or stretched");
-    quantiseButton.setTooltip ("Pull the selected notes onto the grid - or the whole part in the roll if none are selected (Q)");
-    zoomIn.setTooltip ("Zoom in (Cmd+=)");
-    zoomOut.setTooltip ("Zoom out (Cmd+-)");
+    fileButton.setTooltip ("New, Open, Save, Export, Undo and Redo, song settings, sound, Step Input and Light Theme");
+    playButton.setTooltip (ui ("Play from the cursor, or stop (⇧Space). Space plays from bar 1."));
+    startButton.setTooltip (ui ("Go to the start (Home). If the music is playing, it plays on from bar 1."));
+    endButton.setTooltip ("Go to the end of the music (End).");
+    followButton.setTooltip ("Scroll the view with the music as it plays (F). To turn a page at a time, use the Play menu.");
+    selectButton.setTooltip ("Select tool (D): click a note to select it, drag it to move it, drag its end to stretch it, or double-click to draw a note.");
+    drawButton.setTooltip ("Draw tool (D): click the roll to draw a note, drag to make it longer, or click a note to delete it.");
+    gridBox.setTooltip (ui ("The grid notes snap to, and the length of a drawn note (1–6)."));
+    tripletButton.setTooltip ("Use a triplet grid: three in the space of two (T).");
+    snapButton.setTooltip ("Snap notes to the grid when you draw, move or stretch them.");
+    quantiseButton.setTooltip ("Move the selected notes onto the grid, or the whole part if nothing is selected (Q).");
+    zoomIn.setTooltip (ui ("Zoom in (⌘=)"));
+    zoomOut.setTooltip (ui ("Zoom out (⌘−)"));
 
     int id = 1;
     for (const auto t : roll::gridValues())
@@ -165,7 +165,7 @@ struct PartsPanel::Row : public juce::Component
         autoCC.setButtonText ("AutoCC");
         mute.setTooltip ("Mute");
         solo.setTooltip ("Solo");
-        autoCC.setTooltip ("Draw this part's dynamics, expression and vibrato curves automatically (AutoCC)");
+        autoCC.setTooltip ("Draw this part's dynamics, expression and vibrato curves automatically.");
         mute.onClick = [this] { toggle ([] (Part& p) { p.mute = ! p.mute; }); };
         solo.onClick = [this] { toggle ([] (Part& p) { p.solo = ! p.solo; }); };
         autoCC.onClick = [this] { toggle ([] (Part& p) { p.autoCC = ! p.autoCC; }); };
@@ -185,9 +185,15 @@ struct PartsPanel::Row : public juce::Component
             const auto* p = controller.score.partById (partId);
             if (p == nullptr) return;
             if (p->notes.empty()) { controller.removePart (partId); return; }
-            juce::NativeMessageBox::showOkCancelBox (juce::MessageBoxIconType::QuestionIcon, "Remove " + juce::String (p->name) + "?",
-                                                     "Its notes go with it. Undo brings them back.", this,
-                                                     juce::ModalCallbackFunction::create ([this] (int r) { if (r != 0) controller.removePart (partId); }));
+            // The button says what it does (decision 0053).
+            auto opts = juce::MessageBoxOptions()
+                            .withIconType (juce::MessageBoxIconType::QuestionIcon)
+                            .withTitle (ui ("Remove “") + juce::String (p->name) + ui ("”?"))
+                            .withMessage ("Its notes are removed too. You can undo this.")
+                            .withButton ("Remove")
+                            .withButton ("Cancel")
+                            .withAssociatedComponent (this);
+            juce::AlertWindow::showAsync (opts, [this] (int r) { if (r == 1) controller.removePart (partId); });
         };
         up.setTooltip ("Move up");
         down.setTooltip ("Move down");
@@ -344,7 +350,7 @@ void PartsPanel::changeListenerCallback (juce::ChangeBroadcaster*)
         if (inst.transposition != 0) lines.add ("Transposing instrument " + juce::String (inst.transposedName));
         if (inst.octave != 0) lines.add (juce::String ("Written an octave ") + (inst.octave > 0 ? "above" : "below") + " where it sounds");
         const char* cc = inst.cc == CCShape::strings ? "Strings" : inst.cc == CCShape::brass ? "Brass" : inst.cc == CCShape::woodwinds ? "Woodwinds"
-                       : inst.cc == CCShape::neutral ? "Default" : "none - it does not swell";
+                       : inst.cc == CCShape::neutral ? "Default" : "None (it doesn't swell)";
         lines.add ("AutoCC shape: " + juce::String (cc));
         info.setText (lines.joinIntoString ("\n"), juce::dontSendNotification);
     }
@@ -389,7 +395,7 @@ void StatusBar::paint (juce::Graphics& g)
     // Right: what is making the sound and what is listening.
     const int midiIns = juce::MidiInput::getAvailableDevices().size();
     const juce::String right = controller.audio.synthName() + "   |   "
-                             + (midiIns == 0 ? juce::String ("no MIDI keyboard") : juce::String (midiIns) + " MIDI input" + (midiIns > 1 ? "s" : ""));
+                             + (midiIns == 0 ? juce::String ("No MIDI keyboard") : juce::String (midiIns) + " MIDI input" + (midiIns > 1 ? "s" : ""));
     g.setColour (theme::textDim);
     g.drawText (right, r, juce::Justification::centredRight);
 
@@ -401,7 +407,7 @@ void StatusBar::paint (juce::Graphics& g)
         const int bar = s.barAt (controller.caret);
         const Tick inBar = controller.caret - s.barStart (bar);
         const auto beat = s.meterAtBar (bar).beatTicks();
-        where = juce::String (p->name) + " in the roll, caret at bar " + juce::String (bar + 1) + " beat " + juce::String (1.0 + static_cast<double> (inBar) / static_cast<double> (beat), 2);
+        where = juce::String (p->name) + " in the roll, cursor at bar " + juce::String (bar + 1) + " beat " + juce::String (1.0 + static_cast<double> (inBar) / static_cast<double> (beat), 2);
         if (! controller.selection.empty()) where += "   |   " + juce::String (static_cast<int> (controller.selection.size())) + " selected";
         if (controller.noPartChosen) where += "   |   no part chosen";
         else if (controller.chosenParts.size() > 1) where += "   |   " + juce::String (static_cast<int> (controller.chosenParts.size())) + " parts chosen";
@@ -416,7 +422,7 @@ void StatusBar::paint (juce::Graphics& g)
 
     // Left: the last thing that happened, or the mode.
     juce::String left = controller.status;
-    if (controller.stepInput) left = "STEP INPUT - play a MIDI keyboard: each note goes at the caret, " + juce::String (controller.grid.name()) + " long. Esc to stop.";
+    if (controller.stepInput) left = "Step input: play a MIDI keyboard to write notes at the cursor, " + juce::String (controller.grid.name()) + " long. Press Esc to stop.";
     g.setColour (controller.stepInput ? theme::accent : theme::text);
     g.drawText (left, r.withRight (std::max (r.getX() + 80, leftEnd)), juce::Justification::centredLeft, true);
 }

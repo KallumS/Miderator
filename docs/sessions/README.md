@@ -15,3 +15,4 @@ Miderator was copied from it.
 | [2026-10-10, Escape](2026-10-10-escape.md) | Escape lets go of everything - notes, bars and the caret's part - so an idea goes to every part, a single line to the top one (0048). Both apps. |
 | [2026-10-10, Undo](2026-10-10-undo-generate.md) | Undo brings back the ideas a Generate replaced (0049). Both apps. |
 | [2026-10-10, choosing](2026-10-10-choosing-parts.md) | Several parts chosen with Cmd, Shift and Cmd+A; blocks of bars with Cmd (0050). Both apps. |
+| [2026-10-14](2026-10-14-apple-writing.md) | Every word in both apps to Apple's writing guidelines (0053). |
