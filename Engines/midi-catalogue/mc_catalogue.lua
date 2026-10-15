@@ -48,6 +48,16 @@ M.DENSITIES  = { "Any", "Sparse", "Medium", "Busy" }
 M.VELOCITIES = { "Flat 100", "Accents" }
 M.LENGTHS    = { 1, 2, 4, 8 }
 
+-- What the window shows for a value. The values above are saved by name and
+-- never renamed (a saved setting would stop matching); a label is free to
+-- follow the house style - title-style, after Apple's writing guidelines.
+M.LABELS = {
+  ["Repeated note"] = "Repeated Note", ["Broken chord"] = "Broken Chord",
+  ["Call/response"] = "Call and Response", ["Contrary motion"] = "Contrary Motion",
+  ["Retrograde inversion"] = "Retrograde Inversion",
+}
+function M.label(v) return M.LABELS[v] or tostring(v) end
+
 -- Onsets per beat that separate the density bands. A held chord is sparse,
 -- a quarter-note pulse medium, anything moving in sixteenths busy.
 M.SPARSE_BELOW = 1
@@ -585,12 +595,12 @@ TYPES.Pulse = {
 -- Cells are { cycle, hits = { { at, len, accent } } } in beats.
 local SYNC_CELLS = {
   { id = "offbeats",   label = "Off-beats",  cycle = 1, hits = { { 0.5, 0.5, true } },
-    hint = "Every note on the 'and', none on the beat." },
+    hint = "Every note on the “and”, none on the beat." },
   { id = "charleston", label = "Charleston", cycle = 4, hits = { { 0, 1.5, true }, { 1.5, 0.5, true } },
-    hint = "A dotted quarter and an eighth pushed onto the 'and' of two." },
+    hint = "A dotted quarter and an eighth pushed onto the “and” of two." },
   { id = "anticip",    label = "Anticipation", cycle = 4, hits = { { 0, 1.5, true }, { 1.5, 2, true } },
     anticipate = true,
-    hint = "Each new chord arrives half a beat early, on the 'and' of four, and holds over the bar line." },
+    hint = "Each new chord arrives half a beat early, on the “and” of four, and holds over the bar line." },
   { id = "clave32",    label = "Son clave 3-2", cycle = 8,
     hits = { { 0, 1.5, true }, { 1.5, 1.5, true }, { 3, 1, true }, { 5, 1, true }, { 6, 1, true } },
     hint = "The son clave, the three side first: 3+3+4 then 2+2 in eighths." },
@@ -1522,9 +1532,9 @@ end
 TYPES.Sequence = {
   params = motifParams({ { id = "down", label = "down a step" }, { id = "up", label = "up a step" },
                          { id = "chords", label = "with the chords" } },
-    function(m, x) return ("The motif \"%s\" (%s) stated once a bar, each time %s. Where a "
+    function(m, x) return ("The motif “%s” (%s) stated once a bar, each time %s. Where a "
       .. "downbeat would clash with the chord it bends onto it."):format(m.label, m.hint:lower(),
-        x.id == "chords" and "moved to follow the chords' roots" or ("moved " .. x.label)) end),
+        x.id == "chords" and "moved to follow the chords’ roots" or ("moved " .. x.label)) end),
   build = function(ctx, p)
     local segs = segments(ctx)
     local base0 = anchorPos(ctx)
@@ -1555,7 +1565,7 @@ TYPES["Call/response"] = {
       local ans = ({ falls = "an answer that walks back down to the root",
                      inverted = "the call turned upside down, landing on the root",
                      echo = "the call again a third lower, landing on the root" })[x.id]
-      return ("A call built on \"%s\" that stops on an open note, then %s."):format(m.label, ans)
+      return ("A call built on “%s” that stops on an open note, then %s."):format(m.label, ans)
     end),
   build = function(ctx, p)
     local half = ctx.L / 2
@@ -1612,10 +1622,10 @@ TYPES.Repetition = {
                          { id = "literal", label = "unchanged every bar" } },
     function(m, x)
       if x.id == "fitted" then
-        return ("The motif \"%s\" stated in every bar but the last, each time moved to the nearest "
-          .. "chord tone of that bar's chord, then a cadence onto the root."):format(m.label)
+        return ("The motif “%s” stated in every bar but the last, each time moved to the nearest "
+          .. "chord tone of that bar’s chord, then a cadence onto the root."):format(m.label)
       end
-      return ("The motif \"%s\" in every bar, note for note. Only offered where it fits every chord "
+      return ("The motif “%s” in every bar, note for note. Only offered where it fits every chord "
         .. "as it stands."):format(m.label)
     end),
   build = function(ctx, p)
@@ -1638,7 +1648,7 @@ TYPES.Repetition = {
       for i, n in ipairs(notes) do
         if (onDownbeat(ctx, n.start) or i == #notes)
            and not T.hasPc(M.slotAt(ctx, n.start).chord, T.pc(keyAt(ctx, n.start), n.pos)) then
-          return nil, "clashes with the chords"
+          return nil, "clashing with the chords"
         end
         n.pitch = pitchOf(ctx, n)
         n.strong = onDownbeat(ctx, n.start)
@@ -1658,7 +1668,7 @@ TYPES.Development = {
         inversion = "stated, answered upside down, stated again, then brought to a cadence",
         augment   = "stated, then played at half speed across two bars, then brought to a cadence",
       })[x.id]
-      return ("The motif \"%s\" %s. Four bars of development in miniature."):format(m.label, how)
+      return ("The motif “%s” %s. Four bars of development in miniature."):format(m.label, how)
     end),
   build = function(ctx, p)
     local groups = math.max(1, math.floor(ctx.bars / 4 + EPS))
@@ -1859,7 +1869,7 @@ TYPES.Triadic = {
   end,
   build = function(ctx, p, hv)
     local v = lead(ctx, slotChords(ctx, ctx.slots), hv.ranges, { bassRoot = true })
-    if not v then return nil, "no voicing fits" end
+    if not v then return nil, "with no voicing that fits" end
     return comp(ctx, ctx.slots, v, p.comp.id)
   end,
 }
@@ -1886,16 +1896,16 @@ TYPES.Quartal = {
     local v
     if p.motion.id == "planing" then
       local first = lead(ctx, { chords[1] }, hv.ranges, opts)
-      if not first then return nil, "no voicing fits" end
+      if not first then return nil, "with no voicing that fits" end
       v = T.plane(ctx.key, first[1], chords)
       for _, V in ipairs(v) do
         for k, pch in ipairs(V) do
-          if pch < hv.ranges[k][1] - 5 or pch > hv.ranges[k][2] + 5 then return nil, "the planing runs out of range" end
+          if pch < hv.ranges[k][1] - 5 or pch > hv.ranges[k][2] + 5 then return nil, "with planing that runs out of range" end
         end
       end
     else
       v = lead(ctx, chords, hv.ranges, opts)
-      if not v then return nil, "no voicing fits" end
+      if not v then return nil, "with no voicing that fits" end
     end
     return comp(ctx, ctx.slots, v, p.comp.id)
   end,
@@ -1913,7 +1923,7 @@ TYPES.Cluster = {
     local kind = (hv.nv >= 4) and "cluster4" or "cluster"
     local opts = { bassRoot = false, adjacent = { [1] = true, [2] = true, [3] = true }, noParallels = false }
     local v = lead(ctx, slotChords(ctx, ctx.slots, kind), hv.ranges, opts)
-    if not v then return nil, "no voicing fits" end
+    if not v then return nil, "with no voicing that fits" end
     return comp(ctx, ctx.slots, v, p.comp.id)
   end,
 }
@@ -1932,7 +1942,7 @@ TYPES.Pedal = {
         part = " The " .. ctx.inst.name .. " plays whichever line of it is its own: the pedal, "
           .. "or its voice of the chords moving against it."
       end
-      return ("One note held %s - the %s - while the chords change %s it, voice-led. The pedal is %s.%s")
+      return ("One note held %s — the %s — while the chords change %s it, voice-led. The pedal is %s.%s")
         :format(c.where.id == "bass" and "in the bass" or "on top", c.note.id,
                 c.where.id == "bass" and "above" or "under", c.pulse.label, part)
     end)
@@ -1951,7 +1961,7 @@ TYPES.Pedal = {
     local opts = { bassRoot = true }
     if p.where.id == "bass" then opts.fixedBass = pedal else opts.fixedTop = pedal end
     local v = lead(ctx, slotChords(ctx, ctx.slots), hv.ranges, opts)
-    if not v then return nil, "no voicing fits over the pedal" end
+    if not v then return nil, "with no voicing that fits over the pedal" end
     local voices = comp(ctx, ctx.slots, v, "held", idx)
     local line = {}
     if p.pulse.id == "held" then
@@ -1996,7 +2006,7 @@ TYPES.Arpeggiated = {
   end,
   build = function(ctx, p, hv)
     local v = lead(ctx, slotChords(ctx, ctx.slots), hv.ranges, { bassRoot = true })
-    if not v then return nil, "no voicing fits" end
+    if not v then return nil, "with no voicing that fits" end
     local nv = hv.nv
     local voices = {}
     for k = 1, nv do voices[k] = {} end
@@ -2032,7 +2042,7 @@ TYPES["Contrary motion"] = {
       { name = "dir", values = { { id = "up", label = "top rises, bass falls" }, { id = "down", label = "top falls, bass rises" } } },
       compDim({ "held", "half", "quarter" }),
     }, function(c)
-      return ("The outer voices move in opposite directions - the %s - using inversions where they "
+      return ("The outer voices move in opposite directions — the %s — using inversions where they "
         .. "need them, %s. Played %s."):format(c.dir.label, voicesText(ctx, c), c.comp.label)
     end)
   end,
@@ -2049,7 +2059,7 @@ TYPES["Contrary motion"] = {
     end
     local opts = { bassRoot = false, contrary = (p.dir.id == "up") and 1 or -1 }
     local v = lead(ctx, slotChords(ctx, slots), hv.ranges, opts)
-    if not v then return nil, "no voicing fits" end
+    if not v then return nil, "with no voicing that fits" end
     return comp(ctx, slots, v, p.comp.id)
   end,
 }
@@ -2214,7 +2224,7 @@ function M.make(ctx, typeName, p)
         end
         local _, _, c = O.partBand(part, ctx.register)
         list = fitPart(monophonic(list), pi, c + 12 * (part.octave or 0), true)
-        if not list then return nil, "goes outside the " .. part.name .. "'s range" end
+        if not list then return nil, "outside the " .. part.name .. "’s range" end
         parts[#parts + 1] = { name = part.name, inst = pi, notes = list }
       end
     elseif hv.mode == "mono" then
@@ -2231,17 +2241,17 @@ function M.make(ctx, typeName, p)
     if not list then return nil, why end
     if inst.poly == 1 then list = monophonic(list) else sortNotes(list) end
     local fitted = fitPart(list, inst, ctx.centre)
-    if not fitted then return nil, "goes outside the " .. inst.name .. "'s range" end
+    if not fitted then return nil, "outside the " .. inst.name .. "’s range" end
     parts[1] = { name = inst.name, inst = inst, notes = fitted }
   end
 
   local total = 0
   for _, part in ipairs(parts) do
     local pi = part.inst
-    if #part.notes == 0 then return nil, "has nothing to play on these chords" end
+    if #part.notes == 0 then return nil, "with nothing to play on these chords" end
     for _, n in ipairs(part.notes) do
       if n.pitch < pi.low or n.pitch > pi.high then
-        return nil, "goes outside the " .. part.name .. "'s range"
+        return nil, "outside the " .. part.name .. "’s range"
       end
     end
     if pi.breath then part.notes = M.breathe(ctx, part.notes) end
@@ -2249,12 +2259,12 @@ function M.make(ctx, typeName, p)
       return nil, ("too quick for the %s at %d bpm"):format(part.name, math.floor(ctx.bpm + 0.5))
     end
     if pi.poly == 1 and widestQuickLeap(part.notes) > pi.leap then
-      return nil, "leaps wider than the " .. part.name .. " takes in passing"
+      return nil, "with leaps wider than the " .. part.name .. " takes in passing"
     end
     markChordTones(ctx, part.notes)
     total = total + #part.notes
   end
-  if total > M.MAX_NOTES then return nil, "more notes than a block holds" end
+  if total > M.MAX_NOTES then return nil, "with more notes than one entry can hold" end
   return parts
 end
 
@@ -2411,7 +2421,7 @@ function M.transform(ctx, parts, kind)
   local warning
   for _, part in ipairs(parts) do
     if tooQuick(ctx, part.inst, part.notes) then
-      warning = ("Faster than the %s plays cleanly at %d bpm"):format(part.name, math.floor(ctx.bpm + 0.5))
+      warning = ("Faster than the %s plays cleanly at %d bpm. Try a slower tempo."):format(part.name, math.floor(ctx.bpm + 0.5))
     end
   end
   return parts, L, warning

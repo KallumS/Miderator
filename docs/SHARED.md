@@ -32,6 +32,7 @@ update the commit below.
 | `d1c9b2a` | 2026-10-10: no More button in the Generate tab (0051), `GeneratorPanel.*`. On Noterator's branch `claude/adoring-feynman-bihxp2` |
 | `72f57c7` | 2026-10-10: the Generate tab says where Vary Notes on several parts goes (0052), `GeneratorPanel.cpp`. On Noterator's branch `claude/adoring-feynman-bihxp2` |
 | `3f40a87` | 2026-10-14: the Generate tab's and export's text to Apple's writing guidelines (0053), `GeneratorPanel.*`, `Exporter.cpp`. On Noterator's branch `claude/adoring-feynman-bihxp2` |
+| `7539142` | 2026-10-15: the generators' own words (Good Idea's "Kind", title-style values, em dashes) synced from their repositories, `Engines/`, `Tests/TestGenerators.cpp`. On Noterator's branch `claude/adoring-feynman-bihxp2` |
 
 ## Shared
 

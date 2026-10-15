@@ -30,3 +30,11 @@ with Apple's suggested guidelines" - the HIG's Writing page.
   names) come from the engines; change them there.
 - The shared core's file errors ("This is not a MIDI file.") were already
   plain and are left as they are.
+
+# Later - the engines' own words (2026-10-15)
+
+Each generator changed its words in its own repository (Good Idea's "Make a"
+is "Kind"; multi-word values title-style, such as "1 a Bar" and "Towards the
+End"; em dashes and curly quotes in hints). Noterator copied them at
+`7539142` and `tools/sync_from_noterator.sh` brought them here; see
+Noterator's session log of the same name.

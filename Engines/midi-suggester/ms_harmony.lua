@@ -29,9 +29,9 @@ local M = {}
 -- How often the chord changes. Bars, not beats: a harmony moving every beat
 -- under a melody is a reharmonisation exercise rather than a suggestion.
 M.RHYTHMS = {
-  { name = "2 a bar",   bars = 0.5 },
-  { name = "1 a bar",   bars = 1 },
-  { name = "1 / 2 bars", bars = 2 },
+  { name = "2 a Bar",    bars = 0.5 },
+  { name = "1 a Bar",    bars = 1 },
+  { name = "1 per 2 Bars", bars = 2 },
   -- Auto: the melody decides. It is read in half bars, a change on the bar
   -- line is free and one on the half bar has to be earned (CHANGE_HALF), and
   -- a chord may hold for as long as the tune lets it - so chords come out
@@ -139,7 +139,7 @@ M.END_OTHER       = -0.20
 M.W_FIT, M.W_MOVE = 1.0, 0.6
 
 M.KEEP_PER_CHORD  = 24      -- paths kept ending on each chord, per slot
-M.NOISE           = 0.08    -- how far "More ideas" shakes the fit scores
+M.NOISE           = 0.08    -- how far "More Ideas" shakes the fit scores
 
 ------------------------------------------------------------------------------
 -- The palette
@@ -395,7 +395,7 @@ end
 -- The search
 ------------------------------------------------------------------------------
 
--- A small, fixed random number generator, so "More ideas" gives the same
+-- A small, fixed random number generator, so "More Ideas" gives the same
 -- ideas in the same order every time and the tests can hold it to that.
 local function rng(seed)
   local s = (seed or 1) % 2147483647
