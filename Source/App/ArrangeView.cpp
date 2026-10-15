@@ -49,12 +49,13 @@ int ArrangeView::barAt (float x) const
 
 juce::Rectangle<float> ArrangeView::muteBox (int index) const
 {
-    return { static_cast<float> (Timeline::left) - 50.0f, trackTop (index) + static_cast<float> (trackHeight) - 21.0f, 20.0f, 16.0f };
+    // 22 by 20: Apple's smallest comfortable control is 20 points (decision 0048).
+    return { static_cast<float> (Timeline::left) - 56.0f, trackTop (index) + static_cast<float> (trackHeight) - 23.0f, 22.0f, 20.0f };
 }
 
 juce::Rectangle<float> ArrangeView::soloBox (int index) const
 {
-    return muteBox (index).translated (23.0f, 0.0f);
+    return muteBox (index).translated (26.0f, 0.0f);
 }
 
 void ArrangeView::resized()
@@ -198,10 +199,10 @@ void ArrangeView::paintHeaders (juce::Graphics& g, const theme::RollColours& c)
         g.setColour (c.headerText);
         g.setFont (juce::FontOptions (13.5f, juce::Font::bold));
         g.drawText (p.name, juce::Rectangle<float> (box.getX() + 10.0f, top + 4.0f, box.getWidth() - 14.0f, 18.0f), juce::Justification::centredLeft, true);
-        g.setColour (c.headerText.withAlpha (0.6f));
+        g.setColour (c.headerDim);
         g.setFont (juce::FontOptions (11.5f));
         g.drawText (p.name == inst.name ? juce::String (inst.family) : juce::String (inst.name),
-                    juce::Rectangle<float> (box.getX() + 10.0f, top + 22.0f, box.getWidth() - 66.0f, 16.0f), juce::Justification::centredLeft, true);
+                    juce::Rectangle<float> (box.getX() + 10.0f, top + 22.0f, box.getWidth() - 72.0f, 16.0f), juce::Justification::centredLeft, true);
         // Mute and solo.
         for (int k = 0; k < 2; ++k)
         {
@@ -210,7 +211,7 @@ void ArrangeView::paintHeaders (juce::Graphics& g, const theme::RollColours& c)
             g.setColour (on ? theme::accent : theme::control);
             g.fillRoundedRectangle (b, 2.5f);
             g.setColour (theme::ink);
-            g.setFont (juce::FontOptions (11.0f, juce::Font::bold));
+            g.setFont (juce::FontOptions (12.0f, juce::Font::bold));
             g.drawText (k == 0 ? "M" : "S", b, juce::Justification::centred, false);
         }
     }

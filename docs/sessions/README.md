@@ -12,3 +12,4 @@ Miderator was copied from it.
 | [2026-10-07, later](2026-10-07-after-testing.md) | After the first test on a Mac: Generate trimmed, Blocks toolbox, choosing bars to generate into, light page default, MusicXML in and out. |
 | [2026-10-07, evening](2026-10-07-templates.md) | Templates for whole sections, full orchestra and big band; a synth per sixteen channels so every part keeps its sound; Bass and Drums out of Blocks; Generate, Suggest and Vary Notes. |
 | [2026-10-09](2026-10-09-piano-roll.md) | Miderator: Noterator copied, its notation replaced by tracks and a piano roll, a velocity lane, quantise, dark by default. |
+| [2026-10-15](2026-10-15-apple-guidelines.md) | The window against Apple's Human Interface Guidelines (0048), after Noterator: contrast, the keyboard, VoiceOver, the status line under the toolbar, Interface Size, a track's M and S large enough. |

@@ -13,6 +13,8 @@ Workspace::Workspace (Controller& c) : timeline (c), arrange (c, timeline), roll
     hbar.addListener (this);
     timeline.addChangeListener (this);
     controller.addChangeListener (this);
+    arrange.setTitle ("Tracks");
+    roll.setTitle ("Piano roll");
     startTimerHz (60);
 }
 
@@ -51,7 +53,14 @@ void Workspace::changeListenerCallback (juce::ChangeBroadcaster* source)
 {
     // The score may have grown or shrunk, or the zoom changed: keep the
     // scroll inside what there is.
-    if (source == &controller) timeline.scrollTo (timeline.scrollX);
+    if (source == &controller)
+    {
+        timeline.scrollTo (timeline.scrollX);
+        // What VoiceOver says the views show.
+        const auto words = controller.describe();
+        arrange.setDescription (words);
+        roll.setDescription (words);
+    }
     updateScrollbar();
 }
 

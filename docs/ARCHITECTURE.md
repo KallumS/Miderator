@@ -29,7 +29,7 @@ decisions; 0026 on are Miderator's.
                           v
   Source/App/       Controller (owns the score, undo, selection, caret, grid, tools)
    (JUCE)             |-- Workspace: ArrangeView (tracks) over PianoRollView, one Timeline
-                      |-- Toolbar; Generate, Blocks, Parts panels; status line
+                      |-- Toolbar, status line under it; Generate, Blocks, Parts panels
                       |-- AudioEngine (a rack of Apple GM Audio Units / built-in synths)
                       `-- Exporter (MIDI, WAV, MusicXML)
 ```
@@ -92,6 +92,7 @@ decisions; 0026 on are Miderator's.
 | [0045](decisions/0045-built-on-the-users-own-mac.md) | `build-mac.command` builds the app on the user's Mac and puts it in Applications; CI still builds and tests every push. |
 | [0046](decisions/0046-blocks-chords-keep-their-root.md) | A Blocks chord carries its root into the score; the Chords lane names it from there while its notes are unchanged. |
 | [0047](decisions/0047-blocks-offers-a-chords-real-inversions.md) | Blocks offers each chord its own inversions: two for a triad, three for a seventh, up to six for a thirteenth. |
+| [0048](decisions/0048-apples-human-interface-guidelines.md) | The window follows Apple's guidelines: text 7:1, Increase Contrast and Reduce Motion, Tab through every control with a ring, a name for VoiceOver on each, nothing important along the bottom edge, Interface Size to 200%, the Mac's own alerts and title bar. Both apps. See `docs/apple-hig-review.md`. |
 | [0035](decisions/0035-space-plays-from-the-start.md) | Space plays from bar 1, Shift+Space and Play from the caret; |◀ and ▶| (Home, End) go to the start and the end of the music. Both apps. |
 | [0034](decisions/0034-follow-scrolls-smoothly.md) | Following scrolls smoothly by default, the playhead a third of the way across, on a steady clock read once a frame for both views; turning pages is a choice in the Play menu. |
 | [0010](decisions/0010-verify-by-rendering.md) | Drawing changes are checked by rendering them to PNG (`MideratorRender`). |

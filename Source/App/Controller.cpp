@@ -85,6 +85,21 @@ void Controller::selectionChanged() { sendChangeMessage(); }
 void Controller::viewChanged() { sendChangeMessage(); }
 void Controller::setStatus (const juce::String& s) { status = s; sendChangeMessage(); }
 
+juce::String Controller::describe() const
+{
+    juce::String d = juce::String (score.title) + ": " + juce::String (static_cast<int> (score.parts.size())) + " parts, "
+                   + juce::String (score.bars) + " bars.";
+    if (const auto* p = score.partById (caretPart))
+    {
+        const int bar = score.barAt (caret);
+        const double beat = 1.0 + static_cast<double> (caret - score.barStart (bar)) / static_cast<double> (score.meterAtBar (bar).beatTicks());
+        d << " " << juce::String (p->name) << " in the roll, caret at bar " << (bar + 1) << " beat " << juce::String (beat, 2) << ".";
+    }
+    if (range.active()) d << " Chosen: " << rangeText() << ".";
+    else if (! selection.empty()) d << " " << static_cast<int> (selection.size()) << " notes selected.";
+    return d;
+}
+
 //==============================================================================
 
 void Controller::setCaret (uint32_t partId, Tick t)
@@ -564,7 +579,7 @@ void Controller::toggleFollow()
 {
     followPlayback = ! followPlayback;
     setStatus (! followPlayback ? "Follow off: the view stays where you put it while it plays"
-               : followStyle == FollowStyle::smooth ? "Follow: the view scrolls along with the music as it plays"
+               : followStyleNow() == FollowStyle::smooth ? "Follow: the view scrolls along with the music as it plays"
                                                     : "Follow: the view turns a page with the music as it plays");
 }
 
@@ -572,8 +587,11 @@ void Controller::setFollowStyle (FollowStyle style)
 {
     followStyle = style;
     followPlayback = true;
-    setStatus (style == FollowStyle::smooth ? "Follow: the view scrolls along with the music, the playhead a third of the way across"
-                                            : "Follow: the view turns a page just before the music goes out of view");
+    if (reduceMotion && style == FollowStyle::smooth)
+        setStatus ("Follow: the view turns a page at a time while Reduce Motion is on in the Mac's Accessibility settings");
+    else
+        setStatus (style == FollowStyle::smooth ? "Follow: the view scrolls along with the music, the playhead a third of the way across"
+                                                : "Follow: the view turns a page just before the music goes out of view");
 }
 
 void Controller::playFrom (Tick t)

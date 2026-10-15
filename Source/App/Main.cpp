@@ -24,10 +24,18 @@ public:
         content = new MainComponent();
         setContentOwned (content, true);
         setResizable (true, true);
-        setResizeLimits (980, 600, 10000, 10000);
         centreWithSize (getWidth(), getHeight());
+        content->windowReady();
         setVisible (true);
         content->grabKeyboardFocus();
+    }
+
+    // When the window itself is given the keyboard - as it opens, or comes
+    // back to the front - it hands it to the roll, so the keys and Tab work at
+    // once rather than after a click (decision 0048).
+    void focusGained (FocusChangeType) override
+    {
+        if (content != nullptr) content->grabKeyboardFocus();
     }
 
     void closeButtonPressed() override

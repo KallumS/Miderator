@@ -55,6 +55,8 @@ public:
     bool lightTheme = false;      // dark unless the user asks for light (decision 0031)
     bool followPlayback = true;   // the view moves with the playhead (decision 0033)
     FollowStyle followStyle = FollowStyle::smooth;   // scrolling along, or a page at a time (decision 0034)
+    bool reduceMotion = false;    // the Mac's Reduce Motion: smooth following turns pages instead (decision 0048)
+    FollowStyle followStyleNow() const { return reduceMotion ? FollowStyle::page : followStyle; }
     float zoom = 32.0f;           // pixels per quarter note, across the tracks and the roll
     float rowHeight = 12.0f;      // pixels per key in the piano roll
 
@@ -79,6 +81,9 @@ public:
     void selectionChanged();
     void viewChanged();           // zoom, theme, grid: a repaint, no undo
     void setStatus (const juce::String& s);
+    // The view in words, for VoiceOver: the song, where the caret is, what
+    // is selected (decision 0048).
+    juce::String describe() const;
 
     //==========================================================================
     // Writing
