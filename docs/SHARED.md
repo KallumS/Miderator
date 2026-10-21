@@ -27,7 +27,15 @@ update the commit below.
 | `58b10f1` | 2026-10-10: Midi Suggester `40c14bc` and Midi Variator `417ed44` vendored - their chord readers take ScaleView Pro's Blocks dictionary too. On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 | `006bd88` | 2026-10-10: `TestDetect.cpp` holds `detectChords'` result before reading it (the Mac read a destroyed temporary). On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 | `9f5a00f` | 2026-10-10: Blocks offers each chord the inversions it has (0047): Starting Blocks Notation `79b71f4` vendored, the adapter's Inversion menu the chord's own, the lane test over every inversion. On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
+| `79321af` | 2026-10-10: the Generate tab keeps every list it made and steps through them with Undo and Redo (0050), `GeneratorPanel.*`. On Noterator's branch `claude/adoring-feynman-bihxp2` |
+| `7e4e38d` | 2026-10-10: the Generate tab names the parts chosen (0051), `GeneratorPanel.cpp`. On Noterator's branch `claude/adoring-feynman-bihxp2` |
+| `d1c9b2a` | 2026-10-10: no More button in the Generate tab (0052), `GeneratorPanel.*`. On Noterator's branch `claude/adoring-feynman-bihxp2` |
+| `72f57c7` | 2026-10-10: the Generate tab says where Vary Notes on several parts goes (0053), `GeneratorPanel.cpp`. On Noterator's branch `claude/adoring-feynman-bihxp2` |
+| `3f40a87` | 2026-10-14: the Generate tab's and export's text to Apple's writing guidelines (0054), `GeneratorPanel.*`, `Exporter.cpp`. On Noterator's branch `claude/adoring-feynman-bihxp2` |
+| `7539142` | 2026-10-15: the generators' own words (Good Idea's "Kind", title-style values, em dashes) synced from their repositories, `Engines/`, `Tests/TestGenerators.cpp`. On Noterator's branch `claude/adoring-feynman-bihxp2` |
 | `4f67cb3` | 2026-10-15: the Generate tab and the settings list follow Apple's guidelines (0048): names for VoiceOver, clicks that leave the keyboard with the roll, a ring when Tab reaches the results, the message under the buttons, errors in `theme::warnText`, Return inserts. Both apps' `Theme.h` now carry what these use. On Noterator's branch `claude/blissful-bohr-lqwr1j` |
+| `aeb6a5a` | 2026-10-21: the Generate tab's Put it menu for Vary Notes and its Into line (0055), Good Idea's Voicing starting on Any in the adapter (0056), their test. On Noterator's branch `claude/blissful-bohr-lqwr1j` |
+| `dffa6c0` | 2026-10-21: Noterator's two lines of work merged (its PR #9 with 0049-0055): the Generate tab with no More button, Undo's lists, the parts chosen, Vary Notes across parts or in place, Apple's writing guidelines and 0048's keyboard and VoiceOver, `GeneratorPanel.*`. On Noterator's branch `claude/blissful-bohr-lqwr1j` |
 
 ## Shared
 

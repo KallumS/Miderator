@@ -175,11 +175,11 @@ void PianoRollView::paint (juce::Graphics& g)
         paintRows (g, c);
         paint::grid (g, grid, timeline, controller.score, controller.grid, c, true);
 
-        // The chosen bars, where they cover this part.
-        const auto& r = controller.range;
+        // The chosen bars, where they cover this part - every block (0051).
         const auto& s = controller.score;
-        if (r.active() && std::find (r.parts.begin(), r.parts.end(), controller.caretPart) != r.parts.end())
+        for (const auto& r : controller.range.blocks())
         {
+            if (! r.has (controller.caretPart)) continue;
             const float x1 = timeline.xOf (s.barStart (r.first)), x2 = timeline.xOf (s.barStart (r.last + 1));
             g.setColour (c.selected.withAlpha (controller.lightTheme ? 0.10f : 0.06f));
             g.fillRect (x1, static_cast<float> (grid.getY()), x2 - x1, static_cast<float> (grid.getHeight()));
@@ -222,8 +222,9 @@ void PianoRollView::paint (juce::Graphics& g)
     g.fillRect (0, rulerHeight - 1, Timeline::left, 1);
     if (const auto* p = part())
     {
+        // Marked as chosen - unless Escape let go of it (decision 0049).
         g.setColour (theme::accent);
-        g.fillRect (0, 3, 3, rulerHeight - 6);
+        if (controller.isPartChosen (controller.caretPart)) g.fillRect (0, 3, 3, rulerHeight - 6);
         g.setColour (theme::text);
         g.setFont (juce::FontOptions (13.0f, juce::Font::bold));
         g.drawText (p->name, juce::Rectangle<int> (10, 0, Timeline::left - 14, rulerHeight - 1), juce::Justification::centredLeft, true);
@@ -580,6 +581,7 @@ void PianoRollView::mouseDown (const juce::MouseEvent& e)
         dragEnd = hit->end();
         dragPitch = hit->pitch;
         controller.caret = hit->start;
+        controller.workIn (controller.caretPart);   // a note clicked: its part is chosen (0049, 0051)
         controller.select (sel);
         controller.previewPitches ({ dragPitch }, pt->id, 0.5);
         if (sel.count (dragNote) == 0) return;   // Shift-clicked off
@@ -817,12 +819,12 @@ void PianoRollView::showMenu (const Note* note)
     juce::PopupMenu m;
     const bool any = ! controller.selection.empty();
     m.addItem (del, "Delete", any);
-    m.addItem (dup, "Duplicate (Cmd+D)", any);
-    m.addItem (quant, any ? "Quantise selected notes to " + juce::String (controller.grid.name()) + " (Q)"
-                          : "Quantise the part to " + juce::String (controller.grid.name()) + " (Q)");
+    m.addItem (dup, ui ("Duplicate (⌘D)"), any);
+    m.addItem (quant, any ? "Quantise Selection to " + juce::String (controller.grid.name()) + " (Q)"
+                          : "Quantise Part to " + juce::String (controller.grid.name()) + " (Q)");
     m.addSeparator();
-    m.addItem (all, "Select every note in this part");
-    m.addItem (draw, "Draw tool (D)", true, controller.drawTool);
+    m.addItem (all, "Select All Notes in Part");
+    m.addItem (draw, "Draw Tool (D)", true, controller.drawTool);
     juce::ignoreUnused (note);
     m.showMenuAsync (juce::PopupMenu::Options(), [this] (int r)
     {
@@ -842,21 +844,21 @@ void PianoRollView::showMenu (const Note* note)
 
 juce::String PianoRollView::tooltipAt (juce::Point<float> p) const
 {
-    if (p.y < rulerHeight) return p.x >= Timeline::left ? "Click to put the caret here: playback starts from it" : juce::String();
+    if (p.y < rulerHeight) return p.x >= Timeline::left ? "Click to move the cursor here. Playback and pasting start from the cursor." : juce::String();
     if (velocityArea().contains (p.toInt()))
         return "How hard each note is played. Drag across the stems to set them; drag a selected note's stem to change all the selected together.";
     const auto* pt = part();
     if (pt == nullptr) return {};
     if (p.x < Timeline::left)
-        return drums() ? "Click a drum to hear it" : "Click a key to hear it. The bar beside the keys shows the instrument's range, brighter where it sounds best.";
+        return drums() ? "Click a drum to hear it." : "Click a key to hear it. The bar beside the keys shows the instrument's range, brighter where it sounds best.";
     const Note* n = noteAt (p);
-    if (n == nullptr) return controller.drawTool ? "Click to draw a note; drag to make it longer" : "Double-click to draw a note; drag to select several";
+    if (n == nullptr) return controller.drawTool ? "Click to draw a note; drag to make it longer." : "Double-click to draw a note; drag to select several.";
     const auto& s = controller.score;
     const auto& inst = instrumentById (pt->instrument);
     const auto ctx = keyContext (s.keyAtBar (s.barAt (n->start)).root, s.keyAtBar (s.barAt (n->start)).scale);
     juce::StringArray lines;
     const juce::String name = inst.drums && ! roll::drumName (n->pitch).empty() ? juce::String (roll::drumName (n->pitch)) : juce::String (pitchName (n->pitch, ctx));
-    lines.add (name + "  -  " + juce::String (pt->name) + ", bar " + juce::String (s.barAt (n->start) + 1) + ", velocity " + juce::String (n->velocity));
+    lines.add (name + ui (" — ") + juce::String (pt->name) + ", bar " + juce::String (s.barAt (n->start) + 1) + ", velocity " + juce::String (n->velocity));
     const auto it = controller.warnings.find (n->id);
     if (it != controller.warnings.end())
     {

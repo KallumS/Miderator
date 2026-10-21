@@ -34,13 +34,13 @@ Noterator's, and the two open each other's projects.
   violin never gets chords, only their top line.
 - **Starting Blocks as a toolbox.** Pick a chord, arpeggio, run or interval;
   every degree of the key is a button. Click one to see and hear it, Insert
-  to put it at the caret - then the next one goes after it.
+  to put it at the cursor - then the next one goes after it.
 - **Edit it like a DAW.** Click a note to hear it, drag it to move it, drag
   its end to make it longer, Alt-drag to copy it, double-click to draw one -
   or switch to the Draw tool. Everything snaps to a grid you choose, from a
   bar down to a 1/32, with triplets. Quantise pulls notes onto the grid.
 - **Play it in.** Turn on Step input and play a MIDI keyboard: each note
-  goes in at the caret, one grid step long, and the caret moves on.
+  goes in at the cursor, one grid step long, and the cursor moves on.
 - **Start from an ensemble.** New offers small groups, whole orchestral
   sections, a chamber or full orchestra, and a big band - every instrument
   with a sound of its own.
@@ -61,7 +61,7 @@ Noterator's, and the two open each other's projects.
   (with all four AutoCC lanes, for sample libraries), as MusicXML for
   Dorico, Sibelius, MuseScore or Finale, or as WAV audio. Open or drop in a
   MIDI or MusicXML file to bring one in.
-- **Dark**, as a DAW is, or light if you prefer (**File** > **Light Piano Roll and Tracks**).
+- **Dark**, as a DAW is, or light if you prefer (**File** > **Light Theme**).
 
 ![The light look, with the Blocks toolbox](docs/piano-roll-light.png)
 
@@ -108,24 +108,30 @@ keeps working for every future version.
 | Show a part in the piano roll | click its name in the tracks (**Alt+Up/Down** for the next) |
 | Choose bars | click a bar in a track; drag across bars and tracks for more; drag along the Chords lane for every part; **Esc** lets go |
 | Generate | **Generate** tab: choose a generator, **Generate**, click a result to hear it, **Insert** - into the chosen bars, or the part in the roll |
-| Blocks | **Blocks** tab: choose a kind, click a degree to see and hear it, **Insert** at the caret |
+| Every instrument at once | **Esc** lets go of everything - notes, bars and the instrument - so the next idea goes to every part (a single melody to the top one); click a name to choose one again |
+| Lost an idea? | **Cmd+Z** after a **Generate** brings back the ideas listed before it; **Shift+Cmd+Z** goes forward again |
+| Several instruments | **Cmd**-click names to add or take away one; **Shift**-click to choose every one in between; **Cmd+A** chooses every instrument (press it again for every note too). An idea goes to the instruments chosen, a single melody to the first chosen |
+| Bars here and there | **Cmd**-click (or Cmd-drag) bars to add them to the chosen bars; each block is filled on its own |
+| Vary Notes | **Put it**: **After the Selection** (the original stays) or **In Place of the Selection** (the variation replaces it) |
+| Blocks | **Blocks** tab: choose a kind, click a degree to see and hear it, **Insert** at the cursor |
 | Draw notes | double-click the roll, or **D** for the Draw tool: click to draw, drag to make it longer, click a note to delete it |
 | Select | click a note; **Shift**-click for more; drag on empty space to lasso |
 | Change notes | drag to move, drag an end to stretch, **Alt**-drag to copy; **Up/Down** a semitone, **Shift+Up/Down** an octave; **Delete** |
 | The grid | **1-6** a bar down to 1/32, **T** triplets, **Snap** on or off, **Q** quantise |
 | Velocity | drag across the Velocity lane under the roll |
 | Play it in | **R** (or **File** > **Step input**), then play a MIDI keyboard |
-| Hear | **Space** plays from bar 1; **Shift+Space** (or **Play**) plays from the caret - click the bar numbers or a note to move it |
+| Hear | **Space** plays from bar 1; **Shift+Space** (or **Play**) plays from the cursor - click the bar numbers or a note to move it |
 | Start and end | **\|◀** beside Play (or **Home**) goes back to bar 1; **▶\|** (or **End**) to the end of the music |
 | Follow the music | **Follow** (or **F**) scrolls along with the music as it plays, the playhead a third of the way across; switch it off to keep the view still. To turn a page at a time instead: **Play** menu, **Turn a Page at a Time** |
 | Take it out | **File** > **Export**: the song or the chosen bars as MIDI, MusicXML or WAV |
 | Undo | **Cmd+Z**, **Shift+Cmd+Z**, or **File** > **Undo** |
+| Start again | **Clear All** (toolbar, right) takes every note out of every part and keeps the parts; it asks first, and **Cmd+Z** brings them back |
 | Without the mouse | **Tab** and **Shift+Tab** go through every button and menu (the one reached has a light ring), **Space** or **Return** presses it, **Esc** goes back to the roll; **Cmd+1, 2, 3** the Generate, Blocks and Parts tabs |
 | Larger | **View** > **Interface Size**: 125%, 150%, 175% or 200% |
 | All the keys | **H** |
 
 The **Parts** tab adds and removes instruments, and shows what each one can
-do. **File** > **This song** sets the title, tempo, time signature, key,
+do. **File** > **Song Settings** sets the title, tempo, time signature, key,
 bars and sound.
 
 ## Apple's guidelines
