@@ -31,7 +31,7 @@ const std::vector<std::pair<int, int>>& meterChoices()
     return m;
 }
 
-// A shortcut as the Mac writes it: Shift+Cmd+S is ⇧⌘S (decision 0053).
+// A shortcut as the Mac writes it: Shift+Cmd+S is ⇧⌘S (decision 0054).
 juce::String key (const juce::String& k)
 {
    #if JUCE_MAC
@@ -182,7 +182,7 @@ bool MainComponent::keyPressed (const juce::KeyPress& k)
 
     // Space from bar 1, Shift+Space from the caret (decision 0035).
     if (code == juce::KeyPress::spaceKey) { c.togglePlay (! mods.isShiftDown()); return true; }
-    // Escape lets go of everything, the caret's part too (decision 0048).
+    // Escape lets go of everything, the caret's part too (decision 0049).
     if (code == juce::KeyPress::escapeKey) { c.letGoOfEverything(); return true; }
     if (code == juce::KeyPress::deleteKey || code == juce::KeyPress::backspaceKey) { c.deleteSelection(); return true; }
     if (code == juce::KeyPress::upKey || code == juce::KeyPress::downKey)
@@ -846,7 +846,7 @@ void MainComponent::skipToEnd()
 
 void MainComponent::showHelp()
 {
-    // The keys in the Mac's own symbols, and plain sentences (decision 0053).
+    // The keys in the Mac's own symbols, and plain sentences (decision 0054).
     const juce::String text = ui (
         "THE PIANO ROLL\n"
         "Click a note to select and hear it; ⇧-click to select more; drag on empty space to select several.\n"

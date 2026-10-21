@@ -2,11 +2,11 @@
 
 ## Asked
 
-After trying Escape (0048): "it'd be great if Undo could also go back to
+After trying Escape (0049): "it'd be great if Undo could also go back to
 previous generations after a user has clicked Generate" - an idea liked was
 lost to one Generate too many.
 
-## Built (0049)
+## Built (0050)
 
 - `Controller`'s undo stack became a stack of `Step`s, a score or a
   Generate mark; `generated()` pushes a mark, `stepResults` lets the

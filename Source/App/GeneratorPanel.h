@@ -9,8 +9,8 @@
     can do - a setting added to an engine shows up here by itself.
 
     Every list Generate makes is kept, and each is a step in Undo: an idea
-    lost to one Generate too many comes back with Cmd+Z (0049). There is no
-    More button: Generate again does the same (0051).
+    lost to one Generate too many comes back with Cmd+Z (0050). There is no
+    More button: Generate again does the same (0052).
 */
 
 #pragma once
@@ -48,7 +48,7 @@ private:
     std::vector<std::string> listed;   // ids, in the order of the menu
 
     // What each Generate listed, oldest first, and which one Undo has the
-    // list at (decision 0049). The first is the empty list before any.
+    // list at (decision 0050). The first is the empty list before any.
     struct Listed
     {
         std::vector<GeneratedResult> results;

@@ -64,7 +64,7 @@ void Controller::ensureCaretPart()
             }
         }
     }
-    // Parts chosen by name keep only those still there (0050).
+    // Parts chosen by name keep only those still there (0051).
     chosenParts.erase (std::remove_if (chosenParts.begin(), chosenParts.end(),
                                        [this] (uint32_t id) { return score.partById (id) == nullptr; }),
                        chosenParts.end());
@@ -97,7 +97,7 @@ void Controller::undo()
     undoStack.pop_back();
     if (step.results)
     {
-        // A Generate undone: the ideas listed before it come back (0049).
+        // A Generate undone: the ideas listed before it come back (0050).
         if (stepResults) stepResults (-1);
         redoStack.push_back (std::move (step));
         setStatus (ui ("Undo Generate — the earlier ideas are back"));
@@ -347,7 +347,7 @@ void Controller::select (const Selection& s, bool preview)
 
 void Controller::selectAll()
 {
-    // Cmd+A (decision 0050): with a part chosen, every part is chosen, the
+    // Cmd+A (decision 0051): with a part chosen, every part is chosen, the
     // top one first. With none chosen (after Escape), or every part chosen
     // already, every note is selected as well.
     const bool everyPart = score.parts.size() > 1 && chosenParts.size() == score.parts.size();
@@ -987,7 +987,7 @@ uint32_t Controller::lineTarget() const
 {
     if (! range.active())
     {
-        // The part chosen first, of several (decision 0050).
+        // The part chosen first, of several (decision 0051).
         if (! chosenParts.empty()) return chosenParts.front();
         return noPartChosen && ! score.parts.empty() ? score.parts.front().id : caretPart;
     }
@@ -1023,7 +1023,7 @@ Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, 
     base.fitPolyphony = generatorId != "starting-blocks";
     // Vary Notes on music in several parts - bars chosen across them, or
     // notes selected in them: the variation follows the last bar of it,
-    // shared across those parts as if they were chosen (decision 0052).
+    // shared across those parts as if they were chosen (decision 0053).
     if (fromSelection && variesAcrossParts (generatorId))
     {
         const Tick at = s.barStart (selectedBars().second + 1);
@@ -1037,7 +1037,7 @@ Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, 
         if (! fromSelection)
         {
             // Shared across the chosen parts - or, a single line, into one
-            // (0042) - each block of bars on its own (0050).
+            // (0042) - each block of bars on its own (0051).
             Tick first = from;
             for (const auto& b : range.blocks())
             {
@@ -1079,7 +1079,7 @@ Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, 
         // caret's bar so an idea always starts on a downbeat, all of it.
         // A single line goes into the caret's part alone (decision 0042).
         const Tick at = s.barStart (s.barAt (caret));
-        // Several parts chosen by name: those alone (decision 0050).
+        // Several parts chosen by name: those alone (decision 0051).
         std::vector<uint32_t> all;
         if (isSingleLine (r)) all.push_back (lineTarget());
         else
@@ -1177,7 +1177,7 @@ Score Controller::auditionScore (const GeneratedResult& r, bool fromSelection, c
         Tick length = std::max<Tick> (r.length, PPQ);
         if (range.active() && ! fromSelection && ! range.more.empty())
         {
-            // Bars in several blocks (0050): heard in each, from the first.
+            // Bars in several blocks (0051): heard in each, from the first.
             Tick end = at;
             for (const auto& b : range.blocks())
             {

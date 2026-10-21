@@ -1,4 +1,4 @@
-# 0048 - Escape lets go of everything, the caret's part too
+# 0049 - Escape lets go of everything, the caret's part too
 
 - **Date:** 2026-10-10
 - **Status:** Accepted (Noterator and Miderator alike). Refines 0041 and 0042.

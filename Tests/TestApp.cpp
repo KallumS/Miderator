@@ -78,7 +78,7 @@ TEST ("app: chosen bars are filled by Good Idea, across the parts chosen")
     drawLine (c, 0, 0, { 72, 74, 76, 77 });                           // bar 1, first violin
     c.selectRange (1, 4, 0, 3);                                       // bars 2-5, all four
     CHECK (c.range.active());
-    CHECK_EQ (c.rangeText(), juce::String::fromUTF8 ("Bars 2–5, Violin I to Cello"));   // an en dash (0053)
+    CHECK_EQ (c.rangeText(), juce::String::fromUTF8 ("Bars 2–5, Violin I to Cello"));   // an en dash (0054)
     const auto ctx = c.generatorContext (false);
     CHECK_EQ (ctx.rangeBars, 4);
     const auto out = c.lua.generate ("good-idea", ctx, 7, 3);

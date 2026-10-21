@@ -185,7 +185,7 @@ struct PartsPanel::Row : public juce::Component
             const auto* p = controller.score.partById (partId);
             if (p == nullptr) return;
             if (p->notes.empty()) { controller.removePart (partId); return; }
-            // The button says what it does (decision 0053).
+            // The button says what it does (decision 0054).
             auto opts = juce::MessageBoxOptions()
                             .withIconType (juce::MessageBoxIconType::QuestionIcon)
                             .withTitle (ui ("Remove “") + juce::String (p->name) + ui ("”?"))

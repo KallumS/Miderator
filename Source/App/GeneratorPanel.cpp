@@ -119,7 +119,7 @@ void GeneratorPanel::changeListenerCallback (juce::ChangeBroadcaster*)
 {
     // Nothing chosen: chords shared across every part from the caret's bar
     // (0041), a single line into the caret's part (0042) - or across the
-    // parts chosen by name, a single line to the first chosen (0050).
+    // parts chosen by name, a single line to the first chosen (0051).
     juce::String into = "Into: ";
     const juce::String bar = "from bar " + juce::String (controller.score.barAt (controller.caret) + 1);
     const auto* line = controller.score.partById (controller.lineTarget());
@@ -134,7 +134,7 @@ void GeneratorPanel::changeListenerCallback (juce::ChangeBroadcaster*)
             into = controller.selection.empty() ? juce::String ("Choose bars with music in them to vary.")
                  : controller.rangeText() + ui (" — the variation replaces them");
     }
-    // Vary Notes on music in several parts goes after it, across them (0052).
+    // Vary Notes on music in several parts goes after it, across them (0053).
     else if (needsSelection() && ! controller.selection.empty() && controller.variesAcrossParts (current))
     {
         const auto [a, b] = controller.selectedBars();
@@ -176,7 +176,7 @@ void GeneratorPanel::run()
     results.repaint();
     if (! found.empty()) results.selectRow (0, false, true);
 
-    // Kept, and a step in Undo (decision 0049). A Generate after an Undo
+    // Kept, and a step in Undo (decision 0050). A Generate after an Undo
     // drops the lists that Redo would have brought back, as an edit does.
     history.resize (shown + 1);
     history.push_back ({ found, current, results.getSelectedRow(), message.getText() });

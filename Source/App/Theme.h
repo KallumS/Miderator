@@ -20,7 +20,7 @@
 namespace nt
 {
 // Text with characters beyond ASCII - the ellipsis, dashes, curly quotes and
-// key symbols the Mac's own text uses (decision 0053). A plain literal is
+// key symbols the Mac's own text uses (decision 0054). A plain literal is
 // read as ASCII by juce::String, so these go through here.
 inline juce::String ui (const char* utf8) { return juce::String::fromUTF8 (utf8); }
 } // namespace nt

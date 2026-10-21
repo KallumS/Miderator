@@ -1,4 +1,4 @@
-# 0053 - The apps' text follows Apple's writing guidelines
+# 0054 - The apps' text follows Apple's writing guidelines
 
 - **Date:** 2026-10-14
 - **Status:** Accepted (Noterator and Miderator alike).

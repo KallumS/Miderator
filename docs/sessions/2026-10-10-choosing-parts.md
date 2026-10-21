@@ -9,7 +9,7 @@ said an idea is shared across the instruments chosen, the single line to
 the one chosen first (the top one after Cmd+A), and Cmd-click on the
 timeline adds bars.
 
-## Built (0050)
+## Built (0051)
 
 - `Controller` (both apps, the same patch): `chosenParts`, `clickPart`,
   `partsChosen`, `isPartChosen`, `partsText`, `workIn`; Cmd+A in
@@ -30,13 +30,13 @@ timeline adds bars.
   to the bottom one, across a staff between that is not chosen; the marks by
   the names say which are.
 
-## Then: no More button (0051)
+## Then: no More button (0052)
 
 The user found More useless next to Generate, now that Undo brings back a
 replaced list. Removed from `GeneratorPanel` (shared): Generate, Insert and
 Stop share the row; every Generate is a fresh list.
 
-## Then: Vary Notes across several parts (0052)
+## Then: Vary Notes across several parts (0053)
 
 With bars 1-4 chosen across the quartet, Vary Notes replaced bars 1-4 of
 one part with everyone's notes. Now music in several parts is varied after
@@ -47,7 +47,7 @@ turned off (the variation inside bars 1-4).
 
 ## Not done yet
 
-Rough edges left from today's three changes (0048-0050), for whoever comes
+Rough edges left from today's three changes (0049-0051), for whoever comes
 next:
 
 - A block from the Blocks toolbox still goes into the caret's part even
@@ -59,6 +59,6 @@ next:
   across staves between that are not chosen.
 - Chosen parts are not saved with the song (nothing about the view is, 0002)
   and Undo does not bring a choice back.
-- The branch `claude/adoring-feynman-bihxp2` (0048-0050) is not merged yet in
-  either app; the user tested 0048 on their Mac and liked it, 0049 and 0050
+- The branch `claude/adoring-feynman-bihxp2` (0049-0051) is not merged yet in
+  either app; the user tested 0049 on their Mac and liked it, 0050 and 0051
   only as builds.
