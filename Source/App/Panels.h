@@ -51,7 +51,7 @@ public:
     // is large (decision 0048).
     int heightFor (int width) const;
 
-    std::function<void()> onFile, onZoomIn, onZoomOut, onStart, onEnd;
+    std::function<void()> onFile, onZoomIn, onZoomOut, onStart, onEnd, onClear;
 
 private:
     Controller& controller;
@@ -67,6 +67,7 @@ private:
     juce::ComboBox gridBox;
     juce::TextButton tripletButton { "Triplet" }, snapButton { "Snap" };
     juce::TextButton quantiseButton { "Quantise" };
+    juce::TextButton clearButton { "Clear All" };   // every note out (decision 0051)
     juce::TextButton zoomOut { juce::String::charToString (0x2212) }, zoomIn { "+" };
 
     static constexpr int rowHeight = 46;

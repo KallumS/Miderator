@@ -67,7 +67,7 @@ gets undone.
 | `Source/App/GeneratorPanel.*`, `BlocksPanel.*`, `SettingsList.*` | The Generate tab (0017), the Blocks toolbox (0018, 0024) with a small piano-roll preview, and the settings menus both draw from an adapter. |
 | `Source/App/Panels.*`, `MainComponent.*`, `Theme.*` | Toolbar, the status line under it, Parts tab, keys and menus (File holds New, Open, Save, Export, Undo, the song's settings, Sound, Step input and Light, 0037-0039; View holds Interface Size, 0048), colours (both looks in `theme::rollColours`), the keyboard's ring. |
 | `Source/App/SystemSettings.*` | The Mac's Increase Contrast and Reduce Motion, read through the Objective-C runtime (0048). Miderator's own copy of Noterator's. |
-| `Tests/Test*.cpp` | Core tests (100), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` and `Tests/TestWindow.cpp` are the JUCE-side tests (25); `TestWindow` holds the window to Apple's guidelines (0048). |
+| `Tests/Test*.cpp` | Core tests (101), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` and `Tests/TestWindow.cpp` are the JUCE-side tests (28); `TestWindow` holds the window to Apple's guidelines (0048). |
 | `tools/` | `RenderRoll.cpp` (MideratorRender, PNGs of the real views), `try_generators.lua`, `sync_engines.sh`, `sync_from_noterator.sh`. `build-mac.command`, at the top, builds the app on the user's Mac (0045). |
 
 ## Working in it
@@ -135,7 +135,8 @@ tools/sync_from_noterator.sh ../Noterator --check
   export, which makes its synth before starting its thread.
 - **Pointers into `score.parts` die when a part is added.** Hold ids.
 - **A result never overwrites the music it came from** (0011), except in bars
-  the user chose (0019). **Where a result lands is decided in
+  the user chose (0019) and when Vary Notes is set to **In place of the
+  selection** (0049, `varyReplaces`, off at first). **Where a result lands is decided in
   `Controller::place`**: chosen bars (one part takes all of it, several share
   it), a block at the caret, the selection, and with nothing chosen every
   part from the caret's bar (0041); a single line goes to one part
@@ -208,8 +209,9 @@ play every note on a piano (0043), a name click that lets go of bars chosen
 elsewhere (0044), `build-mac.command` (0045), Blocks chords named in the
 Chords lane from their own root (0046) and each chord offering the
 inversions it has (0047), merged into `main`; then the window checked
-against Apple's Human Interface Guidelines (0048), on the branch
-`claude/blissful-bohr-lqwr1j`. Not built yet, roughly in the order
+against Apple's Human Interface Guidelines (0048), merged into `main`; then
+Vary Notes after or in place of the selection (0049), Voicing starting on
+Any (0050) and Clear All (0051), on the branch `claude/blissful-bohr-lqwr1j`. Not built yet, roughly in the order
 the user is likely to want them: drawable CC lanes; articulations; VST3/CLAP
 instruments and SoundFonts; real-time recording; Windows. Known rough edges
 are in the latest session log's "Not done yet".

@@ -81,7 +81,7 @@ Toolbar::Toolbar (Controller& c) : controller (c)
 {
     for (auto* b : std::initializer_list<juce::Button*> { &startButton, &endButton }) addAndMakeVisible (b);
     for (auto* b : std::initializer_list<juce::Component*> { &fileButton, &playButton, &followButton,
-                     &selectButton, &drawButton, &tripletButton, &snapButton, &quantiseButton, &zoomOut, &zoomIn })
+                     &selectButton, &drawButton, &tripletButton, &snapButton, &quantiseButton, &clearButton, &zoomOut, &zoomIn })
         addAndMakeVisible (b);
     addAndMakeVisible (gridLabel);
     addAndMakeVisible (gridBox);
@@ -101,6 +101,9 @@ Toolbar::Toolbar (Controller& c) : controller (c)
     quantiseButton.setTooltip ("Pull the selected notes onto the grid, or the whole part in the roll if none are selected (Q)");
     zoomIn.setTooltip ("Zoom in (Cmd+=)");
     zoomOut.setTooltip ("Zoom out (Cmd+-)");
+    clearButton.setTooltip ("Clear the timeline: every note out of every part, the parts, tempo, key and bars kept. It asks first; Undo brings them back.");
+    clearButton.setTitle ("Clear All Notes");
+    clearButton.onClick = [this] { if (onClear) onClear(); };
     // What VoiceOver says for buttons whose face is a sign, and which are on or off.
     zoomIn.setTitle ("Zoom In");
     zoomOut.setTitle ("Zoom Out");
@@ -158,7 +161,7 @@ namespace
 {
 constexpr int leftWidth = 66 + 30 + 2 + 72 + 2 + 30 + 6 + 60 + 14;
 constexpr int toolsWidth = 62 + 70 + 40 + 78 + 64 + 60 + 88;
-constexpr int rightWidth = 28 + 2 + 28;
+constexpr int rightWidth = 76 + 10 + 28 + 2 + 28;
 } // namespace
 
 int Toolbar::heightFor (int width) const
@@ -181,6 +184,8 @@ void Toolbar::resized()
     zoomIn.setBounds (right.removeFromRight (28));
     right.removeFromRight (2);
     zoomOut.setBounds (right.removeFromRight (28));
+    right.removeFromRight (10);
+    clearButton.setBounds (right.removeFromRight (76));
 
     auto tools = twoRows ? all.withTrimmedTop (6) : r;
     place (tools, selectButton, 60, 2); place (tools, drawButton, 56, 14);

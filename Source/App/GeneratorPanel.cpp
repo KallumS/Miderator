@@ -7,7 +7,7 @@ namespace nt
 
 GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
 {
-    for (auto* comp : std::initializer_list<juce::Component*> { &generator, &description, &followKey, &settings, &generateButton,
+    for (auto* comp : std::initializer_list<juce::Component*> { &generator, &description, &followKey, &placementLabel, &placement, &settings, &generateButton,
                                                                  &moreButton, &insertButton, &stopButton, &results, &message, &target })
         addAndMakeVisible (comp);
     settings.context = [this] { return controller.generatorContext (needsSelection()); };
@@ -45,6 +45,24 @@ GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
     followKey.setToggleState (true, juce::dontSendNotification);
     followKey.setTooltip ("Write in the key the score is in at the caret, rather than the generator's own setting");
     followKey.onClick = [this] { rebuildSettings(); };
+
+    placement.addItem ("After the selection", 1);
+    placement.addItem ("In place of the selection", 2);
+    placement.setTitle ("Put the variation");
+    placement.setTooltip ("After the selection: the original stays and the variation follows it.\n"
+                          "In place of the selection: the variation takes the original's place (Undo brings it back).");
+    placement.setSelectedId (controller.varyReplaces ? 2 : 1, juce::dontSendNotification);
+    placement.onChange = [this]
+    {
+        controller.varyReplaces = placement.getSelectedId() == 2;
+        // Heard again where it would now go.
+        if (const int row = results.getSelectedRow(); row >= 0 && row < static_cast<int> (found.size()))
+            controller.auditionGenerated (found[static_cast<size_t> (row)], needsSelection(), current);
+        controller.viewChanged();
+    };
+    placementLabel.setFont (juce::FontOptions (13.0f));
+    placementLabel.setColour (juce::Label::textColourId, theme::stepNumber);
+    placementLabel.setTooltip (placement.getTooltip());
 
     generateButton.setTooltip ("Make new results");
     moreButton.setTooltip ("More results with the same settings");
@@ -104,7 +122,19 @@ void GeneratorPanel::resized()
     // menu's tooltip as well.
     description.setVisible (r.getHeight() > 520);
     if (description.isVisible()) description.setBounds (r.removeFromTop (52));
-    followKey.setBounds (r.removeFromTop (24));
+    {
+        // The score's key for the generators that write in one; where the
+        // variation goes for Vary Notes, which hears the key in the music.
+        auto row = r.removeFromTop (26);
+        followKey.setVisible (! varies());
+        placementLabel.setVisible (varies());
+        placement.setVisible (varies());
+        followKey.setBounds (row.withHeight (24));
+        // Lined up with the settings under it.
+        const int w = row.getWidth() - getLookAndFeel().getDefaultScrollbarWidth() - 2;
+        placementLabel.setBounds (row.removeFromLeft (w * 2 / 5));
+        placement.setBounds (row.withWidth (w - w * 2 / 5));
+    }
     r.removeFromTop (4);
     // The results keep room for two or three, however short the window
     // (a large interface size makes it short): the settings scroll instead.
@@ -141,6 +171,7 @@ void GeneratorPanel::rebuildSettings()
     // The key and scale settings are the score's while the toggle is on.
     settings.show (current, followKey.getToggleState() ? std::set<std::string> { "Key", "Scale" } : std::set<std::string> {});
     resized();
+    changeListenerCallback (nullptr);   // the Into line, for this generator
 }
 
 void GeneratorPanel::changeListenerCallback (juce::ChangeBroadcaster*)
@@ -159,7 +190,7 @@ void GeneratorPanel::changeListenerCallback (juce::ChangeBroadcaster*)
         if (! needsSelection() && controller.range.parts.size() > 1) into += " - one line to " + lineName;
         if (needsSelection())
             into = controller.selection.empty() ? juce::String ("There is no music in the chosen bars to vary")
-                 : controller.rangeText() + "  |  the variation replaces it";
+                 : controller.rangeText() + (controller.varyReplaces ? "  |  the variation replaces it" : "  |  goes in the bars after");
     }
     else if (needsSelection())
     {
@@ -167,8 +198,9 @@ void GeneratorPanel::changeListenerCallback (juce::ChangeBroadcaster*)
         const juce::String bars = "bar" + juce::String (a == b ? " " : "s ") + juce::String (a + 1) + (a == b ? juce::String() : "-" + juce::String (b + 1));
         into = controller.selection.empty() ? juce::String ("Select some music in the score for this one")
              : juce::String (static_cast<int> (controller.selection.size())) + " notes in " + bars
-               + (current == "midi-variator" ? "  |  goes after them" : "  |  goes beside them");
+               + (! varies() ? "  |  goes beside them" : controller.varyReplaces ? "  |  goes in their place" : "  |  goes after them");
     }
+    placement.setSelectedId (controller.varyReplaces ? 2 : 1, juce::dontSendNotification);
     target.setText (into, juce::dontSendNotification);
     insertButton.setEnabled (results.getSelectedRow() >= 0);
 }

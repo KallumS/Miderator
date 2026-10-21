@@ -14,7 +14,7 @@ enum MenuIds
 {
     menuNew = 1, menuOpen, menuImport, menuSave, menuSaveAs, menuExportMidi, menuExportMidiBars, menuExportAudio, menuExportAudioBars,
     menuExportXml, menuExportXmlBars,
-    menuUndo = 100, menuRedo, menuCut, menuCopy, menuPaste, menuDelete, menuSelectAll, menuDuplicate, menuQuantise,
+    menuUndo = 100, menuRedo, menuCut, menuCopy, menuPaste, menuDelete, menuSelectAll, menuDuplicate, menuQuantise, menuClearAll,
     menuPlay = 200, menuPlayCaret, menuToStart, menuToEnd, menuFollow, menuFollowSmooth, menuFollowPage, menuDrawTool, menuStepInput, menuSnap, menuTriplet, menuLightTheme, menuZoomIn, menuZoomOut, menuAudioSettings, menuHelp,
     menuGridBase = 300,          // + index into roll::gridValues()
     menuScaleBase = 340,         // + index into interfaceScales()
@@ -65,6 +65,7 @@ MainComponent::MainComponent()
     toolbar.onZoomOut = [this] { zoomBy (1.0f / 1.25f); };
     toolbar.onStart = [this] { returnToStart(); };
     toolbar.onEnd = [this] { skipToEnd(); };
+    toolbar.onClear = [this] { clearAllDialog(); };
 
     // A MIDI keyboard writes in step input, and is always heard.
     audio.onMidiInput = [this] (const juce::MidiMessage& m)
@@ -90,6 +91,7 @@ MainComponent::MainComponent()
         controller.lightTheme = p->getBoolValue ("lightTheme", false);
         controller.followPlayback = p->getBoolValue ("followPlayback", true);
         controller.followStyle = p->getValue ("followStyle", "smooth") == "page" ? FollowStyle::page : FollowStyle::smooth;
+        controller.varyReplaces = p->getBoolValue ("varyReplaces", false);
         controller.zoom = static_cast<float> (juce::jlimit (6.0, 400.0, p->getDoubleValue ("zoom", controller.zoom)));
         controller.rowHeight = static_cast<float> (juce::jlimit (5.0, 28.0, p->getDoubleValue ("rowHeight", controller.rowHeight)));
         const auto scale = static_cast<float> (p->getDoubleValue ("interfaceScale", 1.0));
@@ -229,6 +231,7 @@ void MainComponent::changeListenerCallback (juce::ChangeBroadcaster*)
     {
         if (p->getBoolValue ("lightTheme", false) != controller.lightTheme) p->setValue ("lightTheme", controller.lightTheme);
         if (p->getBoolValue ("followPlayback", true) != controller.followPlayback) p->setValue ("followPlayback", controller.followPlayback);
+        if (p->getBoolValue ("varyReplaces", false) != controller.varyReplaces) p->setValue ("varyReplaces", controller.varyReplaces);
         const juce::String style = controller.followStyle == FollowStyle::page ? "page" : "smooth";
         if (p->getValue ("followStyle", "smooth") != style) p->setValue ("followStyle", style);
         if (std::abs (p->getDoubleValue ("zoom", 0.0) - controller.zoom) > 0.01) p->setValue ("zoom", controller.zoom);
@@ -419,6 +422,8 @@ juce::PopupMenu MainComponent::getMenuForIndex (int index, const juce::String&)
         item (menuDuplicate, "Duplicate", "Cmd+D", ! controller.selection.empty());
         m.addSeparator();
         item (menuQuantise, "Quantise to " + juce::String (controller.grid.name()), "Q");
+        m.addSeparator();
+        item (menuClearAll, "Clear All Notes" + dots, {}, controller.score.lastNoteEnd() > 0);
     }
     else if (index == 2)
     {
@@ -557,6 +562,7 @@ void MainComponent::menuItemSelected (int id, int)
         case menuSelectAll: c.selectAll(); break;
         case menuDuplicate: c.duplicateSelection(); break;
         case menuQuantise: c.quantiseSelection(); break;
+        case menuClearAll: clearAllDialog(); break;
         case menuDrawTool: c.toggleDrawTool(); break;
         case menuStepInput: c.toggleStepInput(); break;
         case menuSnap: c.toggleSnap(); break;
@@ -649,6 +655,7 @@ void MainComponent::showFileMenu()
         r.isEnabled = controller.canRedo();
         r.shortcutKeyDescription = key ("Shift+Cmd+Z");
         m.addItem (r);
+        m.addItem (menuClearAll, "Clear All Notes" + dots, controller.score.lastNoteEnd() > 0);
     }
     addScoreItems (m);
     m.addSeparator();
@@ -1010,6 +1017,23 @@ void MainComponent::audioSettingsDialog()
     o.launchAsync();
 }
 
+void MainComponent::clearAllDialog()
+{
+    if (controller.score.lastNoteEnd() <= 0) { controller.setStatus ("There are no notes to clear."); return; }
+    // It asks, as removing a part with notes in it does; Undo is there too.
+    const auto options = juce::MessageBoxOptions()
+                             .withIconType (juce::MessageBoxIconType::QuestionIcon)
+                             .withTitle ("Clear every note?")
+                             .withMessage ("Every part keeps its instrument, and the tempo, key and bars stay. Undo brings the notes back.")
+                             .withButton ("Clear")
+                             .withButton ("Cancel")
+                             .withAssociatedComponent (this);
+    juce::NativeMessageBox::showAsync (options, [safe = juce::Component::SafePointer<MainComponent> (this)] (int r)
+    {
+        if (safe != nullptr && r == 0) safe->controller.clearAllNotes();
+    });
+}
+
 void MainComponent::returnToStart()
 {
     controller.returnToStart();
@@ -1039,6 +1063,7 @@ void MainComponent::showHelp()
         "Left / Right  move the selection a grid step (or the caret, with nothing selected)\n"
         "Alt+Up / Down  the part above or below     Delete  remove\n"
         "Cmd+C / X / V  copy, cut, paste at the caret     Cmd+D  duplicate     Cmd+Z  undo\n"
+        "Clear All (toolbar)  every note out of every part, after asking\n"
         "R  step input: a MIDI keyboard writes at the caret, a grid step at a time\n\n"
         "THE TRACKS\n"
         "Click a part's name to show it in the piano roll; double-click to select all of it\n"

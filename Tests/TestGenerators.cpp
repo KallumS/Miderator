@@ -580,3 +580,24 @@ TEST ("generators: every Blocks chord reads in the Chords lane on the root Block
     CHECK_EQ (wrong, 0);
     CHECK_EQ (firstWrong, std::string());
 }
+
+TEST ("generators: Generate Notes starts its Voicing on Any (decision 0050)")
+{
+    auto& e = engineInstance();
+    GeneratorContext ctx;
+    e.reset ("good-idea");
+    // Voicing is shown for an idea with chords: a Measure has them.
+    for (const auto& s : e.settings ("good-idea", ctx))
+        if (s.id == "kind")
+            for (size_t i = 0; i < s.names.size(); ++i)
+                if (s.names[i] == "Measure") e.set ("good-idea", "kind", static_cast<int> (i), ctx);
+    std::string voicing;
+    for (const auto& s : e.settings ("good-idea", ctx))
+        if (s.id == "voicing") voicing = s.names[static_cast<size_t> (s.index)];
+    CHECK_EQ (voicing, std::string ("Any"));
+    // And Any still makes ideas.
+    const auto out = e.generate ("good-idea", ctx, 1, 3);
+    CHECK (out.error.empty());
+    CHECK (! out.results.empty());
+    e.reset ("good-idea");
+}

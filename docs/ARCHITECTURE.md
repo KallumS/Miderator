@@ -93,6 +93,9 @@ decisions; 0026 on are Miderator's.
 | [0046](decisions/0046-blocks-chords-keep-their-root.md) | A Blocks chord carries its root into the score; the Chords lane names it from there while its notes are unchanged. |
 | [0047](decisions/0047-blocks-offers-a-chords-real-inversions.md) | Blocks offers each chord its own inversions: two for a triad, three for a seventh, up to six for a thirteenth. |
 | [0048](decisions/0048-apples-human-interface-guidelines.md) | The window follows Apple's guidelines: text 7:1, Increase Contrast and Reduce Motion, Tab through every control with a ring, a name for VoiceOver on each, nothing important along the bottom edge, Interface Size to 200%, the Mac's own alerts and title bar. Both apps. See `docs/apple-hig-review.md`. |
+| [0049](decisions/0049-vary-notes-after-or-in-place.md) | Vary Notes puts its variation after the selection or in its place, the user's choice (Put it), remembered; off at first. Both apps. |
+| [0050](decisions/0050-voicing-starts-on-any.md) | Generate Notes' Voicing starts on Any, set in the adapter; Good Idea's engine unchanged. Both apps. |
+| [0051](decisions/0051-clear-all-notes.md) | Clear All takes every note out of every part, after asking; the parts, tempo, keys and bars stay; one undo. Both apps. |
 | [0035](decisions/0035-space-plays-from-the-start.md) | Space plays from bar 1, Shift+Space and Play from the caret; |◀ and ▶| (Home, End) go to the start and the end of the music. Both apps. |
 | [0034](decisions/0034-follow-scrolls-smoothly.md) | Following scrolls smoothly by default, the playhead a third of the way across, on a steady clock read once a frame for both views; turning pages is a choice in the Play menu. |
 | [0010](decisions/0010-verify-by-rendering.md) | Drawing changes are checked by rendering them to PNG (`MideratorRender`). |

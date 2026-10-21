@@ -34,6 +34,12 @@ private:
     juce::ComboBox generator;
     juce::Label description;
     juce::ToggleButton followKey { "Use the score's key" };
+    // Vary Notes only, where the score's key means nothing (it hears the key
+    // in the music): the variation after the selection, or in its place
+    // (decision 0049).
+    juce::Label placementLabel { {}, "Put it" };
+    juce::ComboBox placement;
+    bool varies() const { return current == "midi-variator"; }
     SettingsList settings { controller };
     juce::TextButton generateButton { "Generate" }, moreButton { "More" }, insertButton { "Insert" }, stopButton { "Stop" };
     // The results, ringed when Tab reaches them (decision 0048).

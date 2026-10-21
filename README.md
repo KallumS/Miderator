@@ -108,6 +108,7 @@ keeps working for every future version.
 | Show a part in the piano roll | click its name in the tracks (**Alt+Up/Down** for the next) |
 | Choose bars | click a bar in a track; drag across bars and tracks for more; drag along the Chords lane for every part; **Esc** lets go |
 | Generate | **Generate** tab: choose a generator, **Generate**, click a result to hear it, **Insert** - into the chosen bars, or the part in the roll |
+| Vary Notes | **Put it**: **After the selection** (the original stays) or **In place of the selection** (the variation replaces it) |
 | Blocks | **Blocks** tab: choose a kind, click a degree to see and hear it, **Insert** at the caret |
 | Draw notes | double-click the roll, or **D** for the Draw tool: click to draw, drag to make it longer, click a note to delete it |
 | Select | click a note; **Shift**-click for more; drag on empty space to lasso |
@@ -120,6 +121,7 @@ keeps working for every future version.
 | Follow the music | **Follow** (or **F**) scrolls along with the music as it plays, the playhead a third of the way across; switch it off to keep the view still. To turn a page at a time instead: **Play** menu, **Turn a Page at a Time** |
 | Take it out | **File** > **Export**: the song or the chosen bars as MIDI, MusicXML or WAV |
 | Undo | **Cmd+Z**, **Shift+Cmd+Z**, or **File** > **Undo** |
+| Start again | **Clear All** (toolbar, right) takes every note out of every part and keeps the parts; it asks first, and **Cmd+Z** brings them back |
 | Without the mouse | **Tab** and **Shift+Tab** go through every button and menu (the one reached has a light ring), **Space** or **Return** presses it, **Esc** goes back to the roll; **Cmd+1, 2, 3** the Generate, Blocks and Parts tabs |
 | Larger | **View** > **Interface Size**: 125%, 150%, 175% or 200% |
 | All the keys | **H** |
