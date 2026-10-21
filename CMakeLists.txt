@@ -136,6 +136,7 @@ target_sources(Miderator PRIVATE
     Source/App/BlocksPanel.cpp
     Source/App/AudioEngine.cpp
     Source/App/Exporter.cpp
+    Source/App/SystemSettings.cpp
     ${MIDERATOR_VIEWS})
 
 target_compile_definitions(Miderator PRIVATE
@@ -186,9 +187,15 @@ if(MIDERATOR_BUILD_TESTS)
     juce_add_console_app(MideratorAppTests PRODUCT_NAME "MideratorAppTests")
     target_sources(MideratorAppTests PRIVATE
         Tests/TestApp.cpp
+        Tests/TestWindow.cpp
         Source/App/Controller.cpp
         Source/App/AudioEngine.cpp
-        Source/App/Exporter.cpp)
+        Source/App/Exporter.cpp
+        Source/App/Panels.cpp
+        Source/App/GeneratorPanel.cpp
+        Source/App/SettingsList.cpp
+        Source/App/BlocksPanel.cpp
+        ${MIDERATOR_VIEWS})
     target_include_directories(MideratorAppTests PRIVATE Source/App Tests)
     target_compile_definitions(MideratorAppTests PRIVATE
         JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_PLUGINHOST_AU=1 JUCE_PLUGINHOST_VST3=0)

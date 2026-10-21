@@ -65,8 +65,9 @@ gets undone.
 | `Source/App/PianoRollView.*` | One part's piano roll: keys, range bracket, notes, the mouse rules (0028), the velocity lane (0030). |
 | `Source/App/AudioEngine.*`, `Exporter.*` | Playback through a rack of synths, one per 16 channels (0023), previews, MIDI input; MIDI, MusicXML and WAV export (0007). |
 | `Source/App/GeneratorPanel.*`, `BlocksPanel.*`, `SettingsList.*` | The Generate tab (0017), the Blocks toolbox (0018, 0024) with a small piano-roll preview, and the settings menus both draw from an adapter. |
-| `Source/App/Panels.*`, `MainComponent.*`, `Theme.*` | Toolbar, Parts tab, status line, keys and menus (File holds New, Open, Save, Export, Undo, the song's settings, Sound, Step input and Light, 0037-0039), colours (both looks in `theme::rollColours`). |
-| `Tests/Test*.cpp` | Core tests (100), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` is the JUCE-side test (19). |
+| `Source/App/Panels.*`, `MainComponent.*`, `Theme.*` | Toolbar, the status line under it, Parts tab, keys and menus (File holds New, Open, Save, Export, Undo, the song's settings, Sound, Step input and Light, 0037-0039; View holds Interface Size, 0048), colours (both looks in `theme::rollColours`), the keyboard's ring. |
+| `Source/App/SystemSettings.*` | The Mac's Increase Contrast and Reduce Motion, read through the Objective-C runtime (0048). Miderator's own copy of Noterator's. |
+| `Tests/Test*.cpp` | Core tests (100), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` and `Tests/TestWindow.cpp` are the JUCE-side tests (25); `TestWindow` holds the window to Apple's guidelines (0048). |
 | `tools/` | `RenderRoll.cpp` (MideratorRender, PNGs of the real views), `try_generators.lua`, `sync_engines.sh`, `sync_from_noterator.sh`. `build-mac.command`, at the top, builds the app on the user's Mac (0045). |
 
 ## Working in it
@@ -164,6 +165,17 @@ tools/sync_from_noterator.sh ../Noterator --check
 - **No references into temporaries in tests**: `f().front().x` inside
   `CHECK_EQ` dangles. It passed with GCC and failed on the Mac.
 - Instrument ids are stored in files: never rename one.
+- **The window follows Apple's guidelines** (0048, `docs/apple-hig-review.md`).
+  A control whose face is a letter, a sign or a picture gets a title for
+  VoiceOver ("Mute", not "M"); one made after the window gets
+  `theme::clicksKeepFocus`, so a click leaves the keyboard with the roll; one
+  drawn by hand draws `theme::focusRing`. `TestWindow.cpp` checks the panels.
+- **Nothing that matters along the window's bottom edge** (0048): it is often
+  below the screen. The status line is under the toolbar.
+- **Tab is the window's own** (`MainComponent::keyPressed`): the roll, every
+  control in reading order, the roll again. A component that wants the
+  keyboard joins the cycle; a scrolling list should not (`clicksKeepFocus`
+  turns that off).
 
 ## Colour
 
@@ -173,6 +185,12 @@ tab**, one yellow (`#FFF200`) for what is on - a chosen button, selected
 notes, chosen bars, the caret in step input. Every grey has R < G < B. Red
 `#D2483F` is warnings only. The tracks and the roll are dark by default and
 light with **Light** (0031, remembered); the chrome stays dark.
+
+Text is at least 7:1 on what it sits on (0048): secondary text in `textDim`,
+labels in `stepNumber`, an error in `warnText` - never in the house red,
+which is 3.4:1 on the ground and only marks things. The keyboard's ring is
+the text colour, so the yellow still only means "on". With the Mac's
+Increase Contrast on, `useIncreasedContrast` strengthens them further.
 
 ## Where it stands
 
@@ -189,8 +207,9 @@ with nothing chosen, a single line to one part (0040-0042); then auditions that
 play every note on a piano (0043), a name click that lets go of bars chosen
 elsewhere (0044), `build-mac.command` (0045), Blocks chords named in the
 Chords lane from their own root (0046) and each chord offering the
-inversions it has (0047), on the branch
-`ccr-ac8da7d9-3sbl5x`. Not built yet, roughly in the order
+inversions it has (0047), merged into `main`; then the window checked
+against Apple's Human Interface Guidelines (0048), on the branch
+`claude/blissful-bohr-lqwr1j`. Not built yet, roughly in the order
 the user is likely to want them: drawable CC lanes; articulations; VST3/CLAP
 instruments and SoundFonts; real-time recording; Windows. Known rough edges
 are in the latest session log's "Not done yet".

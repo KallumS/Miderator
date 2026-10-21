@@ -1,6 +1,7 @@
 #include "MainComponent.h"
 
 #include "Exporter.h"
+#include "SystemSettings.h"
 #include "ScaleModel.h"
 #include "Templates.h"
 
@@ -15,7 +16,9 @@ enum MenuIds
     menuExportXml, menuExportXmlBars,
     menuUndo = 100, menuRedo, menuCut, menuCopy, menuPaste, menuDelete, menuSelectAll, menuDuplicate, menuQuantise,
     menuPlay = 200, menuPlayCaret, menuToStart, menuToEnd, menuFollow, menuFollowSmooth, menuFollowPage, menuDrawTool, menuStepInput, menuSnap, menuTriplet, menuLightTheme, menuZoomIn, menuZoomOut, menuAudioSettings, menuHelp,
-    menuGridBase = 300,
+    menuGridBase = 300,          // + index into roll::gridValues()
+    menuScaleBase = 340,         // + index into interfaceScales()
+    menuTabBase = 360,           // + the side panel's tab
     menuTitle = 400, menuTempo, menuMeterOther, menuKeyHeard, menuInsertBar, menuDeleteBars, menuAddBars, menuSoundApple, menuSoundBuiltIn,
     menuMeterBase = 500,
     menuTemplateBase = 1000,
@@ -29,6 +32,9 @@ const std::vector<std::pair<int, int>>& meterChoices()
                                                      { 3, 8 }, { 5, 8 }, { 6, 8 }, { 7, 8 }, { 9, 8 }, { 12, 8 } };
     return m;
 }
+
+// An ellipsis, as the Mac writes one after a command that asks something first.
+const juce::String dots = juce::String::charToString (0x2026);
 
 juce::String key (const juce::String& k)
 {
@@ -52,6 +58,7 @@ MainComponent::MainComponent()
     tabs.addTab ("Blocks", theme::control, &blocksPanel, false);
     tabs.addTab ("Parts", theme::control, &partsPanel, false);
     tabs.setColour (juce::TabbedComponent::backgroundColourId, theme::ground);
+    tabs.onTabChanged = [this] { if (isShowing()) grabKeyboardFocus(); };
 
     toolbar.onFile = [this] { showFileMenu(); };
     toolbar.onZoomIn = [this] { zoomBy (1.25f); };
@@ -85,12 +92,21 @@ MainComponent::MainComponent()
         controller.followStyle = p->getValue ("followStyle", "smooth") == "page" ? FollowStyle::page : FollowStyle::smooth;
         controller.zoom = static_cast<float> (juce::jlimit (6.0, 400.0, p->getDoubleValue ("zoom", controller.zoom)));
         controller.rowHeight = static_cast<float> (juce::jlimit (5.0, 28.0, p->getDoubleValue ("rowHeight", controller.rowHeight)));
+        const auto scale = static_cast<float> (p->getDoubleValue ("interfaceScale", 1.0));
+        for (auto s : interfaceScales())
+            if (std::abs (s - scale) < 0.01f) juce::Desktop::getInstance().setGlobalScaleFactor (s);
         controller.viewChanged();
     }
+    readSystemSettings();
+    startTimer (1500);
+    juce::Desktop::getInstance().addFocusChangeListener (this);
 
     controller.addChangeListener (this);
     setWantsKeyboardFocus (true);
-    setSize (1440, 880);
+    // Clicking a control leaves the keyboard with the roll (decision 0048).
+    theme::clicksKeepFocus (*this);
+    const float scale = juce::Desktop::getInstance().getGlobalScaleFactor();
+    setSize (juce::roundToInt (1440.0f / scale), juce::roundToInt (880.0f / scale));
    #if JUCE_MAC
     juce::MenuBarModel::setMacMainMenu (this);
    #endif
@@ -102,6 +118,7 @@ MainComponent::~MainComponent()
    #if JUCE_MAC
     juce::MenuBarModel::setMacMainMenu (nullptr);
    #endif
+    juce::Desktop::getInstance().removeFocusChangeListener (this);
     controller.removeChangeListener (this);
     audio.stop();
 }
@@ -110,12 +127,101 @@ void MainComponent::paint (juce::Graphics& g) { g.fillAll (theme::ground); }
 
 void MainComponent::resized()
 {
+    // Nothing that matters along the bottom edge, which is often below the
+    // screen: the status line is under the toolbar (decision 0048).
     auto r = getLocalBounds();
-    toolbar.setBounds (r.removeFromTop (46));
-    statusBar.setBounds (r.removeFromBottom (26));
-    tabs.setBounds (r.removeFromRight (std::min (380, getWidth() / 3)));
+    toolbar.setBounds (r.removeFromTop (toolbar.heightFor (getWidth())));
+    statusBar.setBounds (r.removeFromTop (26));
+    tabs.setBounds (r.removeFromRight (juce::jlimit (280, 380, getWidth() / 3)));
     workspace.setBounds (r);
 }
+
+const std::vector<float>& MainComponent::interfaceScales()
+{
+    static const std::vector<float> s { 1.0f, 1.25f, 1.5f, 1.75f, 2.0f };
+    return s;
+}
+
+void MainComponent::windowReady()
+{
+    auto* w = findParentComponentOfClass<juce::ResizableWindow>();
+    if (w == nullptr) return;
+    // The smallest window is about the same on the screen at every size, so
+    // 200% still fits a laptop: the layout reflows rather than the window
+    // outgrowing the screen.
+    const float scale = juce::Desktop::getInstance().getGlobalScaleFactor();
+    const int minW = std::min (980, juce::roundToInt (1100.0f / scale)), minH = std::min (600, juce::roundToInt (700.0f / scale));
+    w->setResizeLimits (minW, minH, 10000, 10000);
+    if (const auto* d = juce::Desktop::getInstance().getDisplays().getDisplayForRect (w->getScreenBounds()))
+    {
+        const auto area = d->userBounds.toNearestInt();
+        auto b = w->getBounds();
+        b.setSize (std::min (b.getWidth(), area.getWidth()), std::min (b.getHeight(), area.getHeight()));
+        w->setBounds (b.constrainedWithin (area));
+    }
+}
+
+void MainComponent::setInterfaceScale (float scale)
+{
+    auto& desktop = juce::Desktop::getInstance();
+    const float old = desktop.getGlobalScaleFactor();
+    if (std::abs (old - scale) < 0.01f) return;
+    auto* w = findParentComponentOfClass<juce::ResizableWindow>();
+    const auto before = w != nullptr ? w->getBounds().toFloat() * old : juce::Rectangle<float>();
+    desktop.setGlobalScaleFactor (scale);
+    if (auto* p = preferences.getUserSettings()) p->setValue ("interfaceScale", static_cast<double> (scale));
+    if (w != nullptr)
+    {
+        // The same place on the screen, drawn larger or smaller inside.
+        w->setResizeLimits (100, 100, 10000, 10000);
+        w->setBounds ((before / scale).toNearestInt());
+        windowReady();
+    }
+    controller.setStatus ("Interface size " + juce::String (juce::roundToInt (scale * 100.0f)) + "%");
+}
+
+void MainComponent::readSystemSettings()
+{
+    const bool contrast = system::increaseContrast();
+    const bool motion = system::reduceMotion();
+    if (contrast == theme::increasedContrast && motion == controller.reduceMotion) return;
+    theme::useIncreasedContrast (contrast);
+    controller.reduceMotion = motion;
+    controller.viewChanged();
+    repaint();
+}
+
+void MainComponent::timerCallback() { readSystemSettings(); }
+
+void MainComponent::globalFocusChanged (juce::Component* focused)
+{
+    if (lastFocused != nullptr) lastFocused->repaint();
+    if (focused != nullptr) focused->repaint();
+    lastFocused = focused;
+    // A setting reached with Tab scrolls into view.
+    if (focused == nullptr) return;
+    if (auto* port = focused->findParentComponentOfClass<juce::Viewport>())
+        if (auto* inside = port->getViewedComponent(); inside != nullptr && inside->isParentOf (focused))
+        {
+            const auto b = inside->getLocalArea (focused, focused->getLocalBounds());
+            const auto shown = port->getViewArea();
+            if (b.getY() < shown.getY()) port->setViewPosition (shown.getX(), b.getY());
+            else if (b.getBottom() > shown.getBottom()) port->setViewPosition (shown.getX(), b.getBottom() - shown.getHeight());
+        }
+}
+
+void MainComponent::showError (const juce::String& title, const juce::String& message)
+{
+    // The Mac's own alert (decision 0048).
+    juce::NativeMessageBox::showAsync (juce::MessageBoxOptions()
+                                           .withIconType (juce::MessageBoxIconType::WarningIcon)
+                                           .withTitle (title)
+                                           .withMessage (message)
+                                           .withButton ("OK")
+                                           .withAssociatedComponent (this),
+                                       nullptr);
+}
+
 
 void MainComponent::changeListenerCallback (juce::ChangeBroadcaster*)
 {
@@ -134,8 +240,20 @@ void MainComponent::changeListenerCallback (juce::ChangeBroadcaster*)
 
 void MainComponent::updateTitle()
 {
-    if (auto* w = findParentComponentOfClass<juce::DocumentWindow>())
-        w->setName ((controller.dirty ? "* " : "") + juce::String (controller.score.title) + " - Miderator");
+    auto* w = findParentComponentOfClass<juce::DocumentWindow>();
+    if (w == nullptr) return;
+   #if JUCE_MAC
+    // As a Mac document window: the song's name, a dot in the close button
+    // while there are unsaved changes, and the file's icon beside the name.
+    w->setName (juce::String (controller.score.title));
+    if (auto* peer = w->getPeer())
+    {
+        peer->setDocumentEditedStatus (controller.dirty);
+        peer->setRepresentedFile (controller.file);
+    }
+   #else
+    w->setName ((controller.dirty ? "* " : "") + juce::String (controller.score.title) + " - Miderator");
+   #endif
 }
 
 //==============================================================================
@@ -166,6 +284,7 @@ bool MainComponent::keyPressed (const juce::KeyPress& k)
         if (code == 'N') { showNewMenu(); return true; }
         if (code == 'E') { showExportMenu(); return true; }
         if (code == 'A') { c.selectAll(); return true; }
+        if (code >= '1' && code <= '3') { tabs.setCurrentTabIndex (code - '1'); return true; }
         if (code == 'C') { c.copySelection(); return true; }
         if (code == 'X') { c.cutSelection(); return true; }
         if (code == 'V') { c.paste(); return true; }
@@ -175,6 +294,34 @@ bool MainComponent::keyPressed (const juce::KeyPress& k)
         if (code == juce::KeyPress::upKey) { c.transposeSelection (12); return true; }
         if (code == juce::KeyPress::downKey) { c.transposeSelection (-12); return true; }
         return false;
+    }
+
+    // Tab and Shift+Tab: the roll, then every control in reading order, and
+    // round to the roll again (decision 0048). JUCE's own order would step out
+    // to the window itself.
+    if (code == juce::KeyPress::tabKey && ! cmd && ! mods.isAltDown())
+    {
+        auto list = juce::KeyboardFocusTraverser().getAllComponents (this);
+        list.erase (std::remove_if (list.begin(), list.end(), [] (juce::Component* x) { return ! x->isShowing() || ! x->isEnabled(); }),
+                    list.end());
+        list.insert (list.begin(), this);
+        const auto at = std::find (list.begin(), list.end(), juce::Component::getCurrentlyFocusedComponent());
+        const int n = static_cast<int> (list.size());
+        const int from = at == list.end() ? 0 : static_cast<int> (at - list.begin());
+        list[static_cast<size_t> ((from + (mods.isShiftDown() ? n - 1 : 1)) % n)]->grabKeyboardFocus();
+        return true;
+    }
+
+    // A control Tab has reached: Space presses it, as Return does, and Esc
+    // hands the keyboard back to the roll (decision 0048).
+    if (auto* focused = juce::Component::getCurrentlyFocusedComponent(); focused != nullptr && focused != this && isParentOf (focused))
+    {
+        if (code == juce::KeyPress::escapeKey) { grabKeyboardFocus(); return true; }
+        if (code == juce::KeyPress::spaceKey && mods.isShiftDown() == false)
+        {
+            if (auto* b = dynamic_cast<juce::Button*> (focused)) { b->triggerClick(); return true; }
+            if (auto* box = dynamic_cast<juce::ComboBox*> (focused)) { box->showPopup(); return true; }
+        }
     }
 
     // Space from bar 1, Shift+Space from the caret (decision 0035).
@@ -245,18 +392,18 @@ juce::PopupMenu MainComponent::getMenuForIndex (int index, const juce::String&)
     if (index == 0)
     {
         m.addSubMenu ("New", templateMenu());
-        item (menuOpen, "Open...", "Cmd+O");
-        item (menuImport, "Import MIDI or MusicXML into this score...");
+        item (menuOpen, "Open" + dots, "Cmd+O");
+        item (menuImport, "Import MIDI or MusicXML" + dots);
         m.addSeparator();
         item (menuSave, "Save", "Cmd+S");
-        item (menuSaveAs, "Save As...", "Shift+Cmd+S");
+        item (menuSaveAs, "Save As" + dots, "Shift+Cmd+S");
         m.addSeparator();
-        item (menuExportMidi, "Export Score as MIDI...");
-        item (menuExportMidiBars, "Export Selected Bars as MIDI...");
-        item (menuExportAudio, "Export Score as Audio (WAV)...");
-        item (menuExportAudioBars, "Export Selected Bars as Audio (WAV)...");
-        item (menuExportXml, "Export Score as MusicXML...");
-        item (menuExportXmlBars, "Export Selected Bars as MusicXML...");
+        item (menuExportMidi, "Export Song as MIDI" + dots);
+        item (menuExportMidiBars, "Export Selected Bars as MIDI" + dots);
+        item (menuExportAudio, "Export Song as Audio (WAV)" + dots);
+        item (menuExportAudioBars, "Export Selected Bars as Audio (WAV)" + dots);
+        item (menuExportXml, "Export Song as MusicXML" + dots);
+        item (menuExportXmlBars, "Export Selected Bars as MusicXML" + dots);
         addScoreItems (m);
     }
     else if (index == 1)
@@ -310,6 +457,16 @@ juce::PopupMenu MainComponent::getMenuForIndex (int index, const juce::String&)
         m.addItem (menuLightTheme, "Light Theme", true, controller.lightTheme);
         item (menuZoomIn, "Zoom In", "Cmd+=");
         item (menuZoomOut, "Zoom Out", "Cmd+-");
+        m.addSeparator();
+        for (int t = 0; t < tabs.getNumTabs(); ++t)
+            item (menuTabBase + t, "Show " + tabs.getTabNames()[t], "Cmd+" + juce::String (t + 1));
+        m.addSeparator();
+        juce::PopupMenu sizes;
+        const float now = juce::Desktop::getInstance().getGlobalScaleFactor();
+        for (size_t i = 0; i < interfaceScales().size(); ++i)
+            sizes.addItem (menuScaleBase + static_cast<int> (i), juce::String (juce::roundToInt (interfaceScales()[i] * 100.0f)) + "%", true,
+                           std::abs (interfaceScales()[i] - now) < 0.01f);
+        m.addSubMenu ("Interface Size", sizes);
     }
     else if (index == 3)
     {
@@ -329,10 +486,13 @@ juce::PopupMenu MainComponent::getMenuForIndex (int index, const juce::String&)
             i.shortcutKeyDescription = "F";
             m.addItem (i);
         }
-        m.addItem (menuFollowSmooth, "    Scroll Along with the Music", true, controller.followPlayback && controller.followStyle == FollowStyle::smooth);
-        m.addItem (menuFollowPage, "    Turn a Page at a Time", true, controller.followPlayback && controller.followStyle == FollowStyle::page);
+        // With Reduce Motion on, the view turns pages rather than scrolls.
+        m.addItem (menuFollowSmooth, "    Scroll Along with the Music", ! controller.reduceMotion,
+                   controller.followPlayback && controller.followStyleNow() == FollowStyle::smooth);
+        m.addItem (menuFollowPage, "    Turn a Page at a Time", true, controller.followPlayback && controller.followStyleNow() == FollowStyle::page);
+        if (controller.reduceMotion) m.addItem (-1, "    (Reduce Motion is on in the Mac's settings)", false);
         m.addSeparator();
-        item (menuAudioSettings, "Audio and MIDI Devices...");
+        item (menuAudioSettings, "Audio and MIDI Devices" + dots);
     }
     else
     {
@@ -344,6 +504,16 @@ juce::PopupMenu MainComponent::getMenuForIndex (int index, const juce::String&)
 void MainComponent::menuItemSelected (int id, int)
 {
     auto& c = controller;
+    if (id >= menuTabBase && id < menuTabBase + tabs.getNumTabs())
+    {
+        tabs.setCurrentTabIndex (id - menuTabBase);
+        return;
+    }
+    if (id >= menuScaleBase && id < menuScaleBase + static_cast<int> (interfaceScales().size()))
+    {
+        setInterfaceScale (interfaceScales()[static_cast<size_t> (id - menuScaleBase)]);
+        return;
+    }
     if (id >= menuGridBase && id < menuGridBase + static_cast<int> (roll::gridValues().size()))
     {
         c.setGrid (roll::gridValues()[static_cast<size_t> (id - menuGridBase)], c.grid.triplet);
@@ -460,11 +630,11 @@ void MainComponent::showFileMenu()
         m.addItem (i);
     };
     m.addSubMenu ("New", templateMenu());
-    item (menuOpen, "Open...", "Cmd+O");
-    item (menuImport, "Import MIDI or MusicXML...");
+    item (menuOpen, "Open" + dots, "Cmd+O");
+    item (menuImport, "Import MIDI or MusicXML" + dots);
     m.addSeparator();
     item (menuSave, "Save", "Cmd+S");
-    item (menuSaveAs, "Save As...", "Shift+Cmd+S");
+    item (menuSaveAs, "Save As" + dots, "Shift+Cmd+S");
     m.addSeparator();
     m.addSubMenu ("Export", exportMenu());
     m.addSeparator();
@@ -483,13 +653,13 @@ void MainComponent::showFileMenu()
     addScoreItems (m);
     m.addSeparator();
     {
-        juce::PopupMenu::Item i ("Step input from a MIDI keyboard");
+        juce::PopupMenu::Item i ("Step Input from a MIDI Keyboard");
         i.itemID = menuStepInput;
         i.isTicked = controller.stepInput;
         i.shortcutKeyDescription = "R";
         m.addItem (i);
     }
-    m.addItem (menuLightTheme, "Light piano roll and tracks", true, controller.lightTheme);
+    m.addItem (menuLightTheme, "Light Piano Roll and Tracks", true, controller.lightTheme);
     m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&toolbar.fileAnchor()),
                      [this] (int r) { if (r > 0) menuItemSelected (r, 0); });
 }
@@ -502,9 +672,9 @@ void MainComponent::addScoreItems (juce::PopupMenu& m)
     const auto& s = controller.score;
     const int bar = s.barAt (controller.caret);
     m.addSeparator();
-    m.addSectionHeader ("This song");
-    m.addItem (menuTitle, "Title and composer...");
-    m.addItem (menuTempo, "Tempo (" + juce::String (juce::roundToInt (s.tempos.front().bpm)) + " bpm)...");
+    m.addSectionHeader ("This Song");
+    m.addItem (menuTitle, "Title and Composer" + dots);
+    m.addItem (menuTempo, "Tempo (" + juce::String (juce::roundToInt (s.tempos.front().bpm)) + " BPM)" + dots);
 
     const auto& meter = s.meterAtBar (bar);
     juce::PopupMenu meters;
@@ -517,12 +687,12 @@ void MainComponent::addScoreItems (juce::PopupMenu& m)
         meters.addItem (menuMeterBase + static_cast<int> (i), juce::String (num) + "/" + juce::String (den), true, on);
     }
     meters.addSeparator();
-    meters.addItem (menuMeterOther, "Other...", true, ! listed);
-    m.addSubMenu ("Time signature at bar " + juce::String (bar + 1) + " (" + juce::String (meter.num) + "/" + juce::String (meter.den) + ")", meters);
+    meters.addItem (menuMeterOther, "Other" + dots, true, ! listed);
+    m.addSubMenu ("Time Signature at Bar " + juce::String (bar + 1) + " (" + juce::String (meter.num) + "/" + juce::String (meter.den) + ")", meters);
 
     const auto& k = s.keyAtBar (bar);
     juce::PopupMenu keys;
-    keys.addItem (menuKeyHeard, "Use the key it hears");
+    keys.addItem (menuKeyHeard, "Use the Key It Hears");
     keys.addSeparator();
     for (size_t r = 0; r < scaleview::roots.size(); ++r)
     {
@@ -535,21 +705,21 @@ void MainComponent::addScoreItems (juce::PopupMenu& m)
     juce::String keyName = "?";
     if (k.root >= 0 && k.root < static_cast<int> (scaleview::roots.size()) && k.scale >= 0 && k.scale < static_cast<int> (scaleview::scales.size()))
         keyName = juce::String (scaleview::roots[static_cast<size_t> (k.root)].name) + " " + scaleview::scales[static_cast<size_t> (k.scale)].name;
-    m.addSubMenu ("Key at bar " + juce::String (bar + 1) + " (" + keyName + ")", keys);
+    m.addSubMenu ("Key at Bar " + juce::String (bar + 1) + " (" + keyName + ")", keys);
 
     juce::PopupMenu bars;
     const auto [a, b] = controller.selectedBars();
-    bars.addItem (menuInsertBar, "Insert a bar at the caret (before bar " + juce::String (bar + 1) + ")");
-    bars.addItem (menuDeleteBars, a == b ? "Delete bar " + juce::String (a + 1) : "Delete bars " + juce::String (a + 1) + "-" + juce::String (b + 1));
-    bars.addItem (menuAddBars, "Add 4 bars at the end");
-    m.addSubMenu ("Bars (" + juce::String (s.bars) + " in all)", bars);
+    bars.addItem (menuInsertBar, "Insert a Bar at the Caret (Before Bar " + juce::String (bar + 1) + ")");
+    bars.addItem (menuDeleteBars, a == b ? "Delete Bar " + juce::String (a + 1) : "Delete Bars " + juce::String (a + 1) + "-" + juce::String (b + 1));
+    bars.addItem (menuAddBars, "Add 4 Bars at the End");
+    m.addSubMenu ("Bars (" + juce::String (s.bars) + " in All)", bars);
 
     m.addSeparator();
     juce::PopupMenu sound;
     sound.addItem (menuSoundApple, "Apple General MIDI (macOS)", true, ! audio.usingBuiltInSynth());
-    sound.addItem (menuSoundBuiltIn, "Built-in synth", true, audio.usingBuiltInSynth());
+    sound.addItem (menuSoundBuiltIn, "Built-in Synth", true, audio.usingBuiltInSynth());
     sound.addSeparator();
-    sound.addItem (menuAudioSettings, "Audio and MIDI devices...");
+    sound.addItem (menuAudioSettings, "Audio and MIDI Devices" + dots);
     m.addSubMenu ("Sound", sound);
 }
 
@@ -562,15 +732,16 @@ void askFor (const juce::String& title, const juce::String& message, std::functi
 {
     auto* w = new juce::AlertWindow (title, message, juce::MessageBoxIconType::NoIcon);
     fill (*w);
-    w->addButton ("OK", 1, juce::KeyPress (juce::KeyPress::returnKey));
+    // Cancel on the left and OK, the default, on the right, as on the Mac.
     w->addButton ("Cancel", 0, juce::KeyPress (juce::KeyPress::escapeKey));
+    w->addButton ("OK", 1, juce::KeyPress (juce::KeyPress::returnKey));
     w->enterModalState (true, juce::ModalCallbackFunction::create ([w, done] (int r) { if (r == 1) done (*w); }), true);
 }
 } // namespace
 
 void MainComponent::titleDialog()
 {
-    askFor ("Title and composer", {}, [this] (juce::AlertWindow& w)
+    askFor ("Title and Composer", {}, [this] (juce::AlertWindow& w)
     {
         w.addTextEditor ("title", controller.score.title, "Title");
         w.addTextEditor ("composer", controller.score.composer, "Composer");
@@ -594,7 +765,7 @@ void MainComponent::tempoDialog()
     [this] (juce::AlertWindow& w)
     {
         const int bpm = w.getTextEditorContents ("bpm").getIntValue();
-        if (bpm < 30 || bpm > 240) { controller.setStatus ("The tempo stays as it was: it can be 30 to 240."); return; }
+        if (bpm < 30 || bpm > 240) { controller.setStatus ("The tempo is unchanged. Choose a tempo from 30 to 240 beats a minute."); return; }
         controller.setTempo (bpm);
     });
 }
@@ -602,7 +773,7 @@ void MainComponent::tempoDialog()
 void MainComponent::meterDialog()
 {
     const int bar = controller.score.barAt (controller.caret);
-    askFor ("Time signature at bar " + juce::String (bar + 1), {}, [this, bar] (juce::AlertWindow& w)
+    askFor ("Time Signature at Bar " + juce::String (bar + 1), {}, [this, bar] (juce::AlertWindow& w)
     {
         const auto& m = controller.score.meterAtBar (bar);
         juce::StringArray nums, dens { "2", "4", "8", "16" };
@@ -630,14 +801,14 @@ juce::PopupMenu MainComponent::exportMenu()
     juce::PopupMenu m;
     const auto [a, b] = controller.selectedBars();
     const juce::String bars = a == b ? "bar " + juce::String (a + 1) : "bars " + juce::String (a + 1) + "-" + juce::String (b + 1);
-    m.addItem (menuExportMidi, "Song as MIDI...");
-    m.addItem (menuExportMidiBars, "Selection (" + bars + ") as MIDI...");
+    m.addItem (menuExportMidi, "Song as MIDI" + dots);
+    m.addItem (menuExportMidiBars, "Selection (" + bars + ") as MIDI" + dots);
     m.addSeparator();
-    m.addItem (menuExportAudio, "Song as audio (WAV)...");
-    m.addItem (menuExportAudioBars, "Selection (" + bars + ") as audio (WAV)...");
+    m.addItem (menuExportAudio, "Song as Audio (WAV)" + dots);
+    m.addItem (menuExportAudioBars, "Selection (" + bars + ") as Audio (WAV)" + dots);
     m.addSeparator();
-    m.addItem (menuExportXml, "Song as MusicXML (for Dorico, MuseScore, Sibelius)...");
-    m.addItem (menuExportXmlBars, "Selection (" + bars + ") as MusicXML...");
+    m.addItem (menuExportXml, "Song as MusicXML (for Dorico, MuseScore, Sibelius)" + dots);
+    m.addItem (menuExportXmlBars, "Selection (" + bars + ") as MusicXML" + dots);
     return m;
 }
 
@@ -647,18 +818,19 @@ juce::PopupMenu MainComponent::exportMenu()
 void MainComponent::checkSaved (std::function<void()> then)
 {
     if (! controller.dirty) { then(); return; }
+    // The Mac's own question, in its own words (decision 0048).
     auto opts = juce::MessageBoxOptions()
                     .withIconType (juce::MessageBoxIconType::QuestionIcon)
-                    .withTitle ("Save the changes to " + juce::String (controller.score.title) + "?")
-                    .withMessage ("They will be lost if you don't.")
+                    .withTitle ("Do you want to save the changes you made to " + juce::String (controller.score.title) + "?")
+                    .withMessage ("Your changes will be lost if you don't save them.")
                     .withButton ("Save")
                     .withButton ("Don't Save")
                     .withButton ("Cancel")
                     .withAssociatedComponent (this);
-    juce::AlertWindow::showAsync (opts, [this, then] (int r)
+    juce::NativeMessageBox::showAsync (opts, [this, then] (int r)
     {
-        if (r == 1) saveDialog (false, then);
-        else if (r == 2) then();
+        if (r == 0) saveDialog (false, then);
+        else if (r == 1) then();
     });
 }
 
@@ -666,7 +838,7 @@ void MainComponent::openFile (const juce::File& f)
 {
     juce::String error;
     if (! controller.load (f, error))
-        juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon, "Could not open " + f.getFileName(), error);
+        showError ("Could not open " + f.getFileName(), error);
     lastFolder = f.getParentDirectory();
 }
 
@@ -686,7 +858,7 @@ void MainComponent::openDialog()
 
 void MainComponent::importDialog()
 {
-    chooser = std::make_unique<juce::FileChooser> ("Import a MIDI or MusicXML file into this score, at the caret's bar", lastFolder,
+    chooser = std::make_unique<juce::FileChooser> ("Import a MIDI or MusicXML file into this song, at the caret's bar", lastFolder,
                                                   "*.mid;*.midi;*.musicxml;*.mxl;*.xml");
     chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles, [this] (const juce::FileChooser& fc)
     {
@@ -694,7 +866,7 @@ void MainComponent::importDialog()
         if (! f.existsAsFile()) return;
         juce::String error;
         if (! controller.importFile (f, error))
-            juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon, "Could not import " + f.getFileName(), error);
+            showError ("Could not import " + f.getFileName(), error);
         lastFolder = f.getParentDirectory();
     });
 }
@@ -705,7 +877,7 @@ void MainComponent::saveDialog (bool saveAs, std::function<void()> then)
     {
         juce::String error;
         if (controller.save (controller.file, error)) { if (then) then(); }
-        else juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon, "Could not save", error);
+        else showError ("Could not save", error + "\n\nTry Save As to choose another folder, or check that the disk has room.");
         return;
     }
     const auto suggested = (lastFolder.isDirectory() ? lastFolder : juce::File::getSpecialLocation (juce::File::userDocumentsDirectory))
@@ -719,7 +891,7 @@ void MainComponent::saveDialog (bool saveAs, std::function<void()> then)
         f = f.withFileExtension ("miderator");
         juce::String error;
         if (controller.save (f, error)) { lastFolder = f.getParentDirectory(); if (then) then(); }
-        else juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon, "Could not save", error);
+        else showError ("Could not save", error + "\n\nTry Save As to choose another folder, or check that the disk has room.");
     });
 }
 
@@ -751,13 +923,13 @@ void MainComponent::exportDialog (ExportKind kind, bool selectedBars)
         if (kind == ExportKind::musicXml)
         {
             if (exportMusicXml (controller.score, range, f, error)) controller.setStatus ("Exported " + f.getFileName());
-            else juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon, "Could not export", error);
+            else showError ("Could not export", error + "\n\nTry another folder, or check that the disk has room.");
             return;
         }
         if (! audioFile)
         {
             if (exportMidi (controller.score, range, true, f, error)) controller.setStatus ("Exported " + f.getFileName());
-            else juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon, "Could not export", error);
+            else showError ("Could not export", error + "\n\nTry another folder, or check that the disk has room.");
             return;
         }
         // Audio is rendered through a synth of its own, off the audio thread.
@@ -765,7 +937,7 @@ void MainComponent::exportDialog (ExportKind kind, bool selectedBars)
         struct Render : public juce::ThreadWithProgressWindow
         {
             Render (const Score& s, ExportRange r, std::unique_ptr<SynthRack> sy, juce::String d, juce::File fl, Controller& c)
-                : juce::ThreadWithProgressWindow ("Exporting audio...", true, true),
+                : juce::ThreadWithProgressWindow ("Exporting audio" + dots, true, true),
                   score (s), range (r), synth (std::move (sy)), desc (std::move (d)), file (fl), controller (c) {}
             void run() override
             {
@@ -775,7 +947,12 @@ void MainComponent::exportDialog (ExportKind kind, bool selectedBars)
             {
                 if (ok) controller.setStatus ("Exported " + file.getFileName() + " through " + desc);
                 else if (! cancelled)
-                    juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon, "Could not export audio", error);
+                    juce::NativeMessageBox::showAsync (juce::MessageBoxOptions()
+                                                           .withIconType (juce::MessageBoxIconType::WarningIcon)
+                                                           .withTitle ("Could not export audio")
+                                                           .withMessage (error)
+                                                           .withButton ("OK"),
+                                                       nullptr);
                 juce::MessageManager::callAsync ([this] { delete this; });
             }
             Score score;
@@ -813,7 +990,7 @@ void MainComponent::filesDropped (const juce::StringArray& files, int, int)
         // A MIDI or MusicXML file dropped on a score joins it, at the caret's bar.
         juce::String error;
         if (! controller.importFile (f, error))
-            juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon, "Could not import " + f.getFileName(), error);
+            showError ("Could not import " + f.getFileName(), error);
     }
 }
 
@@ -883,8 +1060,12 @@ void MainComponent::showHelp()
         "BLOCKS\n"
         "Pick a chord, arpeggio, run or interval, click a degree\n"
         "to see and hear it, and Insert to put it at the caret - the caret moves\n"
-        "on, so blocks can be laid one after another.";
-    juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::InfoIcon, "Miderator - keys", text);
+        "on, so blocks can be laid one after another.\n\n"
+        "THE WINDOW\n"
+        "Tab / Shift+Tab  move between the buttons and menus     Space or Return  press one\n"
+        "Esc  back to the roll     Cmd+1 / 2 / 3  the Generate, Blocks and Parts tabs\n"
+        "View > Interface Size  everything larger, up to 200%";
+    juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::InfoIcon, "Keyboard Shortcuts", text);
 }
 
 } // namespace nt
