@@ -67,7 +67,7 @@ gets undone.
 | `Source/App/GeneratorPanel.*`, `BlocksPanel.*`, `SettingsList.*` | The Generate tab (0017), the Blocks toolbox (0018, 0024) with a small piano-roll preview, and the settings menus both draw from an adapter. |
 | `Source/App/Panels.*`, `MainComponent.*`, `Theme.*` | Toolbar, the status line under it, Parts tab, keys and menus (File holds New, Open, Save, Export, Undo, the song's settings, Sound, Step input and Light, 0037-0039; View holds Interface Size, 0048), colours (both looks in `theme::rollColours`), the keyboard's ring. |
 | `Source/App/SystemSettings.*` | The Mac's Increase Contrast and Reduce Motion, read through the Objective-C runtime (0048). Miderator's own copy of Noterator's. |
-| `Tests/Test*.cpp` | Core tests (101), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` and `Tests/TestWindow.cpp` are the JUCE-side tests (28); `TestWindow` holds the window to Apple's guidelines (0048). |
+| `Tests/Test*.cpp` | Core tests (101), no JUCE; `TestRoll.cpp` is Miderator's own. `Tests/TestApp.cpp` and `Tests/TestWindow.cpp` are the JUCE-side tests (33); `TestWindow` holds the window to Apple's guidelines (0048). |
 | `tools/` | `RenderRoll.cpp` (MideratorRender, PNGs of the real views), `try_generators.lua`, `sync_engines.sh`, `sync_from_noterator.sh`. `build-mac.command`, at the top, builds the app on the user's Mac (0045). |
 
 ## Working in it
@@ -139,8 +139,9 @@ tools/sync_from_noterator.sh ../Noterator --check
   selection** (0055, `varyReplaces`, off at first). **Where a result lands is decided in
   `Controller::place`**: chosen bars (one part takes all of it, several share
   it), a block at the caret, the selection, and with nothing chosen every
-  part from the caret's bar (0041); a single line goes to one part
-  (`lineTarget`), and chosen bars are filled once, never repeated (0042).
+  part from the caret's bar (0041) - or only the parts chosen by name
+  (0051); a single line goes to one part (`lineTarget`: the first chosen),
+  and chosen bars are filled once, never repeated (0042), block by block (0051).
   No part is ever added for a result.
 - **Every generated line is fitted to the part it lands in** (0036,
   `fitToPolyphony`, shared): no more notes at once than the instrument
@@ -163,6 +164,10 @@ tools/sync_from_noterator.sh ../Noterator --check
 - **Menu ids come in ranges** (`MainComponent.cpp`): every range check names
   its own end, or it swallows the next range's items (0038).
 - Letters in shortcuts arrive in either case: compare them upper-cased.
+- **Text on screen follows Apple's writing guidelines** (0054): title-style
+  menus, buttons and dialog titles, `…` when more input follows, sentence-style
+  messages and tooltips, "cursor" not "caret", Mac key symbols. Any literal
+  beyond ASCII goes through `ui()`; `tools/check_ui_text.py` must pass.
 - **No references into temporaries in tests**: `f().front().x` inside
   `CHECK_EQ` dangles. It passed with GCC and failed on the Mac.
 - Instrument ids are stored in files: never rename one.
@@ -209,9 +214,15 @@ play every note on a piano (0043), a name click that lets go of bars chosen
 elsewhere (0044), `build-mac.command` (0045), Blocks chords named in the
 Chords lane from their own root (0046) and each chord offering the
 inversions it has (0047), merged into `main`; then the window checked
-against Apple's Human Interface Guidelines (0048), merged into `main`; then
-Vary Notes after or in place of the selection (0055), Voicing starting on
-Any (0056) and Clear All (0057), on the branch `claude/blissful-bohr-lqwr1j`. Not built yet, roughly in the order
+against Apple's Human Interface Guidelines (0048), merged into `main`. Then,
+from two sessions: Escape letting go of everything, the caret's part too
+(0049), Undo bringing back the ideas a Generate replaced (0050), several
+parts chosen with Cmd, Shift and Cmd+A and blocks of bars with Cmd (0051),
+no More button (0052), Vary Notes on several parts going after the music,
+across them (0053), every word to Apple's writing guidelines (0054) - on
+`claude/adoring-feynman-bihxp2` - and Vary Notes after or in place of the
+selection (0055), Voicing starting on Any (0056) and Clear All (0057), all
+brought together on `claude/blissful-bohr-lqwr1j`. Not built yet, roughly in the order
 the user is likely to want them: drawable CC lanes; articulations; VST3/CLAP
 instruments and SoundFonts; real-time recording; Windows. Known rough edges
 are in the latest session log's "Not done yet".

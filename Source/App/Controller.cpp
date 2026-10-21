@@ -5,6 +5,7 @@
 #include "ScoreFile.h"
 #include "Spelling.h"
 #include "Templates.h"
+#include "Theme.h"
 
 namespace nt
 {
@@ -36,35 +37,74 @@ void Controller::ensureCaretPart()
         for (const auto& n : p.notes)
             if (selection.count (n.id) != 0) alive.insert (n.id);
     selection = alive;
-    // A range keeps only the parts still there, inside the score.
+    // A range keeps only the parts still there, inside the score - every block of it.
     if (range.active())
     {
-        std::vector<uint32_t> parts;
-        for (const auto& p : score.parts)
-            if (std::find (range.parts.begin(), range.parts.end(), p.id) != range.parts.end()) parts.push_back (p.id);
-        range.parts = parts;
-        range.last = std::min (range.last, score.bars - 1);
-        if (! range.active()) range = {};
+        auto prune = [this] (Bars& b)
+        {
+            std::vector<uint32_t> parts;
+            for (const auto& p : score.parts)
+                if (b.has (p.id)) parts.push_back (p.id);
+            b.parts = parts;
+            b.last = std::min (b.last, score.bars - 1);
+        };
+        prune (range);
+        for (auto& b : range.more) prune (b);
+        range.more.erase (std::remove_if (range.more.begin(), range.more.end(), [] (const Bars& b) { return ! b.active(); }),
+                          range.more.end());
+        if (! range.active())
+        {
+            auto more = range.more;
+            range = {};
+            if (! more.empty())
+            {
+                static_cast<Bars&> (range) = more.back();
+                more.pop_back();
+                range.more = more;
+            }
+        }
     }
+    // Parts chosen by name keep only those still there (0051).
+    chosenParts.erase (std::remove_if (chosenParts.begin(), chosenParts.end(),
+                                       [this] (uint32_t id) { return score.partById (id) == nullptr; }),
+                       chosenParts.end());
+    if (chosenParts.size() == 1) caretPart = chosenParts.front();
+    if (chosenParts.size() < 2) chosenParts.clear();
+}
+
+void Controller::pushUndo (Step step)
+{
+    undoStack.push_back (std::move (step));
+    if (undoStack.size() > 300) undoStack.erase (undoStack.begin());
+    redoStack.clear();
 }
 
 void Controller::edit (const juce::String& what, const std::function<void (Score&)>& fn)
 {
-    undoStack.push_back (score);
-    if (undoStack.size() > 300) undoStack.erase (undoStack.begin());
-    redoStack.clear();
+    pushUndo ({ false, score });
     fn (score);
     dirty = true;
     status = what;
     refresh();
 }
 
+void Controller::generated() { pushUndo ({ true, {} }); }
+
 void Controller::undo()
 {
     if (undoStack.empty()) return;
-    redoStack.push_back (score);
-    score = undoStack.back();
+    auto step = std::move (undoStack.back());
     undoStack.pop_back();
+    if (step.results)
+    {
+        // A Generate undone: the ideas listed before it come back (0050).
+        if (stepResults) stepResults (-1);
+        redoStack.push_back (std::move (step));
+        setStatus (ui ("Undo Generate — the earlier ideas are back"));
+        return;
+    }
+    redoStack.push_back ({ false, score });
+    score = std::move (step.score);
     dirty = true;
     status = "Undone";
     refresh();
@@ -73,9 +113,17 @@ void Controller::undo()
 void Controller::redo()
 {
     if (redoStack.empty()) return;
-    undoStack.push_back (score);
-    score = redoStack.back();
+    auto step = std::move (redoStack.back());
     redoStack.pop_back();
+    if (step.results)
+    {
+        if (stepResults) stepResults (1);
+        undoStack.push_back (std::move (step));
+        setStatus (ui ("Redo Generate — those ideas are back"));
+        return;
+    }
+    undoStack.push_back ({ false, score });
+    score = std::move (step.score);
     dirty = true;
     status = "Redone";
     refresh();
@@ -93,7 +141,7 @@ juce::String Controller::describe() const
     {
         const int bar = score.barAt (caret);
         const double beat = 1.0 + static_cast<double> (caret - score.barStart (bar)) / static_cast<double> (score.meterAtBar (bar).beatTicks());
-        d << " " << juce::String (p->name) << " in the roll, caret at bar " << (bar + 1) << " beat " << juce::String (beat, 2) << ".";
+        d << " " << juce::String (p->name) << " in the roll, cursor at bar " << (bar + 1) << " beat " << juce::String (beat, 2) << ".";
     }
     if (range.active()) d << " Chosen: " << rangeText() << ".";
     else if (! selection.empty()) d << " " << static_cast<int> (selection.size()) << " notes selected.";
@@ -112,9 +160,108 @@ void Controller::setCaret (uint32_t partId, Tick t)
 
 void Controller::choosePart (uint32_t partId)
 {
-    if (range.active() && std::find (range.parts.begin(), range.parts.end(), partId) == range.parts.end())
-        range = {};
+    bool kept = false;
+    for (const auto& b : range.blocks()) kept = kept || b.has (partId);
+    if (! kept) range = {};
+    if (score.partById (partId) != nullptr)
+    {
+        noPartChosen = false;
+        chosenParts.clear();
+        partAnchor = partId;
+    }
     setCaret (partId, caret);
+}
+
+void Controller::clickPart (uint32_t partId, bool add, bool extend)
+{
+    if (score.partById (partId) == nullptr) return;
+    if (! add && ! extend) { choosePart (partId); return; }
+    // Choosing parts by name lets go of chosen bars; the parts chosen are
+    // where the next idea goes.
+    range = {};
+    auto chosen = partsChosen();
+    if (extend)
+    {
+        // From the part clicked before - the first chosen, so it takes the tune.
+        const uint32_t from = score.partById (partAnchor) != nullptr ? partAnchor : (chosen.empty() ? partId : chosen.front());
+        const int a = score.partIndex (from), b = score.partIndex (partId);
+        chosen = { from };
+        for (int i = a; i != b;)
+        {
+            i += a < b ? 1 : -1;
+            chosen.push_back (score.parts[static_cast<size_t> (i)].id);
+        }
+    }
+    else
+    {
+        const auto it = std::find (chosen.begin(), chosen.end(), partId);
+        if (it != chosen.end()) chosen.erase (it);
+        else chosen.push_back (partId);
+        partAnchor = partId;
+    }
+    setChosen (chosen, partId);
+    if (chosen.empty()) setStatus ("No part chosen: ideas go to every part");
+    else if (chosen.size() == 1) setStatus (juce::String (score.partById (chosen.front())->name) + " chosen");
+    else setStatus (partsText() + ui (" chosen — an idea goes to them, a single line to ") + juce::String (score.partById (chosen.front())->name));
+}
+
+void Controller::setChosen (const std::vector<uint32_t>& parts, uint32_t shown)
+{
+    chosenParts.clear();
+    noPartChosen = parts.empty();
+    if (parts.size() == 1) caretPart = parts.front();
+    else if (parts.size() > 1)
+    {
+        chosenParts = parts;
+        caretPart = std::find (parts.begin(), parts.end(), shown) != parts.end() ? shown : parts.back();
+    }
+    if (const auto* p = caretPartPtr()) audio.setLiveInstrument (p->instrument);
+    sendChangeMessage();
+}
+
+std::vector<uint32_t> Controller::partsChosen() const
+{
+    if (! chosenParts.empty()) return chosenParts;
+    if (noPartChosen || score.partById (caretPart) == nullptr) return {};
+    return { caretPart };
+}
+
+bool Controller::isPartChosen (uint32_t partId) const
+{
+    const auto chosen = partsChosen();
+    return std::find (chosen.begin(), chosen.end(), partId) != chosen.end();
+}
+
+juce::String Controller::partsText() const
+{
+    if (chosenParts.size() < 2) return "every part";
+    if (chosenParts.size() > 4) return juce::String (static_cast<int> (chosenParts.size())) + " parts";
+    juce::StringArray names;
+    for (auto id : chosenParts)
+        if (const auto* p = score.partById (id)) names.add (p->name);
+    juce::String t;
+    for (int i = 0; i < names.size(); ++i)
+        t += (i == 0 ? juce::String() : i == names.size() - 1 ? juce::String (" and ") : juce::String (", ")) + names[i];
+    return t;
+}
+
+void Controller::workIn (uint32_t partId)
+{
+    if (score.partById (partId) == nullptr) return;
+    caretPart = partId;
+    noPartChosen = false;
+    if (std::find (chosenParts.begin(), chosenParts.end(), partId) == chosenParts.end()) chosenParts.clear();
+}
+
+void Controller::letGoOfEverything()
+{
+    if (audio.isPlaying() || auditioning) stop();
+    stepInput = false;
+    selection.clear();
+    range = {};
+    chosenParts.clear();
+    noPartChosen = true;
+    setStatus ("Nothing chosen: ideas go to every part, a single line to the top one");
 }
 
 void Controller::moveCaret (int direction)
@@ -129,6 +276,8 @@ void Controller::caretToPart (int direction)
     if (i < 0) return;
     const int j = std::clamp (i + direction, 0, static_cast<int> (score.parts.size()) - 1);
     caretPart = score.parts[static_cast<size_t> (j)].id;
+    noPartChosen = false;
+    chosenParts.clear();
     if (const auto* p = caretPartPtr()) audio.setLiveInstrument (p->instrument);
     sendChangeMessage();
 }
@@ -142,7 +291,7 @@ uint32_t Controller::drawNoteAt (uint32_t partId, Tick at, int pitch, Tick lengt
     if (id == 0) return 0;
     range = {};
     selection = { id };
-    caretPart = partId;
+    workIn (partId);
     previewPitches ({ pitch }, partId, 0.5);
     sendChangeMessage();
     return id;
@@ -183,7 +332,7 @@ void Controller::setGrid (Tick base, bool triplet)
 void Controller::toggleSnap()
 {
     grid.snap = ! grid.snap;
-    setStatus (grid.snap ? "Notes snap to the grid" : "Snap off: notes go exactly where they are put");
+    setStatus (grid.snap ? "Snap is on: notes snap to the grid" : "Snap is off: notes go exactly where you put them");
 }
 
 void Controller::toggleDrawTool()
@@ -197,7 +346,7 @@ void Controller::toggleStepInput()
 {
     stepInput = ! stepInput;
     if (stepInput) caret = roll::snap (score, caret, grid);
-    setStatus (stepInput ? "Step input: play a MIDI keyboard to write notes at the caret, one grid step each"
+    setStatus (stepInput ? "Step input is on: play a MIDI keyboard to write notes at the cursor, one grid step each"
                          : "Step input off");
 }
 
@@ -213,10 +362,22 @@ void Controller::select (const Selection& s, bool preview)
 
 void Controller::selectAll()
 {
+    // Cmd+A (decision 0051): with a part chosen, every part is chosen, the
+    // top one first. With none chosen (after Escape), or every part chosen
+    // already, every note is selected as well.
+    const bool everyPart = score.parts.size() > 1 && chosenParts.size() == score.parts.size();
+    const bool notesToo = noPartChosen || everyPart || score.parts.size() < 2;
     range = {};
     selection.clear();
-    for (const auto& p : score.parts)
-        for (const auto& n : p.notes) selection.insert (n.id);
+    std::vector<uint32_t> all;
+    for (const auto& p : score.parts) all.push_back (p.id);
+    if (notesToo)
+        for (const auto& p : score.parts)
+            for (const auto& n : p.notes) selection.insert (n.id);
+    noPartChosen = false;
+    if (all.size() > 1) chosenParts = all;
+    status = notesToo ? juce::String ("Everything chosen: every part and all ") + juce::String (static_cast<int> (selection.size())) + " notes"
+                      : ui ("Every part chosen — press ⌘A again to select every note too");
     sendChangeMessage();
 }
 
@@ -253,7 +414,7 @@ void Controller::transposeSelection (int semitones)
     const auto ids = selection;
     bool ok = true;
     edit (semitones % 12 == 0 ? "Moved by an octave" : "Transposed", [&] (Score& s) { ok = transposeNotes (s, ids, semitones); });
-    if (! ok) { undo(); setStatus ("That would go past the ends of the MIDI range."); return; }
+    if (! ok) { undo(); setStatus ("Nothing moved: that would take notes outside the MIDI range."); return; }
     previewSelection();
 }
 
@@ -271,14 +432,14 @@ void Controller::dragSelection (Tick by, int semitones, bool copy)
     {
         std::vector<uint32_t> made;
         edit ("Copied notes", [&] (Score& s) { made = roll::copyNotesBy (s, ids, by, semitones); });
-        if (made.empty()) { undo(); setStatus ("That would go past the start, or the ends of the MIDI range."); return; }
+        if (made.empty()) { undo(); setStatus ("Nothing changed: that would take notes before the start or outside the MIDI range."); return; }
         selection = Selection (made.begin(), made.end());
     }
     else
     {
         bool ok = true;
         edit (semitones != 0 && by == 0 ? "Transposed" : "Moved", [&] (Score& s) { ok = roll::moveNotes (s, ids, by, semitones); });
-        if (! ok) { undo(); setStatus ("That would go past the start, or the ends of the MIDI range."); return; }
+        if (! ok) { undo(); setStatus ("Nothing changed: that would take notes before the start or outside the MIDI range."); return; }
     }
     if (semitones != 0) previewSelection();
     sendChangeMessage();
@@ -309,7 +470,7 @@ void Controller::quantiseSelection()
     if (ids.empty())
         if (const auto* p = caretPartPtr())
             for (const auto& n : p->notes) ids.insert (n.id);
-    if (ids.empty()) { setStatus ("Nothing to quantise"); return; }
+    if (ids.empty()) { setStatus ("There are no notes to quantise."); return; }
     const Tick step = grid.step();
     edit ("Quantised to " + juce::String (grid.name()), [&] (Score& s) { roll::quantise (s, ids, step); });
 }
@@ -385,43 +546,95 @@ void Controller::previewSelection()
     previewPitches (pitches, partId);
 }
 
-void Controller::selectRange (int a, int b, int fromPart, int toPart)
+void Controller::selectRange (int a, int b, int fromPart, int toPart, bool keepOthers)
 {
     if (score.parts.empty()) return;
     const int last = static_cast<int> (score.parts.size()) - 1;
+    auto more = keepOthers ? range.more : std::vector<Bars> {};
     range = {};
+    range.more = std::move (more);
     range.first = std::clamp (std::min (a, b), 0, score.bars - 1);
     range.last = std::clamp (std::max (a, b), 0, score.bars - 1);
     const int p0 = std::clamp (std::min (fromPart, toPart), 0, last);
     const int p1 = std::clamp (std::max (fromPart, toPart), 0, last);
     for (int i = p0; i <= p1; ++i) range.parts.push_back (score.parts[static_cast<size_t> (i)].id);
 
-    const Tick from = score.barStart (range.first), to = score.barStart (range.last + 1);
-    selection.clear();
-    for (const auto pid : range.parts)
-        if (const auto* p = score.partById (pid))
-            for (const auto& n : p->notes)
-                if (n.start >= from && n.start < to) selection.insert (n.id);
+    selection = notesInBlocks();
     caretPart = range.parts.front();
-    caret = from;
+    noPartChosen = false;
+    chosenParts.clear();
+    caret = score.barStart (range.first);
     sendChangeMessage();
+}
+
+void Controller::addRange (int a, int b, int fromPart, int toPart)
+{
+    if (! range.active()) { selectRange (a, b, fromPart, toPart); return; }
+    // One bar of one part chosen already: Cmd and a click take it away.
+    if (a == b && fromPart == toPart && fromPart >= 0 && fromPart < static_cast<int> (score.parts.size()))
+    {
+        const auto id = score.parts[static_cast<size_t> (fromPart)].id;
+        auto blocks = range.blocks();
+        const auto it = std::find_if (blocks.begin(), blocks.end(), [&] (const Bars& x)
+                                      { return x.first == a && x.last == a && x.parts.size() == 1 && x.parts.front() == id; });
+        if (it != blocks.end())
+        {
+            blocks.erase (it);
+            range = {};
+            if (! blocks.empty())
+            {
+                static_cast<Bars&> (range) = blocks.back();
+                blocks.pop_back();
+                range.more = blocks;
+            }
+            selection = notesInBlocks();
+            sendChangeMessage();
+            return;
+        }
+    }
+    const Bars before = range;
+    range.more.push_back (before);
+    selectRange (a, b, fromPart, toPart, true);
+}
+
+Selection Controller::notesInBlocks() const
+{
+    Selection sel;
+    for (const auto& b : range.blocks())
+    {
+        const Tick from = score.barStart (b.first), to = score.barStart (b.last + 1);
+        for (const auto pid : b.parts)
+            if (const auto* p = score.partById (pid))
+                for (const auto& n : p->notes)
+                    if (n.start >= from && n.start < to) sel.insert (n.id);
+    }
+    return sel;
 }
 
 juce::String Controller::rangeText() const
 {
-    if (! range.active()) return {};
-    juce::String t = range.first == range.last ? "Bar " + juce::String (range.first + 1)
-                                               : "Bars " + juce::String (range.first + 1) + "-" + juce::String (range.last + 1);
-    const auto* top = score.partById (range.parts.front());
-    const auto* bottom = score.partById (range.parts.back());
-    if (top != nullptr) t += ", " + juce::String (top->name);
-    if (bottom != nullptr && bottom != top) t += " to " + juce::String (bottom->name);
-    return t;
+    juce::StringArray blocks;
+    for (const auto& b : range.blocks())
+    {
+        juce::String t = b.first == b.last ? "Bar " + juce::String (b.first + 1)
+                                           : "Bars " + juce::String (b.first + 1) + ui ("–") + juce::String (b.last + 1);
+        const auto* top = score.partById (b.parts.front());
+        const auto* bottom = score.partById (b.parts.back());
+        if (top != nullptr) t += ", " + juce::String (top->name);
+        if (bottom != nullptr && bottom != top) t += " to " + juce::String (bottom->name);
+        blocks.add (t);
+    }
+    return blocks.joinIntoString ("; ");
 }
 
 std::pair<int, int> Controller::selectedBars() const
 {
-    if (range.active()) return { range.first, range.last };
+    if (range.active())
+    {
+        int lo = range.first, hi = range.last;
+        for (const auto& b : range.more) { lo = std::min (lo, b.first); hi = std::max (hi, b.last); }
+        return { lo, hi };
+    }
     if (selection.empty()) { const int b = score.barAt (caret); return { b, b }; }
     int lo = score.bars, hi = 0;
     for (const auto& p : score.parts)
@@ -452,6 +665,8 @@ uint32_t Controller::addPart (const std::string& instrumentId)
         s.parts.push_back (p);
     });
     caretPart = id;
+    noPartChosen = false;
+    chosenParts.clear();
     sendChangeMessage();
     return id;
 }
@@ -557,7 +772,7 @@ void Controller::clearAllNotes()
     });
     selection.clear();
     range = {};
-    setStatus ("Cleared every note. Undo (Cmd+Z) brings them back.");
+    setStatus (ui ("Every note cleared. Undo (⌘Z) brings them back."));
 }
 
 //==============================================================================
@@ -586,13 +801,13 @@ void Controller::skipToEnd()
 {
     if (audio.isPlaying()) stop();
     caret = musicEnd();
-    setStatus ("To the end of the music: bar " + juce::String (score.barAt (caret) + 1));
+    setStatus ("At the end of the music: bar " + juce::String (score.barAt (caret) + 1));
 }
 
 void Controller::toggleFollow()
 {
     followPlayback = ! followPlayback;
-    setStatus (! followPlayback ? "Follow off: the view stays where you put it while it plays"
+    setStatus (! followPlayback ? "Follow is off: the view stays where you put it while the music plays"
                : followStyleNow() == FollowStyle::smooth ? "Follow: the view scrolls along with the music as it plays"
                                                     : "Follow: the view turns a page with the music as it plays");
 }
@@ -657,9 +872,11 @@ void Controller::newScore (const juce::String& name)
     range = {};
     caret = 0;
     caretPart = score.parts.empty() ? 0 : score.parts.front().id;
+    noPartChosen = false;
+    chosenParts.clear();
     file = juce::File();
     dirty = false;
-    status = "New score: " + name;
+    status = "New song: " + name;
     refresh();
 }
 
@@ -687,7 +904,7 @@ bool readMxl (const juce::File& f, std::string& text, juce::String& error)
     const auto* entry = path.isEmpty() ? nullptr : zip.getEntry (path);
     if (entry == nullptr) { error = f.getFileName() + " has no score inside it."; return false; }
     std::unique_ptr<juce::InputStream> in (zip.createStreamForEntry (*entry));
-    if (in == nullptr) { error = "Could not unpack " + f.getFileName(); return false; }
+    if (in == nullptr) { error = "The compressed MusicXML file couldn't be unpacked. It may be damaged."; return false; }
     juce::MemoryBlock mb;
     in->readIntoMemoryBlock (mb);
     text.assign (static_cast<const char*> (mb.getData()), mb.getSize());
@@ -704,7 +921,7 @@ bool Controller::readScoreFile (const juce::File& f, Score& out, juce::String& e
         else
         {
             juce::MemoryBlock mb;
-            if (! f.loadFileAsData (mb)) { error = "Could not read " + f.getFileName(); return false; }
+            if (! f.loadFileAsData (mb)) { error = "The file couldn't be read. Check that it still exists and that you can open it."; return false; }
             text.assign (static_cast<const char*> (mb.getData()), mb.getSize());
         }
         auto r = readMusicXml (text);
@@ -714,7 +931,7 @@ bool Controller::readScoreFile (const juce::File& f, Score& out, juce::String& e
         return true;
     }
     juce::MemoryBlock mb;
-    if (! f.loadFileAsData (mb)) { error = "Could not read " + f.getFileName(); return false; }
+    if (! f.loadFileAsData (mb)) { error = "The file couldn't be read. Check that it still exists and that you can open it."; return false; }
     if (f.hasFileExtension ("miderator;noterator"))
     {
         auto r = loadScore (mb.toString().toStdString());
@@ -745,6 +962,8 @@ bool Controller::load (const juce::File& f, juce::String& error)
     range = {};
     caret = 0;
     caretPart = score.parts.empty() ? 0 : score.parts.front().id;
+    noPartChosen = false;
+    chosenParts.clear();
     dirty = false;
     status = "Opened " + f.getFileName();
     refresh();
@@ -779,7 +998,7 @@ bool Controller::importFile (const juce::File& f, juce::String& error)
 bool Controller::save (const juce::File& f, juce::String& error)
 {
     const auto text = saveScore (score);
-    if (! f.replaceWithText (text)) { error = "Could not write " + f.getFullPathName(); return false; }
+    if (! f.replaceWithText (text)) { error = "There was a problem writing " + f.getFullPathName() + ". Check that the folder exists and you can save there."; return false; }
     file = f;
     dirty = false;
     setStatus ("Saved " + f.getFileName());
@@ -791,16 +1010,40 @@ bool Controller::save (const juce::File& f, juce::String& error)
 GeneratorContext Controller::generatorContext (bool withSelection) const
 {
     auto ctx = contextFor (score, caretPart, caret, withSelection ? selection : Selection {});
-    if (range.active()) ctx.rangeBars = range.bars();
+    if (range.active())
+        for (const auto& b : range.blocks()) ctx.rangeBars = std::max (ctx.rangeBars, b.bars());
     return ctx;
 }
 
 uint32_t Controller::lineTarget() const
 {
-    if (! range.active()) return caretPart;
-    for (auto id : range.parts)
-        if (id == caretPart) return id;
-    return range.parts.front();
+    if (! range.active())
+    {
+        // The part chosen first, of several (decision 0051).
+        if (! chosenParts.empty()) return chosenParts.front();
+        return noPartChosen && ! score.parts.empty() ? score.parts.front().id : caretPart;
+    }
+    return lineTargetIn (range);
+}
+
+std::vector<uint32_t> Controller::partsWithSelection() const
+{
+    std::vector<uint32_t> parts;
+    for (const auto& p : score.parts)
+        for (const auto& n : p.notes)
+            if (selection.count (n.id) != 0) { parts.push_back (p.id); break; }
+    return parts;
+}
+
+bool Controller::variesAcrossParts (const std::string& generatorId) const
+{
+    return generatorId == "midi-variator" && partsWithSelection().size() > 1;
+}
+
+uint32_t Controller::lineTargetIn (const Bars& block) const
+{
+    if (block.has (caretPart)) return caretPart;
+    return block.parts.front();
 }
 
 Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, const std::string& generatorId,
@@ -810,16 +1053,39 @@ Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, 
     // 0036) - except a block from the toolbox, which goes in as it is.
     InsertOptions base;
     base.fitPolyphony = generatorId != "starting-blocks";
+    // Vary Notes on music in several parts - bars chosen across them, or
+    // notes selected in them: the variation follows the last bar of it,
+    // shared across those parts as if they were chosen (decision 0053) - or,
+    // set to In place (0055), takes those bars of those parts instead.
+    if (fromSelection && variesAcrossParts (generatorId))
+    {
+        const auto [first, last] = selectedBars();
+        const Tick at = s.barStart (varyReplaces ? first : last + 1);
+        const Tick end = varyReplaces ? s.barStart (last + 1) : at + std::max<Tick> (r.length, PPQ);
+        report = insertIntoRange (s, r, partsWithSelection(), at, end, base);
+        return at;
+    }
     if (range.active())
     {
         // Selected bars: the music fills them (decision 0019).
         const Tick from = s.barStart (range.first), to = s.barStart (range.last + 1);
         if (! fromSelection)
         {
-            // Shared across the chosen parts - or, a single line, into one (0042).
-            const auto parts = isSingleLine (r) ? std::vector<uint32_t> { lineTarget() } : range.parts;
-            report = insertIntoRange (s, r, parts, from, to, base);
-            return from;
+            // Shared across the chosen parts - or, a single line, into one
+            // (0042) - each block of bars on its own (0051).
+            Tick first = from;
+            for (const auto& b : range.blocks())
+            {
+                const Tick bFrom = s.barStart (b.first), bTo = s.barStart (b.last + 1);
+                const auto parts = isSingleLine (r) ? std::vector<uint32_t> { lineTargetIn (b) } : b.parts;
+                const auto one = insertIntoRange (s, r, parts, bFrom, bTo, base);
+                report.newNotes.insert (one.newNotes.begin(), one.newNotes.end());
+                report.newParts.insert (report.newParts.end(), one.newParts.begin(), one.newParts.end());
+                report.thinnedParts.insert (report.thinnedParts.end(), one.thinnedParts.begin(), one.thinnedParts.end());
+                report.unplaced.insert (report.unplaced.end(), one.unplaced.begin(), one.unplaced.end());
+                first = std::min (first, bFrom);
+            }
+            return first;
         }
         if (generatorId == "midi-variator" && ! selection.empty())
         {
@@ -850,9 +1116,12 @@ Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, 
         // caret's bar so an idea always starts on a downbeat, all of it.
         // A single line goes into the caret's part alone (decision 0042).
         const Tick at = s.barStart (s.barAt (caret));
+        // Several parts chosen by name: those alone (decision 0051).
         std::vector<uint32_t> all;
         if (isSingleLine (r)) all.push_back (lineTarget());
-        else for (const auto& p : s.parts) all.push_back (p.id);
+        else
+            for (const auto& p : s.parts)
+                if (chosenParts.empty() || isPartChosen (p.id)) all.push_back (p.id);
         report = insertIntoRange (s, r, all, at, at + std::max<Tick> (r.length, PPQ), base);
         return at;
     }
@@ -898,9 +1167,13 @@ void Controller::insertGenerated (const GeneratedResult& r, bool fromSelection, 
         at = place (s, r, fromSelection, generatorId, report);
         // A Blocks chord keeps the root it was made on, for the Chords lane
         // (decision 0046) - as far as the chosen bars, if bars are chosen.
-        Tick length = r.length;
-        if (range.active() && ! fromSelection) length = std::min (length, s.barStart (range.last + 1) - at);
-        markChordRoot (s, r, at, length);
+        if (range.active() && ! fromSelection)
+            for (const auto& b : range.blocks())
+            {
+                const Tick bFrom = s.barStart (b.first);
+                markChordRoot (s, r, bFrom, std::min (r.length, s.barStart (b.last + 1) - bFrom));
+            }
+        else markChordRoot (s, r, at, r.length);
     });
     // Say so when an instrument was given fewer notes than the idea had.
     juce::StringArray thinned;
@@ -908,18 +1181,21 @@ void Controller::insertGenerated (const GeneratedResult& r, bool fromSelection, 
         if (const auto* p = score.partById (id))
             thinned.addIfNotAlreadyThere (juce::String (p->name) + (instrumentById (p->instrument).role == 'B' ? ": bottom notes only" : ": top notes only"));
     if (! thinned.isEmpty())
-        status += " - " + thinned.joinIntoString (", ");
+        status += ui (" — ") + thinned.joinIntoString (", ");
     // And when a line had nowhere to go: no part is added for it (0041).
     juce::StringArray left;
     for (const auto& name : report.unplaced) left.addIfNotAlreadyThere (juce::String (name));
     if (! left.isEmpty())
-        status += " - " + left.joinIntoString (", ") + " left out: no part for " + (left.size() == 1 ? "it" : "them");
-    if (range.active() && (! fromSelection || (generatorId == "midi-variator" && varyReplaces)))
+        status += ui (" — ") + left.joinIntoString (", ") + " left out, with no part to play " + (left.size() == 1 ? "it" : "them");
+    // The bars stay selected, so another idea can go straight into them - and
+    // so does a variation in their place (0055) or across parts (0053). One
+    // after one part's bars is selected itself, below, to vary again.
+    if (range.active() && (! fromSelection
+                           || (generatorId == "midi-variator" && (varyReplaces || variesAcrossParts (generatorId)))))
     {
-        // The bars stay selected, so another idea can go straight into them.
-        // (A variation after them is selected itself, below, to vary again.)
-        const int top = score.partIndex (range.parts.front()), bottom = score.partIndex (range.parts.back());
-        selectRange (range.first, range.last, top, bottom);
+        selection = notesInBlocks();
+        caret = score.barStart (range.first);
+        sendChangeMessage();
         return;
     }
     range = {};
@@ -949,7 +1225,25 @@ Score Controller::auditionScore (const GeneratedResult& r, bool fromSelection, c
             temp.parts.erase (std::remove_if (temp.parts.begin(), temp.parts.end(),
                                               [id] (const Part& p) { return p.id == id; }), temp.parts.end());
         Tick length = std::max<Tick> (r.length, PPQ);
-        if (range.active() && (! fromSelection || generatorId == "midi-variator"))
+        if (range.active() && ! fromSelection && ! range.more.empty())
+        {
+            // Bars in several blocks (0051): heard in each, from the first.
+            Tick end = at;
+            for (const auto& b : range.blocks())
+            {
+                const Tick bFrom = score.barStart (b.first), bTo = score.barStart (b.last + 1);
+                addAudition (temp, r, bFrom, bTo - bFrom);
+                end = std::max (end, bTo);
+            }
+            temp.normalise();
+            from = at;
+            to = end;
+            return temp;
+        }
+        // As long as the bars, wherever it goes - in them or after them
+        // (0055) - except a variation shared after several parts (0053).
+        if (range.active() && (! fromSelection || generatorId == "midi-variator")
+            && ! (variesAcrossParts (generatorId) && ! varyReplaces))
             length = score.barStart (range.last + 1) - score.barStart (range.first);
         addAudition (temp, r, at, length);
         temp.normalise();

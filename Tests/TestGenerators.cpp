@@ -294,7 +294,7 @@ TEST ("generators: Blocks offers chords, arpeggios, runs and intervals; drums st
     e.reset ("good-idea");
     std::vector<std::string> makes;
     for (const auto& s : e.settings ("good-idea", ctx))
-        if (s.label == "Make a") makes = s.names;
+        if (s.label == "Kind") makes = s.names;
     CHECK (std::find (makes.begin(), makes.end(), "Drums") != makes.end());
 }
 

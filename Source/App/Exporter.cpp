@@ -18,7 +18,7 @@ bool exportMidi (const Score& score, ExportRange range, bool withAutoCC, const j
     file.deleteFile();
     if (! file.replaceWithData (bytes.data(), bytes.size()))
     {
-        error = "Could not write " + file.getFullPathName();
+        error = "There was a problem writing " + file.getFullPathName() + ". Check that the folder exists and you can save there.";
         return false;
     }
     return true;
@@ -36,7 +36,7 @@ bool exportMusicXml (const Score& score, ExportRange range, const juce::File& fi
     }
     if (! file.replaceWithText (writeMusicXml (slice), false, false, "\n"))
     {
-        error = "Could not write " + file.getFullPathName();
+        error = "There was a problem writing " + file.getFullPathName() + ". Check that the folder exists and you can save there.";
         return false;
     }
     return true;
@@ -55,16 +55,16 @@ bool renderAudio (const Score& score, ExportRange range, SynthRack& synth, const
 
     file.deleteFile();
     std::unique_ptr<juce::OutputStream> stream (file.createOutputStream().release());
-    if (stream == nullptr) { error = "Could not write " + file.getFullPathName(); return false; }
+    if (stream == nullptr) { error = "There was a problem writing " + file.getFullPathName() + ". Check that the folder exists and you can save there."; return false; }
     juce::WavAudioFormat wav;
     auto writer = wav.createWriterFor (stream, juce::AudioFormatWriterOptions().withSampleRate (rate).withNumChannels (2).withBitsPerSample (24));
-    if (writer == nullptr) { error = "Could not start a WAV file."; return false; }
+    if (writer == nullptr) { error = "The WAV file couldn't be created."; return false; }
 
     synth.prepare (rate, block);
     juce::AudioBuffer<float> buffer (2, block);
     // The rack must already have a synth for every bank: an Audio Unit is
     // made on the message thread, and this runs on its own (decision 0023).
-    if (synth.banks() < seq->banks) { error = "Not enough synths were made for this score."; return false; }
+    if (synth.banks() < seq->banks) { error = "There aren't enough instruments loaded to play this score. Try again."; return false; }
     BankMidi midi;
     // Silence on every channel to start, whatever the synths were doing.
     for (auto& bank : midi)
@@ -91,7 +91,7 @@ bool renderAudio (const Score& score, ExportRange range, SynthRack& synth, const
         {
             writer.reset();
             file.deleteFile();
-            error = "Cancelled.";
+            error = "The export was cancelled.";
             synth.release();
             return false;
         }

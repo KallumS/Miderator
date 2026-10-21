@@ -2,7 +2,7 @@
 
 - **Date:** 2026-10-21
 - **Status:** Accepted (Noterator and Miderator alike). Adds a choice to
-  0011 and 0019.
+  0011, 0019 and 0053.
 
 ## Context
 
@@ -30,6 +30,10 @@ Decided in `Controller::place`, as every placement is:
 - **After, bars chosen:** in as many bars after them, in the same part; the
   variation is then selected, so it can be varied again.
 - **In place, bars chosen:** in those bars, as before; they stay chosen.
+- **Several parts** (0053, made in another session at the same time and
+  merged with this): after, the variation follows the last bar, shared
+  across those parts, as 0053 decided; in place, it takes those bars of
+  those parts, shared across them the same way. The bars stay chosen.
 
 An audition is heard where the insert would go, for as long as the bars
 chosen (it was measured from where it went, which after the bars would have

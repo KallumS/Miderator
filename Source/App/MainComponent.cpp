@@ -4,6 +4,7 @@
 #include "SystemSettings.h"
 #include "ScaleModel.h"
 #include "Templates.h"
+#include "Theme.h"
 
 namespace nt
 {
@@ -33,13 +34,12 @@ const std::vector<std::pair<int, int>>& meterChoices()
     return m;
 }
 
-// An ellipsis, as the Mac writes one after a command that asks something first.
-const juce::String dots = juce::String::charToString (0x2026);
-
+// A shortcut as the Mac writes it: Shift+Cmd+S is ⇧⌘S (decision 0054).
 juce::String key (const juce::String& k)
 {
    #if JUCE_MAC
-    return k.replace ("Cmd", juce::String::charToString (0x2318));
+    if (k == "Delete") return ui ("⌫");
+    return k.replace ("Ctrl+", ui ("⌃")).replace ("Alt+", ui ("⌥")).replace ("Shift+", ui ("⇧")).replace ("Cmd+", ui ("⌘"));
    #else
     return k.replace ("Cmd", "Ctrl");
    #endif
@@ -329,13 +329,8 @@ bool MainComponent::keyPressed (const juce::KeyPress& k)
 
     // Space from bar 1, Shift+Space from the caret (decision 0035).
     if (code == juce::KeyPress::spaceKey) { c.togglePlay (! mods.isShiftDown()); return true; }
-    if (code == juce::KeyPress::escapeKey)
-    {
-        if (c.audio.isPlaying()) c.stop();
-        else if (c.stepInput) c.toggleStepInput();
-        else c.select ({});
-        return true;
-    }
+    // Escape lets go of everything, the caret's part too (decision 0049).
+    if (code == juce::KeyPress::escapeKey) { c.letGoOfEverything(); return true; }
     if (code == juce::KeyPress::deleteKey || code == juce::KeyPress::backspaceKey) { c.deleteSelection(); return true; }
     if (code == juce::KeyPress::upKey || code == juce::KeyPress::downKey)
     {
@@ -395,18 +390,18 @@ juce::PopupMenu MainComponent::getMenuForIndex (int index, const juce::String&)
     if (index == 0)
     {
         m.addSubMenu ("New", templateMenu());
-        item (menuOpen, "Open" + dots, "Cmd+O");
-        item (menuImport, "Import MIDI or MusicXML" + dots);
+        item (menuOpen, ui ("Open…"), "Cmd+O");
+        item (menuImport, ui ("Import MIDI or MusicXML…"));
         m.addSeparator();
         item (menuSave, "Save", "Cmd+S");
-        item (menuSaveAs, "Save As" + dots, "Shift+Cmd+S");
+        item (menuSaveAs, ui ("Save As…"), "Shift+Cmd+S");
         m.addSeparator();
-        item (menuExportMidi, "Export Song as MIDI" + dots);
-        item (menuExportMidiBars, "Export Selected Bars as MIDI" + dots);
-        item (menuExportAudio, "Export Song as Audio (WAV)" + dots);
-        item (menuExportAudioBars, "Export Selected Bars as Audio (WAV)" + dots);
-        item (menuExportXml, "Export Song as MusicXML" + dots);
-        item (menuExportXmlBars, "Export Selected Bars as MusicXML" + dots);
+        item (menuExportMidi, ui ("Export Song as MIDI…"));
+        item (menuExportMidiBars, ui ("Export Selected Bars as MIDI…"));
+        item (menuExportAudio, ui ("Export Song as Audio (WAV)…"));
+        item (menuExportAudioBars, ui ("Export Selected Bars as Audio (WAV)…"));
+        item (menuExportXml, ui ("Export Song as MusicXML…"));
+        item (menuExportXmlBars, ui ("Export Selected Bars as MusicXML…"));
         addScoreItems (m);
     }
     else if (index == 1)
@@ -416,14 +411,14 @@ juce::PopupMenu MainComponent::getMenuForIndex (int index, const juce::String&)
         m.addSeparator();
         item (menuCut, "Cut", "Cmd+X", ! controller.selection.empty());
         item (menuCopy, "Copy", "Cmd+C", ! controller.selection.empty());
-        item (menuPaste, "Paste at the Caret", "Cmd+V");
+        item (menuPaste, "Paste", "Cmd+V");
         item (menuDelete, "Delete", "Delete", ! controller.selection.empty());
         item (menuSelectAll, "Select All", "Cmd+A");
         item (menuDuplicate, "Duplicate", "Cmd+D", ! controller.selection.empty());
         m.addSeparator();
         item (menuQuantise, "Quantise to " + juce::String (controller.grid.name()), "Q");
         m.addSeparator();
-        item (menuClearAll, "Clear All Notes" + dots, {}, controller.score.lastNoteEnd() > 0);
+        item (menuClearAll, ui ("Clear All Notes…"), {}, controller.score.lastNoteEnd() > 0);
     }
     else if (index == 2)
     {
@@ -435,7 +430,7 @@ juce::PopupMenu MainComponent::getMenuForIndex (int index, const juce::String&)
             m.addItem (i);
         }
         {
-            juce::PopupMenu::Item i ("Step Input from a MIDI Keyboard");
+            juce::PopupMenu::Item i ("Step Input");
             i.itemID = menuStepInput;
             i.isTicked = controller.stepInput;
             i.shortcutKeyDescription = "R";
@@ -456,7 +451,7 @@ juce::PopupMenu MainComponent::getMenuForIndex (int index, const juce::String&)
         }
         grid.addSeparator();
         grid.addItem (menuTriplet, "Triplet", true, controller.grid.triplet);
-        grid.addItem (menuSnap, "Snap to the Grid", true, controller.grid.snap);
+        grid.addItem (menuSnap, "Snap to Grid", true, controller.grid.snap);
         m.addSubMenu ("Grid", grid);
         m.addSeparator();
         m.addItem (menuLightTheme, "Light Theme", true, controller.lightTheme);
@@ -478,26 +473,26 @@ juce::PopupMenu MainComponent::getMenuForIndex (int index, const juce::String&)
         if (controller.audio.isPlaying()) item (menuPlay, "Stop", "Space");
         else
         {
-            item (menuPlay, "Play from the Start", "Space");
-            item (menuPlayCaret, "Play from the Caret", "Shift+Space");
+            item (menuPlay, "Play from Start", "Space");
+            item (menuPlayCaret, "Play from Cursor", "Shift+Space");
         }
         item (menuToStart, "Return to Start", "Home");
         item (menuToEnd, "Skip to End", "End");
         m.addSeparator();
         {
-            juce::PopupMenu::Item i ("Follow the Playhead");
+            juce::PopupMenu::Item i ("Follow Playhead");
             i.itemID = menuFollow;
             i.isTicked = controller.followPlayback;
             i.shortcutKeyDescription = "F";
             m.addItem (i);
         }
-        // With Reduce Motion on, the view turns pages rather than scrolls.
-        m.addItem (menuFollowSmooth, "    Scroll Along with the Music", ! controller.reduceMotion,
+        // With Reduce Motion on, the view turns pages rather than scrolls (0048).
+        m.addItem (menuFollowSmooth, "    Scroll with the Music", ! controller.reduceMotion,
                    controller.followPlayback && controller.followStyleNow() == FollowStyle::smooth);
         m.addItem (menuFollowPage, "    Turn a Page at a Time", true, controller.followPlayback && controller.followStyleNow() == FollowStyle::page);
-        if (controller.reduceMotion) m.addItem (-1, "    (Reduce Motion is on in the Mac's settings)", false);
+        if (controller.reduceMotion) m.addItem (-1, ui ("    (Reduce Motion is on in the Mac’s settings)"), false);
         m.addSeparator();
-        item (menuAudioSettings, "Audio and MIDI Devices" + dots);
+        item (menuAudioSettings, ui ("Audio and MIDI Devices…"));
     }
     else
     {
@@ -636,11 +631,11 @@ void MainComponent::showFileMenu()
         m.addItem (i);
     };
     m.addSubMenu ("New", templateMenu());
-    item (menuOpen, "Open" + dots, "Cmd+O");
-    item (menuImport, "Import MIDI or MusicXML" + dots);
+    item (menuOpen, ui ("Open…"), "Cmd+O");
+    item (menuImport, ui ("Import MIDI or MusicXML…"));
     m.addSeparator();
     item (menuSave, "Save", "Cmd+S");
-    item (menuSaveAs, "Save As" + dots, "Shift+Cmd+S");
+    item (menuSaveAs, ui ("Save As…"), "Shift+Cmd+S");
     m.addSeparator();
     m.addSubMenu ("Export", exportMenu());
     m.addSeparator();
@@ -655,18 +650,18 @@ void MainComponent::showFileMenu()
         r.isEnabled = controller.canRedo();
         r.shortcutKeyDescription = key ("Shift+Cmd+Z");
         m.addItem (r);
-        m.addItem (menuClearAll, "Clear All Notes" + dots, controller.score.lastNoteEnd() > 0);
+        m.addItem (menuClearAll, ui ("Clear All Notes…"), controller.score.lastNoteEnd() > 0);
     }
     addScoreItems (m);
     m.addSeparator();
     {
-        juce::PopupMenu::Item i ("Step Input from a MIDI Keyboard");
+        juce::PopupMenu::Item i ("Step Input");
         i.itemID = menuStepInput;
         i.isTicked = controller.stepInput;
         i.shortcutKeyDescription = "R";
         m.addItem (i);
     }
-    m.addItem (menuLightTheme, "Light Piano Roll and Tracks", true, controller.lightTheme);
+    m.addItem (menuLightTheme, "Light Theme", true, controller.lightTheme);
     m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&toolbar.fileAnchor()),
                      [this] (int r) { if (r > 0) menuItemSelected (r, 0); });
 }
@@ -679,9 +674,9 @@ void MainComponent::addScoreItems (juce::PopupMenu& m)
     const auto& s = controller.score;
     const int bar = s.barAt (controller.caret);
     m.addSeparator();
-    m.addSectionHeader ("This Song");
-    m.addItem (menuTitle, "Title and Composer" + dots);
-    m.addItem (menuTempo, "Tempo (" + juce::String (juce::roundToInt (s.tempos.front().bpm)) + " BPM)" + dots);
+    m.addSectionHeader ("Song Settings");
+    m.addItem (menuTitle, ui ("Title and Composer…"));
+    m.addItem (menuTempo, "Tempo (" + juce::String (juce::roundToInt (s.tempos.front().bpm)) + ui (" bpm)…"));
 
     const auto& meter = s.meterAtBar (bar);
     juce::PopupMenu meters;
@@ -694,12 +689,12 @@ void MainComponent::addScoreItems (juce::PopupMenu& m)
         meters.addItem (menuMeterBase + static_cast<int> (i), juce::String (num) + "/" + juce::String (den), true, on);
     }
     meters.addSeparator();
-    meters.addItem (menuMeterOther, "Other" + dots, true, ! listed);
+    meters.addItem (menuMeterOther, ui ("Other…"), true, ! listed);
     m.addSubMenu ("Time Signature at Bar " + juce::String (bar + 1) + " (" + juce::String (meter.num) + "/" + juce::String (meter.den) + ")", meters);
 
     const auto& k = s.keyAtBar (bar);
     juce::PopupMenu keys;
-    keys.addItem (menuKeyHeard, "Use the Key It Hears");
+    keys.addItem (menuKeyHeard, "Detect Key from the Notes");
     keys.addSeparator();
     for (size_t r = 0; r < scaleview::roots.size(); ++r)
     {
@@ -716,17 +711,17 @@ void MainComponent::addScoreItems (juce::PopupMenu& m)
 
     juce::PopupMenu bars;
     const auto [a, b] = controller.selectedBars();
-    bars.addItem (menuInsertBar, "Insert a Bar at the Caret (Before Bar " + juce::String (bar + 1) + ")");
-    bars.addItem (menuDeleteBars, a == b ? "Delete Bar " + juce::String (a + 1) : "Delete Bars " + juce::String (a + 1) + "-" + juce::String (b + 1));
+    bars.addItem (menuInsertBar, "Insert Bar Before Bar " + juce::String (bar + 1));
+    bars.addItem (menuDeleteBars, a == b ? "Delete Bar " + juce::String (a + 1) : "Delete Bars " + juce::String (a + 1) + ui ("–") + juce::String (b + 1));
     bars.addItem (menuAddBars, "Add 4 Bars at the End");
-    m.addSubMenu ("Bars (" + juce::String (s.bars) + " in All)", bars);
+    m.addSubMenu ("Bars (" + juce::String (s.bars) + ")", bars);
 
     m.addSeparator();
     juce::PopupMenu sound;
     sound.addItem (menuSoundApple, "Apple General MIDI (macOS)", true, ! audio.usingBuiltInSynth());
     sound.addItem (menuSoundBuiltIn, "Built-in Synth", true, audio.usingBuiltInSynth());
     sound.addSeparator();
-    sound.addItem (menuAudioSettings, "Audio and MIDI Devices" + dots);
+    sound.addItem (menuAudioSettings, ui ("Audio and MIDI Devices…"));
     m.addSubMenu ("Sound", sound);
 }
 
@@ -764,7 +759,7 @@ void MainComponent::titleDialog()
 
 void MainComponent::tempoDialog()
 {
-    askFor ("Tempo", "Beats a minute, 30 to 240", [this] (juce::AlertWindow& w)
+    askFor ("Tempo", ui ("Beats per minute, from 30 to 240."), [this] (juce::AlertWindow& w)
     {
         w.addTextEditor ("bpm", juce::String (juce::roundToInt (controller.score.tempos.front().bpm)), "Tempo");
         if (auto* e = w.getTextEditor ("bpm")) e->setInputRestrictions (3, "0123456789");
@@ -772,7 +767,7 @@ void MainComponent::tempoDialog()
     [this] (juce::AlertWindow& w)
     {
         const int bpm = w.getTextEditorContents ("bpm").getIntValue();
-        if (bpm < 30 || bpm > 240) { controller.setStatus ("The tempo is unchanged. Choose a tempo from 30 to 240 beats a minute."); return; }
+        if (bpm < 30 || bpm > 240) { controller.setStatus ("Enter a tempo from 30 to 240 beats per minute."); return; }
         controller.setTempo (bpm);
     });
 }
@@ -785,8 +780,8 @@ void MainComponent::meterDialog()
         const auto& m = controller.score.meterAtBar (bar);
         juce::StringArray nums, dens { "2", "4", "8", "16" };
         for (int n = 1; n <= 16; ++n) nums.add (juce::String (n));
-        w.addComboBox ("num", nums, "Beats in a bar");
-        w.addComboBox ("den", dens, "Each beat a");
+        w.addComboBox ("num", nums, "Beats per bar");
+        w.addComboBox ("den", dens, "Beat value");
         if (auto* b = w.getComboBoxComponent ("num")) b->setText (juce::String (m.num), juce::dontSendNotification);
         if (auto* b = w.getComboBoxComponent ("den")) b->setText (juce::String (m.den), juce::dontSendNotification);
     },
@@ -807,15 +802,15 @@ juce::PopupMenu MainComponent::exportMenu()
 {
     juce::PopupMenu m;
     const auto [a, b] = controller.selectedBars();
-    const juce::String bars = a == b ? "bar " + juce::String (a + 1) : "bars " + juce::String (a + 1) + "-" + juce::String (b + 1);
-    m.addItem (menuExportMidi, "Song as MIDI" + dots);
-    m.addItem (menuExportMidiBars, "Selection (" + bars + ") as MIDI" + dots);
+    const juce::String bars = a == b ? "Bar " + juce::String (a + 1) : "Bars " + juce::String (a + 1) + ui ("–") + juce::String (b + 1);
+    m.addItem (menuExportMidi, ui ("Song as MIDI…"));
+    m.addItem (menuExportMidiBars, bars + ui (" as MIDI…"));
     m.addSeparator();
-    m.addItem (menuExportAudio, "Song as Audio (WAV)" + dots);
-    m.addItem (menuExportAudioBars, "Selection (" + bars + ") as Audio (WAV)" + dots);
+    m.addItem (menuExportAudio, ui ("Song as Audio (WAV)…"));
+    m.addItem (menuExportAudioBars, bars + ui (" as Audio (WAV)…"));
     m.addSeparator();
-    m.addItem (menuExportXml, "Song as MusicXML (for Dorico, MuseScore, Sibelius)" + dots);
-    m.addItem (menuExportXmlBars, "Selection (" + bars + ") as MusicXML" + dots);
+    m.addItem (menuExportXml, ui ("Song as MusicXML (for Dorico, MuseScore, Sibelius)…"));
+    m.addItem (menuExportXmlBars, bars + ui (" as MusicXML…"));
     return m;
 }
 
@@ -828,10 +823,10 @@ void MainComponent::checkSaved (std::function<void()> then)
     // The Mac's own question, in its own words (decision 0048).
     auto opts = juce::MessageBoxOptions()
                     .withIconType (juce::MessageBoxIconType::QuestionIcon)
-                    .withTitle ("Do you want to save the changes you made to " + juce::String (controller.score.title) + "?")
-                    .withMessage ("Your changes will be lost if you don't save them.")
+                    .withTitle (ui ("Do you want to save the changes to “") + juce::String (controller.score.title) + ui ("”?"))
+                    .withMessage (ui ("Your changes will be lost if you don’t save them."))
                     .withButton ("Save")
-                    .withButton ("Don't Save")
+                    .withButton (ui ("Don’t Save"))
                     .withButton ("Cancel")
                     .withAssociatedComponent (this);
     juce::NativeMessageBox::showAsync (opts, [this, then] (int r)
@@ -845,7 +840,7 @@ void MainComponent::openFile (const juce::File& f)
 {
     juce::String error;
     if (! controller.load (f, error))
-        showError ("Could not open " + f.getFileName(), error);
+        showError (ui ("“") + f.getFileName() + ui ("” couldn’t be opened."), error);
     lastFolder = f.getParentDirectory();
 }
 
@@ -853,7 +848,7 @@ void MainComponent::openDialog()
 {
     checkSaved ([this]
     {
-        chooser = std::make_unique<juce::FileChooser> ("Open a project, a MIDI file or a MusicXML file", lastFolder,
+        chooser = std::make_unique<juce::FileChooser> ("Open a Song, MIDI File or MusicXML File", lastFolder,
                                                       "*.miderator;*.noterator;*.mid;*.midi;*.musicxml;*.mxl;*.xml");
         chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles, [this] (const juce::FileChooser& fc)
         {
@@ -865,7 +860,7 @@ void MainComponent::openDialog()
 
 void MainComponent::importDialog()
 {
-    chooser = std::make_unique<juce::FileChooser> ("Import a MIDI or MusicXML file into this song, at the caret's bar", lastFolder,
+    chooser = std::make_unique<juce::FileChooser> ("Import a MIDI or MusicXML File at the Cursor", lastFolder,
                                                   "*.mid;*.midi;*.musicxml;*.mxl;*.xml");
     chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles, [this] (const juce::FileChooser& fc)
     {
@@ -873,7 +868,7 @@ void MainComponent::importDialog()
         if (! f.existsAsFile()) return;
         juce::String error;
         if (! controller.importFile (f, error))
-            showError ("Could not import " + f.getFileName(), error);
+            showError (ui ("“") + f.getFileName() + ui ("” couldn’t be imported."), error);
         lastFolder = f.getParentDirectory();
     });
 }
@@ -884,12 +879,12 @@ void MainComponent::saveDialog (bool saveAs, std::function<void()> then)
     {
         juce::String error;
         if (controller.save (controller.file, error)) { if (then) then(); }
-        else showError ("Could not save", error + "\n\nTry Save As to choose another folder, or check that the disk has room.");
+        else showError (ui ("The song couldn’t be saved."), error + "\n\nTry Save As to choose another folder, or check that the disk has room.");
         return;
     }
     const auto suggested = (lastFolder.isDirectory() ? lastFolder : juce::File::getSpecialLocation (juce::File::userDocumentsDirectory))
                                .getChildFile (juce::File::createLegalFileName (controller.score.title) + ".miderator");
-    chooser = std::make_unique<juce::FileChooser> ("Save the project", suggested, "*.miderator");
+    chooser = std::make_unique<juce::FileChooser> ("Save Song", suggested, "*.miderator");
     chooser->launchAsync (juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::warnAboutOverwriting,
                           [this, then] (const juce::FileChooser& fc)
     {
@@ -898,7 +893,7 @@ void MainComponent::saveDialog (bool saveAs, std::function<void()> then)
         f = f.withFileExtension ("miderator");
         juce::String error;
         if (controller.save (f, error)) { lastFolder = f.getParentDirectory(); if (then) then(); }
-        else showError ("Could not save", error + "\n\nTry Save As to choose another folder, or check that the disk has room.");
+        else showError (ui ("The song couldn’t be saved."), error + "\n\nTry Save As to choose another folder, or check that the disk has room.");
     });
 }
 
@@ -917,7 +912,7 @@ void MainComponent::exportDialog (ExportKind kind, bool selectedBars)
     const juce::String ext = audioFile ? "wav" : kind == ExportKind::musicXml ? "musicxml" : "mid";
     const auto suggested = (lastFolder.isDirectory() ? lastFolder : juce::File::getSpecialLocation (juce::File::userDocumentsDirectory))
                                .getChildFile (juce::File::createLegalFileName (juce::String (controller.score.title) + suffix) + "." + ext);
-    chooser = std::make_unique<juce::FileChooser> (audioFile ? "Export audio" : kind == ExportKind::musicXml ? "Export MusicXML" : "Export MIDI",
+    chooser = std::make_unique<juce::FileChooser> (audioFile ? "Export Audio" : kind == ExportKind::musicXml ? "Export MusicXML" : "Export MIDI",
                                                    suggested, "*." + ext);
     chooser->launchAsync (juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::warnAboutOverwriting,
                           [this, kind, audioFile, range, ext] (const juce::FileChooser& fc)
@@ -930,13 +925,13 @@ void MainComponent::exportDialog (ExportKind kind, bool selectedBars)
         if (kind == ExportKind::musicXml)
         {
             if (exportMusicXml (controller.score, range, f, error)) controller.setStatus ("Exported " + f.getFileName());
-            else showError ("Could not export", error + "\n\nTry another folder, or check that the disk has room.");
+            else showError (ui ("The file couldn’t be exported."), error + "\n\nTry another folder, or check that the disk has room.");
             return;
         }
         if (! audioFile)
         {
             if (exportMidi (controller.score, range, true, f, error)) controller.setStatus ("Exported " + f.getFileName());
-            else showError ("Could not export", error + "\n\nTry another folder, or check that the disk has room.");
+            else showError (ui ("The file couldn’t be exported."), error + "\n\nTry another folder, or check that the disk has room.");
             return;
         }
         // Audio is rendered through a synth of its own, off the audio thread.
@@ -944,7 +939,7 @@ void MainComponent::exportDialog (ExportKind kind, bool selectedBars)
         struct Render : public juce::ThreadWithProgressWindow
         {
             Render (const Score& s, ExportRange r, std::unique_ptr<SynthRack> sy, juce::String d, juce::File fl, Controller& c)
-                : juce::ThreadWithProgressWindow ("Exporting audio" + dots, true, true),
+                : juce::ThreadWithProgressWindow (ui ("Exporting Audio…"), true, true),
                   score (s), range (r), synth (std::move (sy)), desc (std::move (d)), file (fl), controller (c) {}
             void run() override
             {
@@ -952,11 +947,11 @@ void MainComponent::exportDialog (ExportKind kind, bool selectedBars)
             }
             void threadComplete (bool cancelled) override
             {
-                if (ok) controller.setStatus ("Exported " + file.getFileName() + " through " + desc);
+                if (ok) controller.setStatus ("Exported " + file.getFileName() + " using " + desc);
                 else if (! cancelled)
                     juce::NativeMessageBox::showAsync (juce::MessageBoxOptions()
                                                            .withIconType (juce::MessageBoxIconType::WarningIcon)
-                                                           .withTitle ("Could not export audio")
+                                                           .withTitle (ui ("The audio couldn’t be exported."))
                                                            .withMessage (error)
                                                            .withButton ("OK"),
                                                        nullptr);
@@ -997,7 +992,7 @@ void MainComponent::filesDropped (const juce::StringArray& files, int, int)
         // A MIDI or MusicXML file dropped on a score joins it, at the caret's bar.
         juce::String error;
         if (! controller.importFile (f, error))
-            showError ("Could not import " + f.getFileName(), error);
+            showError (ui ("“") + f.getFileName() + ui ("” couldn’t be imported."), error);
     }
 }
 
@@ -1009,7 +1004,7 @@ void MainComponent::audioSettingsDialog()
     selector->setSize (520, 420);
     juce::DialogWindow::LaunchOptions o;
     o.content.setOwned (selector);
-    o.dialogTitle = "Audio and MIDI devices";
+    o.dialogTitle = "Audio and MIDI Devices";
     o.dialogBackgroundColour = theme::ground;
     o.escapeKeyTriggersCloseButton = true;
     o.useNativeTitleBar = true;
@@ -1049,47 +1044,59 @@ void MainComponent::skipToEnd()
 
 void MainComponent::showHelp()
 {
-    const juce::String text =
+    // The keys in the Mac's own symbols, and plain sentences (decision 0054).
+    const juce::String text = ui (
         "THE PIANO ROLL\n"
-        "Click a note to choose and hear it; Shift+click for more; drag on empty space to lasso\n"
-        "Drag a note to move it (Alt+drag copies it); drag its right or left end to stretch it\n"
-        "Double-click empty space to draw a note; D switches to the Draw tool and back\n"
-        "Drag in the Velocity lane to set how hard notes are played\n"
-        "Right-click for Delete, Duplicate and Quantise\n\n"
+        "Click a note to select and hear it; ⇧-click to select more; drag on empty space to select several.\n"
+        "Drag a note to move it (⌥-drag copies it); drag either end to stretch it.\n"
+        "Double-click empty space to draw a note. Drag in the Velocity lane to set how hard notes are played.\n"
+        "Control-click a note for Delete, Duplicate and Quantise.\n"
+        "D    Switch between the Select and Draw tools\n"
+        "\n"
         "THE GRID\n"
-        "1 - 6  a bar, 1/2, 1/4, 1/8, 1/16, 1/32     T  triplets     Q  quantise\n\n"
+        "1–6    A bar, 1/2, 1/4, 1/8, 1/16 or 1/32\n"
+        "T    Triplets        Q    Quantise\n"
+        "\n"
         "EDITING\n"
-        "Up / Down  a semitone     Shift or Cmd+Up / Down  an octave\n"
-        "Left / Right  move the selection a grid step (or the caret, with nothing selected)\n"
-        "Alt+Up / Down  the part above or below     Delete  remove\n"
-        "Cmd+C / X / V  copy, cut, paste at the caret     Cmd+D  duplicate     Cmd+Z  undo\n"
-        "Clear All (toolbar)  every note out of every part, after asking\n"
-        "R  step input: a MIDI keyboard writes at the caret, a grid step at a time\n\n"
+        "↑ ↓    Move up or down a semitone (⇧ or ⌘ for an octave)\n"
+        "← →    Move the selection a grid step, or the cursor if nothing is selected\n"
+        "⌥↑ ⌥↓    Show the part above or below\n"
+        "⌫    Delete\n"
+        "⌘C  ⌘X  ⌘V    Copy, cut and paste at the cursor\n"
+        "⌘D    Duplicate        ⌘Z  ⇧⌘Z    Undo and redo\n"
+        "Clear All (toolbar)    Clear every note from every part, after asking\n"
+        "R    Step input: a MIDI keyboard writes at the cursor, a grid step at a time\n"
+        "\n"
         "THE TRACKS\n"
-        "Click a part's name to show it in the piano roll; double-click to select all of it\n"
-        "Click a bar to choose it; drag across bars and parts to choose more\n"
-        "(drag along the Chords lane for every part; Shift+click stretches the choice)\n"
-        "Click the bar numbers to put the caret there\n\n"
+        "Click a part’s name to show it in the piano roll; double-click to select all its notes.\n"
+        "Click a bar to choose it. Drag across bars and parts to choose more, or along the Chords lane to choose every part. ⇧-click extends the choice.\n"
+        "Click the bar numbers to move the cursor there.\n"
+        "\n"
         "LISTENING\n"
-        "Space  play from bar 1, or stop     Shift+Space  play from the caret\n"
-        "Home  back to the start     End  on to the end of the music\n"
-        "F  Follow: the view scrolls along with the music as it plays, or stays put\n"
-        "(or turns a page at a time: Play menu)\n"
-        "Click a chord in the Chords lane to hear it, or the Scale lane to hear the scale\n"
-        "Cmd+scroll zooms in time; Alt+scroll makes the keys taller or shorter\n\n"
+        "Space    Play from bar 1, or stop\n"
+        "⇧Space    Play from the cursor\n"
+        "Home  End    Go to the start or the end of the music\n"
+        "F    Follow: scroll the view with the music as it plays (or turn a page at a time, in the Play menu)\n"
+        "Click a chord in the Chords lane to hear it, or the Scale lane to hear the scale.\n"
+        "⌘-scroll zooms in time; ⌥-scroll makes the keys taller or shorter.\n"
+        "\n"
         "GENERATING\n"
-        "Choose some bars (or click a part's name), choose a generator, press\n"
-        "Generate, click a result to hear it, and Insert to put it in.\n"
-        "Generate Notes fills the bars chosen: the tune on top, the bass below,\n"
-        "chords between. Suggest Notes and Vary Notes work on the notes you select.\n\n"
+        "Choose some bars or parts, choose a generator, click Generate, click an idea to hear it, then click Insert.\n"
+        "Generate Notes fills the chosen bars: the tune on top, the bass below and the chords between. Suggest Notes and Vary Notes work on the notes you select.\n"
+        "Esc    Let go of everything, so the next idea goes to every part\n"
+        "⌘Z    After Generate, bring back the ideas it replaced\n"
+        "⌘-click    Add a part (by its name) or bars to the choice\n"
+        "⇧-click    Choose every part between two names\n"
+        "⌘A    Choose every part; press again to select every note too\n"
+        "\n"
         "BLOCKS\n"
-        "Pick a chord, arpeggio, run or interval, click a degree\n"
-        "to see and hear it, and Insert to put it at the caret - the caret moves\n"
-        "on, so blocks can be laid one after another.\n\n"
+        "Choose a chord, arpeggio, run or interval, click a degree to see and hear it, then click Insert to add it at the cursor. The cursor moves on, so you can add blocks one after another.\n"
+        "\n"
         "THE WINDOW\n"
-        "Tab / Shift+Tab  move between the buttons and menus     Space or Return  press one\n"
-        "Esc  back to the roll     Cmd+1 / 2 / 3  the Generate, Blocks and Parts tabs\n"
-        "View > Interface Size  everything larger, up to 200%";
+        "Tab  ⇧Tab    Move between the buttons and menus; Space or Return presses one\n"
+        "Esc    Back to the roll from a button or menu\n"
+        "⌘1  ⌘2  ⌘3    The Generate, Blocks and Parts tabs\n"
+        "View > Interface Size makes everything larger, up to 200%.");
     juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::InfoIcon, "Keyboard Shortcuts", text);
 }
 

@@ -14,3 +14,16 @@ first. Here:
 ## Not done yet
 
 - None of 0055-0057 tried by the user on a Mac.
+
+## Then: the two lines of work brought together
+
+As in Noterator (its log of today has the detail): the work on
+`claude/adoring-feynman-bihxp2` (2026-10-10 to 10-15) started from `main`
+before 0048 and numbered its decisions from 0048 too. Renumbered 0049-0054 on
+a copy of it, today's 0055-0057, then merged here. The Generate tab came from
+Noterator's merge (`dffa6c0`); Miderator's own files resolved the same way:
+their wording on 0048's window (the Mac's alerts, Reduce Motion, the status
+line's layout with their "no part chosen", Tab, VoiceOver), Clear All with
+their Edit menu, Escape handing the keyboard back from a control before
+letting go of everything. The new test of Vary Notes in place across parts
+came across with the rest.
