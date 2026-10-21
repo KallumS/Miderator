@@ -36,7 +36,7 @@ private:
     juce::ToggleButton followKey { "Use the score's key" };
     // Vary Notes only, where the score's key means nothing (it hears the key
     // in the music): the variation after the selection, or in its place
-    // (decision 0049).
+    // (decision 0055).
     juce::Label placementLabel { {}, "Put it" };
     juce::ComboBox placement;
     bool varies() const { return current == "midi-variator"; }

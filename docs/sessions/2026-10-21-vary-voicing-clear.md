@@ -1,6 +1,6 @@
 # 2026-10-21: Vary Notes in place, Voicing on Any, Clear All
 
-The same three as Noterator's session log of today (0049-0051), made there
+The same three as Noterator's session log of today (0055-0057), made there
 first. Here:
 
 - Synced from Noterator `aeb6a5a`: the Generate tab (the Put it menu, the
@@ -13,4 +13,4 @@ first. Here:
 
 ## Not done yet
 
-- None of 0049-0051 tried by the user on a Mac.
+- None of 0055-0057 tried by the user on a Mac.

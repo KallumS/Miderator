@@ -38,7 +38,7 @@ end
 
 -- Good Idea starts its Voicing on Close; in the apps it starts on Any, so
 -- each idea picks its own and the chords sound different from one idea to
--- the next (decision 0050). The engine is unchanged: only where it starts.
+-- the next (decision 0056). The engine is unchanged: only where it starts.
 function A.newState()
   local st = I.newState()
   st.voicing = "Any"

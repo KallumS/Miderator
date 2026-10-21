@@ -62,6 +62,6 @@ piano roll changed say so at the top. 0026 on are Miderator's own.
 | [0046](0046-blocks-chords-keep-their-root.md) | Blocks chords keep the root they were made on | Accepted |
 | [0047](0047-blocks-offers-a-chords-real-inversions.md) | Blocks offers each chord the inversions it has | Accepted |
 | [0048](0048-apples-human-interface-guidelines.md) | The window follows Apple's Human Interface Guidelines | Accepted |
-| [0049](0049-vary-notes-after-or-in-place.md) | Vary Notes goes after the selection, or in its place | Accepted |
-| [0050](0050-voicing-starts-on-any.md) | Generate Notes' Voicing starts on Any | Accepted |
-| [0051](0051-clear-all-notes.md) | Clear All takes every note out | Accepted |
+| [0055](0055-vary-notes-after-or-in-place.md) | Vary Notes goes after the selection, or in its place | Accepted |
+| [0056](0056-voicing-starts-on-any.md) | Generate Notes' Voicing starts on Any | Accepted |
+| [0057](0057-clear-all-notes.md) | Clear All takes every note out | Accepted |

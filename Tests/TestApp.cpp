@@ -590,7 +590,7 @@ bool anyOf (const Part& p, const Selection& ids)
 }
 } // namespace
 
-TEST ("app: Vary Notes goes after the selection, or in its place (decision 0049)")
+TEST ("app: Vary Notes goes after the selection, or in its place (decision 0055)")
 {
     for (const bool inPlace : { false, true })
     {
@@ -618,7 +618,7 @@ TEST ("app: Vary Notes goes after the selection, or in its place (decision 0049)
     }
 }
 
-TEST ("app: Vary Notes on chosen bars goes after them, or in their place (decision 0049)")
+TEST ("app: Vary Notes on chosen bars goes after them, or in their place (decision 0055)")
 {
     for (const bool inPlace : { false, true })
     {
@@ -648,7 +648,7 @@ TEST ("app: Vary Notes on chosen bars goes after them, or in their place (decisi
     }
 }
 
-TEST ("app: Clear takes every note out and keeps the parts; Undo brings them back (decision 0051)")
+TEST ("app: Clear takes every note out and keeps the parts; Undo brings them back (decision 0057)")
 {
     Controller c (audio());
     c.newScore ("String Quartet");

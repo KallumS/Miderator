@@ -1,4 +1,4 @@
-# 0049 - Vary Notes goes after the selection, or in its place
+# 0055 - Vary Notes goes after the selection, or in its place
 
 - **Date:** 2026-10-21
 - **Status:** Accepted (Noterator and Miderator alike). Adds a choice to

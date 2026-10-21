@@ -548,7 +548,7 @@ void Controller::deleteSelectedBars()
 
 void Controller::clearAllNotes()
 {
-    // A clean slate to generate into (decision 0051): the parts, tempo, keys
+    // A clean slate to generate into (decision 0057): the parts, tempo, keys
     // and bars stay; the notes, and the roots Blocks recorded for them, go.
     edit ("Cleared every note", [] (Score& s)
     {
@@ -824,7 +824,7 @@ Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, 
         if (generatorId == "midi-variator" && ! selection.empty())
         {
             // A variation of the bars, in the part it came from: in their
-            // place, or in as many bars after them (decision 0049).
+            // place, or in as many bars after them (decision 0055).
             uint32_t source = range.parts.front();
             for (const auto& p : s.parts)
                 for (const auto& n : p.notes)
@@ -869,7 +869,7 @@ Tick Controller::place (Score& s, const GeneratedResult& r, bool fromSelection, 
     {
         if (varyReplaces)
         {
-            // In place of the notes selected (decision 0049): they go, and the
+            // In place of the notes selected (decision 0055): they go, and the
             // variation goes where they began, beside anything else there.
             deleteNotes (s, selection);
             o.replace = false;

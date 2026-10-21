@@ -1,4 +1,4 @@
-# 0051 - Clear All takes every note out
+# 0057 - Clear All takes every note out
 
 - **Date:** 2026-10-21
 - **Status:** Accepted (Noterator and Miderator alike)

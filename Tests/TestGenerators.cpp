@@ -581,7 +581,7 @@ TEST ("generators: every Blocks chord reads in the Chords lane on the root Block
     CHECK_EQ (firstWrong, std::string());
 }
 
-TEST ("generators: Generate Notes starts its Voicing on Any (decision 0050)")
+TEST ("generators: Generate Notes starts its Voicing on Any (decision 0056)")
 {
     auto& e = engineInstance();
     GeneratorContext ctx;

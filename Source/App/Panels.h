@@ -67,7 +67,7 @@ private:
     juce::ComboBox gridBox;
     juce::TextButton tripletButton { "Triplet" }, snapButton { "Snap" };
     juce::TextButton quantiseButton { "Quantise" };
-    juce::TextButton clearButton { "Clear All" };   // every note out (decision 0051)
+    juce::TextButton clearButton { "Clear All" };   // every note out (decision 0057)
     juce::TextButton zoomOut { juce::String::charToString (0x2212) }, zoomIn { "+" };
 
     static constexpr int rowHeight = 46;

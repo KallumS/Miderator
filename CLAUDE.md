@@ -136,7 +136,7 @@ tools/sync_from_noterator.sh ../Noterator --check
 - **Pointers into `score.parts` die when a part is added.** Hold ids.
 - **A result never overwrites the music it came from** (0011), except in bars
   the user chose (0019) and when Vary Notes is set to **In place of the
-  selection** (0049, `varyReplaces`, off at first). **Where a result lands is decided in
+  selection** (0055, `varyReplaces`, off at first). **Where a result lands is decided in
   `Controller::place`**: chosen bars (one part takes all of it, several share
   it), a block at the caret, the selection, and with nothing chosen every
   part from the caret's bar (0041); a single line goes to one part
@@ -210,8 +210,8 @@ elsewhere (0044), `build-mac.command` (0045), Blocks chords named in the
 Chords lane from their own root (0046) and each chord offering the
 inversions it has (0047), merged into `main`; then the window checked
 against Apple's Human Interface Guidelines (0048), merged into `main`; then
-Vary Notes after or in place of the selection (0049), Voicing starting on
-Any (0050) and Clear All (0051), on the branch `claude/blissful-bohr-lqwr1j`. Not built yet, roughly in the order
+Vary Notes after or in place of the selection (0055), Voicing starting on
+Any (0056) and Clear All (0057), on the branch `claude/blissful-bohr-lqwr1j`. Not built yet, roughly in the order
 the user is likely to want them: drawable CC lanes; articulations; VST3/CLAP
 instruments and SoundFonts; real-time recording; Windows. Known rough edges
 are in the latest session log's "Not done yet".

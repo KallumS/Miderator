@@ -13,4 +13,4 @@ Miderator was copied from it.
 | [2026-10-07, evening](2026-10-07-templates.md) | Templates for whole sections, full orchestra and big band; a synth per sixteen channels so every part keeps its sound; Bass and Drums out of Blocks; Generate, Suggest and Vary Notes. |
 | [2026-10-09](2026-10-09-piano-roll.md) | Miderator: Noterator copied, its notation replaced by tracks and a piano roll, a velocity lane, quantise, dark by default. |
 | [2026-10-15](2026-10-15-apple-guidelines.md) | The window against Apple's Human Interface Guidelines (0048), after Noterator: contrast, the keyboard, VoiceOver, the status line under the toolbar, Interface Size, a track's M and S large enough. |
-| [2026-10-21](2026-10-21-vary-voicing-clear.md) | After Noterator: Vary Notes after or in place of the selection, Voicing on Any, Clear All (0049-0051). |
+| [2026-10-21](2026-10-21-vary-voicing-clear.md) | After Noterator: Vary Notes after or in place of the selection, Voicing on Any, Clear All (0055-0057). |
