@@ -28,6 +28,7 @@ update the commit below.
 | `006bd88` | 2026-10-10: `TestDetect.cpp` holds `detectChords'` result before reading it (the Mac read a destroyed temporary). On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 | `9f5a00f` | 2026-10-10: Blocks offers each chord the inversions it has (0047): Starting Blocks Notation `79b71f4` vendored, the adapter's Inversion menu the chord's own, the lane test over every inversion. On Noterator's branch `ccr-ac8da7d9-3sbl5x` |
 | `4f67cb3` | 2026-10-15: the Generate tab and the settings list follow Apple's guidelines (0048): names for VoiceOver, clicks that leave the keyboard with the roll, a ring when Tab reaches the results, the message under the buttons, errors in `theme::warnText`, Return inserts. Both apps' `Theme.h` now carry what these use. On Noterator's branch `claude/blissful-bohr-lqwr1j` |
+| `40e76f3` | 2026-10-22: `AutoCC.*`, the CC7 comment in `Perform.cpp` and the AutoCC tests in `TestScore.cpp` brought up to AutoCC 1.3 (0049). On Noterator's branch `claude/autocc-balfe-presets` (PR #11) |
 
 ## Shared
 
