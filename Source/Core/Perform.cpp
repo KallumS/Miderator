@@ -88,7 +88,7 @@ std::vector<PlayEvent> perform (const Score& score, const PerformOptions& option
             {
                 if (cc.at < from || cc.at >= to) continue;
                 int value = cc.value;
-                // The part's own volume is the ceiling CC7 breathes under.
+                // CC7 is AutoCC's held level, scaled by the part's own volume.
                 if (cc.controller == 7) value = static_cast<int> (value * part.volume + 0.5f);
                 events.push_back ({ cc.at - from, PlayEvent::controller, ch, cc.controller,
                                     std::clamp (value, 0, 127), partIndex, 0 });

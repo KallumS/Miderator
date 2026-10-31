@@ -1,7 +1,8 @@
 # 0013 - AutoCC is computed for a whole part, not performed live
 
 - **Date:** 2026-10-07
-- **Status:** Accepted
+- **Status:** Accepted. The presets and the restart rule were brought up to
+  AutoCC 1.3 in [0049](0049-autocc-follows-lorne-balfe.md).
 
 ## Context
 
