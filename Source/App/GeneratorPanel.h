@@ -45,7 +45,7 @@ private:
     juce::ComboBox placement;
     bool varies() const { return current == "midi-variator"; }
     SettingsList settings { controller };
-    juce::TextButton generateButton { "Generate" }, insertButton { "Insert" }, stopButton { "Stop" };
+    juce::TextButton generateButton { "Generate" }, moreButton { "More" }, insertButton { "Insert" }, stopButton { "Stop" };
     // The results, ringed when Tab reaches them (decision 0048).
     struct ResultsList : public juce::ListBox
     {

@@ -141,7 +141,7 @@ juce::String Controller::describe() const
     {
         const int bar = score.barAt (caret);
         const double beat = 1.0 + static_cast<double> (caret - score.barStart (bar)) / static_cast<double> (score.meterAtBar (bar).beatTicks());
-        d << " " << juce::String (p->name) << " in the roll, cursor at bar " << (bar + 1) << " beat " << juce::String (beat, 2) << ".";
+        d << " " << juce::String (p->name) << " in the roll, caret at bar " << (bar + 1) << " beat " << juce::String (beat, 2) << ".";
     }
     if (range.active()) d << " Chosen: " << rangeText() << ".";
     else if (! selection.empty()) d << " " << static_cast<int> (selection.size()) << " notes selected.";
@@ -807,7 +807,7 @@ void Controller::skipToEnd()
 void Controller::toggleFollow()
 {
     followPlayback = ! followPlayback;
-    setStatus (! followPlayback ? "Follow is off: the view stays where you put it while the music plays"
+    setStatus (! followPlayback ? "Follow off: the view stays where you put it while it plays"
                : followStyleNow() == FollowStyle::smooth ? "Follow: the view scrolls along with the music as it plays"
                                                     : "Follow: the view turns a page with the music as it plays");
 }

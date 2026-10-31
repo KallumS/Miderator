@@ -227,7 +227,8 @@ void BlocksPanel::remake()
     }
     if (! out.error.empty())
     {
-        key.setText ("Starting Blocks stopped with an error. Report this as a bug: " + juce::String (out.error), juce::dontSendNotification);
+        key.setText ("No blocks came back. Try other settings; if it keeps happening, please report it: " + juce::String (out.error),
+                     juce::dontSendNotification);
         key.setColour (juce::Label::textColourId, theme::warnText);
     }
     else key.setColour (juce::Label::textColourId, theme::textDim);

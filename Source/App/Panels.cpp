@@ -81,29 +81,26 @@ Toolbar::Toolbar (Controller& c) : controller (c)
 {
     for (auto* b : std::initializer_list<juce::Button*> { &startButton, &endButton }) addAndMakeVisible (b);
     for (auto* b : std::initializer_list<juce::Component*> { &fileButton, &playButton, &followButton,
-                     &selectButton, &drawButton, &tripletButton, &snapButton, &quantiseButton, &clearButton, &zoomOut, &zoomIn })
+                     &selectButton, &drawButton, &tripletButton, &snapButton, &quantiseButton, &zoomOut, &zoomIn })
         addAndMakeVisible (b);
     addAndMakeVisible (gridLabel);
     addAndMakeVisible (gridBox);
     gridLabel.setColour (juce::Label::textColourId, theme::textDim);
     gridLabel.setJustificationType (juce::Justification::centredRight);
 
-    fileButton.setTooltip ("New, Open, Save, Export, Undo and Redo, song settings, sound, Step Input and Light Theme");
-    playButton.setTooltip (ui ("Play from the cursor, or stop (⇧Space). Space plays from bar 1."));
-    startButton.setTooltip (ui ("Go to the start (Home). If the music is playing, it plays on from bar 1."));
-    endButton.setTooltip ("Go to the end of the music (End).");
-    followButton.setTooltip ("Scroll the view with the music as it plays (F). To turn a page at a time, use the Play menu.");
-    selectButton.setTooltip ("Select tool (D): click a note to select it, drag it to move it, drag its end to stretch it, or double-click to draw a note.");
-    drawButton.setTooltip ("Draw tool (D): click the roll to draw a note, drag to make it longer, or click a note to delete it.");
-    gridBox.setTooltip (ui ("The grid notes snap to, and the length of a drawn note (1–6)."));
-    tripletButton.setTooltip ("Use a triplet grid: three in the space of two (T).");
-    snapButton.setTooltip ("Snap notes to the grid when you draw, move or stretch them.");
-    quantiseButton.setTooltip ("Move the selected notes onto the grid, or the whole part if nothing is selected (Q).");
-    zoomIn.setTooltip (ui ("Zoom in (⌘=)"));
-    zoomOut.setTooltip (ui ("Zoom out (⌘−)"));
-    clearButton.setTooltip ("Clear every note from every part. The parts, tempo, key and bars stay. It asks first, and you can undo it.");
-    clearButton.setTitle ("Clear All Notes");
-    clearButton.onClick = [this] { if (onClear) onClear(); };
+    fileButton.setTooltip ("New, Open, Save, Export, Undo and Redo, the song's settings, the sound, step input and the light look");
+    playButton.setTooltip ("Play from the caret, or stop (Shift+Space; Space plays from bar 1)");
+    startButton.setTooltip ("Return to the start (Home). If it is playing, it plays on from bar 1.");
+    endButton.setTooltip ("Skip to the end of the music (End)");
+    followButton.setTooltip ("Follow (F): while it plays, the view scrolls along with the music, or turns a page at a time (Play menu)");
+    selectButton.setTooltip ("Select (D switches): click a note to choose it, drag it to move it, drag its end to stretch it, double-click to draw one");
+    drawButton.setTooltip ("Draw (D switches): click the roll to draw a note, drag to make it longer, click a note to delete it");
+    gridBox.setTooltip ("The grid notes snap to, and how long a drawn note is (keys 1-6)");
+    tripletButton.setTooltip ("A triplet grid: three in the space of two (T)");
+    snapButton.setTooltip ("Notes snap to the grid when they are drawn, moved or stretched");
+    quantiseButton.setTooltip ("Pull the selected notes onto the grid, or the whole part in the roll if none are selected (Q)");
+    zoomIn.setTooltip ("Zoom in (Cmd+=)");
+    zoomOut.setTooltip ("Zoom out (Cmd+-)");
     // What VoiceOver says for buttons whose face is a sign, and which are on or off.
     zoomIn.setTitle ("Zoom In");
     zoomOut.setTitle ("Zoom Out");
@@ -161,7 +158,7 @@ namespace
 {
 constexpr int leftWidth = 66 + 30 + 2 + 72 + 2 + 30 + 6 + 60 + 14;
 constexpr int toolsWidth = 62 + 70 + 40 + 78 + 64 + 60 + 88;
-constexpr int rightWidth = 76 + 10 + 28 + 2 + 28;
+constexpr int rightWidth = 28 + 2 + 28;
 } // namespace
 
 int Toolbar::heightFor (int width) const
@@ -184,8 +181,6 @@ void Toolbar::resized()
     zoomIn.setBounds (right.removeFromRight (28));
     right.removeFromRight (2);
     zoomOut.setBounds (right.removeFromRight (28));
-    right.removeFromRight (10);
-    clearButton.setBounds (right.removeFromRight (76));
 
     auto tools = twoRows ? all.withTrimmedTop (6) : r;
     place (tools, selectButton, 60, 2); place (tools, drawButton, 56, 14);
@@ -253,7 +248,7 @@ struct PartsPanel::Row : public juce::Component
         volume.setTitle ("Volume");
         mute.setToggleable (true);
         solo.setToggleable (true);
-        autoCC.setTooltip ("Draw this part's dynamics, expression and vibrato curves automatically.");
+        autoCC.setTooltip ("Draw this part's dynamics, expression and vibrato curves automatically (AutoCC)");
         mute.onClick = [this] { toggle ([] (Part& p) { p.mute = ! p.mute; }); };
         solo.onClick = [this] { toggle ([] (Part& p) { p.solo = ! p.solo; }); };
         autoCC.onClick = [this] { toggle ([] (Part& p) { p.autoCC = ! p.autoCC; }); };
@@ -271,11 +266,11 @@ struct PartsPanel::Row : public juce::Component
             const auto* p = controller.score.partById (partId);
             if (p == nullptr) return;
             if (p->notes.empty()) { controller.removePart (partId); return; }
-            // The Mac's own alert (0048), its button saying what it does (0054).
+            // The Mac's own alert, its button saying what it does (decision 0048).
             const auto options = juce::MessageBoxOptions()
                                      .withIconType (juce::MessageBoxIconType::QuestionIcon)
-                                     .withTitle (ui ("Remove “") + juce::String (p->name) + ui ("”?"))
-                                     .withMessage ("Its notes are removed too. You can undo this.")
+                                     .withTitle ("Remove " + juce::String (p->name) + "?")
+                                     .withMessage ("Its notes go with it. Undo brings them back.")
                                      .withButton ("Remove")
                                      .withButton ("Cancel")
                                      .withAssociatedComponent (this);
@@ -491,7 +486,7 @@ StatusBar::~StatusBar() { controller.removeChangeListener (this); }
 juce::String StatusBar::message() const
 {
     if (controller.stepInput)
-        return "Step input: play a MIDI keyboard to write notes at the cursor, " + juce::String (controller.grid.name()) + " long. Press Esc to stop.";
+        return "Step input: play a MIDI keyboard and each note goes at the caret, " + juce::String (controller.grid.name()) + " long. Esc stops it.";
     return controller.status;
 }
 
@@ -551,8 +546,8 @@ void StatusBar::paint (juce::Graphics& g)
 
     // Left: the last thing that happened, or the mode. It comes first: when
     // the line is short of room - a narrow window, a large interface - the
-    // sound goes, then the cursor's place moves over, before the message is
-    // cut (and the whole of it is the line's tooltip).
+    // sound goes, then the caret moves over, before the message is cut
+    // (and the whole of it is the line's tooltip).
     const auto left = message();
     const auto& font = g.getCurrentFont();
     // Measured with some to spare: text drawn at 150% or 200% runs a little wider.
@@ -566,7 +561,7 @@ void StatusBar::paint (juce::Graphics& g)
         g.drawText (right, rest.removeFromRight (rightW), juce::Justification::centredRight);
         rest.removeFromRight (gap);
     }
-    // Where the cursor is: in the middle when there is room, at the right when not.
+    // The caret in the middle when there is room, at the right when not.
     auto middle = r.withSizeKeepingCentre (whereW, r.getHeight());
     if (middle.getX() < r.getX() + leftW + gap || middle.getRight() > rest.getRight())
         middle = rest.withLeft (std::max (rest.getX(), rest.getRight() - whereW));
