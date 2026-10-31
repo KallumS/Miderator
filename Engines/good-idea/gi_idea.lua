@@ -152,6 +152,11 @@ end
 M.hasMelody, M.hasChords = hasMelody, hasChords
 
 local function barsName(v) return v .. (v == 1 and " bar" or " bars") end
+-- What a value's button says, where it is not the value itself. Values are
+-- stored and never renamed; only their labels change, and a label follows
+-- Apple's title-style capitals (0030).
+local function barsLabel(v) return v .. (v == 1 and " Bar" or " Bars") end
+local function labelled(names) return function(v) return names[v] or v end end
 
 function M.buildSettings()
   local rootIdx, scaleIdx = {}, {}
@@ -159,7 +164,7 @@ function M.buildSettings()
   for i = 1, #T.SCALES do scaleIdx[i] = i end
 
   M.SETTINGS = {
-    { id = "kind", label = "Make a", step = "Idea", values = M.KINDS, default = "Motif",
+    { id = "kind", label = "Kind", step = "Idea", values = M.KINDS, default = "Motif",
       hints = {
         Motif = "A short melodic hook, 1 to 4 bars, built from one small cell repeated and varied.",
         Phrase = "A 1 to 4 bar phrase: a melody, a chord pattern, or both in one clip, with a proper ending.",
@@ -167,13 +172,13 @@ function M.buildSettings()
         Drums = "1 to 16 bars of drums on General MIDI notes: a groove, varied, with fills where you ask for them.",
       } },
     { id = "motifBars", label = "Bars", step = "Idea", values = { 1, 2, 3, 4 }, any = true,
-      default = "Any", name = barsName, weights = { 1, 3, 1, 2 },
+      default = "Any", name = barsLabel, weights = { 1, 3, 1, 2 },
       when = function(st) return st.kind == "Motif" end },
     { id = "phraseBars", label = "Bars", step = "Idea", values = { 1, 2, 3, 4 }, any = true,
-      default = "Any", name = barsName, weights = { 1, 3, 1, 3 },
+      default = "Any", name = barsLabel, weights = { 1, 3, 1, 3 },
       when = function(st) return st.kind == "Phrase" end },
     { id = "measureBars", label = "Bars", step = "Idea", values = { 8, 12, 16 }, any = true,
-      default = "Any", name = barsName, weights = { 3, 1, 2 },
+      default = "Any", name = barsLabel, weights = { 3, 1, 2 },
       when = function(st) return st.kind == "Measure" end },
     { id = "content", label = "Content", step = "Idea", values = { "Melody", "Chords", "Both" },
       any = true, default = "Any", weights = { 1, 1, 1.3 },
@@ -210,11 +215,11 @@ function M.buildSettings()
       anyValues = { "Straight", "Syncopated" },
       hints = {
         Straight = "Notes on the strongest beats first: on the beat, then the half beat.",
-        Syncopated = "Notes spread evenly over the bar (a Euclidean rhythm) and turned so they fall off the beat - the tresillo, the cinquillo.",
-        Tresillo = "3+3+2 eighths: 1, the 'and' of 2, 4 - the Cuban tresillo, the commonest syncopation in pop. Pulsing chords, a pulsing bass and the kick play it; the tune is syncopated. (In 4/4; syncopated elsewhere.)",
-        Habanera = "The habanera: 1, the 'and' of 2, 3, 4 - the tresillo with beat 3 filled in. Pulsing chords, a pulsing bass and the kick play it. (In 4/4; syncopated elsewhere.)",
-        Clave = "The son clave, 3-2, in a bar of sixteenths: 1, the 'a' of 1, the 'and' of 2, the 'and' of 3, 4. Pulsing chords, a pulsing bass and the kick play it. (In 4/4; syncopated elsewhere.)",
-        ["3+3+3+3+2+2"] = "Sixteenths grouped 3+3+3+3+2+2 ('Shape of You'): the pop off-beat that spans the bar. Pulsing chords, a pulsing bass and the kick play it. (In 4/4; syncopated elsewhere.)",
+        Syncopated = "Notes spread evenly over the bar (a Euclidean rhythm) and turned so they fall off the beat — the tresillo, the cinquillo.",
+        Tresillo = "3+3+2 eighths: 1, the “and” of 2, 4 — the Cuban tresillo, the commonest syncopation in pop. Pulsing chords, a pulsing bass and the kick play it; the tune is syncopated. (In 4/4; syncopated elsewhere.)",
+        Habanera = "The habanera: 1, the “and” of 2, 3, 4 — the tresillo with beat 3 filled in. Pulsing chords, a pulsing bass and the kick play it. (In 4/4; syncopated elsewhere.)",
+        Clave = "The son clave, 3-2, in a bar of sixteenths: 1, the “a” of 1, the “and” of 2, the “and” of 3, 4. Pulsing chords, a pulsing bass and the kick play it. (In 4/4; syncopated elsewhere.)",
+        ["3+3+3+3+2+2"] = "Sixteenths grouped 3+3+3+3+2+2 (“Shape of You”): the pop off-beat that spans the bar. Pulsing chords, a pulsing bass and the kick play it. (In 4/4; syncopated elsewhere.)",
       } },
 
     { id = "contour", label = "Contour", step = "Melody",
@@ -248,17 +253,16 @@ function M.buildSettings()
       -- so saved settings still load. Any rolls the three 1.0 had, with
       -- 1.0's weights, so a 1.0 idea number still rolls the same pace; 1.5
       -- and 4 a bar are there to choose.
-      name = function(v)
-        return ({ Slow = "0.5 a bar", ["One a bar"] = "1 a bar", ["Two a bar"] = "2 a bar" })[v] or v
-      end,
+      name = labelled({ Slow = "0.5 a Bar", ["One a bar"] = "1 a Bar", ["1.5 a bar"] = "1.5 a Bar",
+                        ["Two a bar"] = "2 a Bar", ["4 a bar"] = "4 a Bar" }),
       anyValues = { "Slow", "One a bar", "Two a bar" }, anyWeights = { 0.7, 1.6, 0.8 },
       when = hasChords,
       hints = {
         Slow = "Half a chord a bar: a chord every two bars.",
         ["One a bar"] = "A chord a bar.",
-        ["1.5 a bar"] = "Three chords every two bars: in 4/4, three beats, three beats, two - the 3+3+2 that pushes a progression along. (Chosen, not rolled by Any.)",
+        ["1.5 a bar"] = "Three chords every two bars: in 4/4, three beats, three beats, two — the 3+3+2 that pushes a progression along. (Chosen, not rolled by Any.)",
         ["Two a bar"] = "Two chords a bar: one every half bar.",
-        ["4 a bar"] = "A chord on every beat - four a bar in 4/4, three in 3/4. (Chosen, not rolled by Any.)",
+        ["4 a bar"] = "A chord on every beat — four a bar in 4/4, three in 3/4. (Chosen, not rolled by Any.)",
       } },
     { id = "chordStyle", label = "Style", step = "Chords", values = { "Block", "Pulse", "Broken", "Pedal", "Offbeat", "Fill" },
       any = true, default = "Any", weights = { 1, 1.2, 1, 1, 1, 1 }, when = hasChords,
@@ -266,11 +270,11 @@ function M.buildSettings()
       anyValues = { "Block", "Pulse", "Broken" }, anyWeights = { 1, 1.2, 1 },
       hints = {
         Block = "Held chords, struck again at each bar line.",
-        Pulse = "The chord struck in rhythm: on the beat, or syncopated, or in the groove's named rhythm.",
+        Pulse = "The chord struck in rhythm: on the beat, or syncopated, or in the groove’s named rhythm.",
         Broken = "One note at a time: up, up and down, Alberti, rolling.",
-        Pedal = "Each chord struck once and held until the next - a pad, an orchestra's 'sustain pedal' under the tune.",
-        Offbeat = "Short chords on the off-beats only - the reggae skank, the 'pah' of oom-pah (afterbeats).",
-        Fill = "The chords answer the tune: struck where it holds a note or rests, quiet while it moves - and always where the chord changes, if nowhere else.",
+        Pedal = "Each chord struck once and held until the next — a pad, an orchestra’s “sustain pedal” under the tune.",
+        Offbeat = "Short chords on the off-beats only — the reggae skank, the “pah” of oom-pah (afterbeats).",
+        Fill = "The chords answer the tune: struck where it holds a note or rests, quiet while it moves — and always where the chord changes, if nowhere else.",
       } },
 
     { id = "form", label = "Form", step = "Arrangement",
@@ -281,16 +285,16 @@ function M.buildSettings()
       hidden = true,
       when = function(st) return st.kind == "Measure" end,
       hints = {
-        ["Hybrid 1"] = "Antecedent + continuation (Caplin's first hybrid): an idea and a contrasting idea to a half close, then breaking it up and speeding to a full close. (Chosen, not rolled by Any.)",
+        ["Hybrid 1"] = "Antecedent + continuation (Caplin’s first hybrid): an idea and a contrasting idea to a half close, then breaking it up and speeding to a full close. (Chosen, not rolled by Any.)",
         ["Hybrid 2"] = "Antecedent + cadential: an idea and a contrasting idea to a half close, then one long cadential phrase home. (Chosen, not rolled by Any.)",
         ["Hybrid 3"] = "Compound basic idea + continuation: an idea and a contrasting one with no cadence between, then breaking it up to a full close. (Chosen, not rolled by Any.)",
         ["Hybrid 4"] = "Compound basic idea + consequent: an idea and a contrasting one, then both again, the second time to a full close. (Chosen, not rolled by Any.)",
         Ternary = "A B A (the small ternary): a theme closed in the key, a contrasting middle standing on the dominant, the theme again to finish. (Chosen, not rolled by Any.)",
-        Extended = "A sentence stretched by a deceptive cadence: it reaches V and goes to vi instead of home, so the end is played 'one more time' to a full close. (Chosen, not rolled by Any.)",
+        Extended = "A sentence stretched by a deceptive cadence: it reaches V and goes to vi instead of home, so the end is played “one more time” to a full close. (Chosen, not rolled by Any.)",
         Period = "A question and its answer: the same opening twice, ending open and then closed.",
         Sentence = "An idea, the idea again on another chord, then breaking it up and speeding to the cadence.",
         Song = "A A B A: a tune, the tune again, something different, the tune to finish.",
-        Loop = "One progression round and round, the tune varied over it - a groove to build on.",
+        Loop = "One progression round and round, the tune varied over it — a groove to build on.",
       } },
     { id = "bass", label = "Bass", step = "Arrangement", values = { "Held", "Pulse", "Moving" },
       any = true, default = "Any",
@@ -306,9 +310,10 @@ function M.buildSettings()
     { id = "drums", label = "Drums", step = "Arrangement", values = { "Off" },
       default = "Off", retired = true, when = function() return false end },
     { id = "layout", label = "Layout", step = "Out", values = { "Tracks", "One item" },
+      name = labelled({ ["One item"] = "One Item" }),
       default = "Tracks", when = function(st) return st.kind == "Measure" end,
       hints = {
-        Tracks = "A new track for each part - Melody, Chords, Bass - under the selected track.",
+        Tracks = "A new track for each part — Melody, Chords, Bass — under the selected track.",
         ["One item"] = "Every part in one item on the selected track, each on its own MIDI channel (1, 2, 3).",
       } },
 
@@ -328,7 +333,7 @@ function M.buildSettings()
       weights = { 2, 1, 1, 1 },
       hints = {
         Plain = "Straight eighths and sixteenths.",
-        Dotted = "Now and then a pair of notes becomes long-short: a dotted eighth and a sixteenth, a dotted quarter and an eighth - in the tune, the chords and a moving bass.",
+        Dotted = "Now and then a pair of notes becomes long-short: a dotted eighth and a sixteenth, a dotted quarter and an eighth — in the tune, the chords and a moving bass.",
         Triplets = "Now and then a beat becomes three: eighth-note triplets, or three quarter notes across two beats. The drums shuffle and broken chords roll in threes.",
         Mixed = "Now and then dotted, now and then triplets.",
       } },
@@ -336,14 +341,14 @@ function M.buildSettings()
       any = true, default = "Any", weights = { 1.5, 1.5, 1 }, when = notDrums,
       hints = {
         None = "Every chord arrives on the beat.",
-        Some = "Some chords arrive an eighth early - on the 'and' before the beat - and the tune and the bass come with them.",
+        Some = "Some chords arrive an eighth early — on the “and” before the beat — and the tune and the bass come with them.",
         Lots = "Most chords arrive an eighth early: a pushed, syncopated feel.",
       } },
     { id = "borrowed", label = "Borrowed", step = "Key", values = { "Off", "Rare", "Common" }, default = "Rare",
       when = function(st) return st.kind ~= "Drums" and (st.scale == "Any" or #T.SCALES[st.scale].iv == 7) end,
       hints = {
         Off = "Every chord from the scale.",
-        Rare = "About one idea in four borrows one chord from another scale on the same key note - a minor iv or a bVI in a major key, a major IV in a minor one. And now and then, before a close's V, the ii or IV becomes a chromatic chord: the Neapolitan (Db/F in C) or an augmented sixth (Ab7 in C: Italian, French, or German, which goes through the I6/4). The window says which chord, and where it is from. Seven-note scales only.",
+        Rare = "About one idea in four borrows one chord from another scale on the same key note — a minor iv or a bVI in a major key, a major IV in a minor one. And now and then, before a close’s V, the ii or IV becomes a chromatic chord: the Neapolitan (Db/F in C) or an augmented sixth (Ab7 in C: Italian, French, or German, which goes through the I6/4). The window says which chord, and where it is from. Seven-note scales only.",
         Common = "About two ideas in three borrow a chord, and a longer one (eight chords or more) sometimes two; about half the closes that can take a chromatic chord do.",
       } },
 
@@ -361,20 +366,23 @@ function M.buildSettings()
       when = function(st) return st.kind == "Drums" end },
     { id = "beat", label = "Beat", step = "Drums",
       values = { "Backbeat", "Half-time", "Four on the floor", "Breakbeat", "Reggaeton" }, any = true, default = "Any",
+      name = labelled({ ["Half-time"] = "Half-Time", ["Four on the floor"] = "Four on the Floor" }),
       weights = { 2, 1, 1, 1, 1 }, when = function(st) return st.kind == "Drums" end,
       hints = {
         Backbeat = "Kick on and around 1 and 3, snare on 2 and 4.",
         ["Half-time"] = "The snare on 3 only: twice as slow, twice as heavy.",
         ["Four on the floor"] = "A kick on every beat, a clap on 2 and 4, open hats on the off-beats.",
         Breakbeat = "A broken kick, the snare on 2 and 4 with one knocked off it, sixteenths on the hats. (In 4/4; a backbeat elsewhere.)",
-        Reggaeton = "The dembow: a kick on every beat, the snare on the 'a' of 1, the 'and' of 2, the 'a' of 3 and the 'and' of 4 - the tresillo, twice. (In 4/4; a backbeat elsewhere.)",
+        Reggaeton = "The dembow: a kick on every beat, the snare on the “a” of 1, the “and” of 2, the “a” of 3 and the “and” of 4 — the tresillo, twice. (In 4/4; a backbeat elsewhere.)",
       } },
     { id = "fills", label = "Fills", step = "Drums",
       values = { "None", "At the end", "Every 4 bars", "Every 2 bars" }, any = true, default = "Any",
+      name = labelled({ ["At the end"] = "At the End", ["Every 4 bars"] = "Every 4 Bars",
+                        ["Every 2 bars"] = "Every 2 Bars" }),
       weights = { 0.6, 2, 2, 1 }, when = function(st) return st.kind == "Drums" end,
       hints = {
         None = "The groove all the way.",
-        ["At the end"] = "A fill in the last bar, leading back to the top - and a crash when it gets there.",
+        ["At the end"] = "A fill in the last bar, leading back to the top — and a crash when it gets there.",
         ["Every 4 bars"] = "A fill at the end of every fourth bar, and of the last.",
         ["Every 2 bars"] = "A fill at the end of every second bar.",
       } },
@@ -393,7 +401,7 @@ function M.buildSettings()
       end,
       hints = {
         Off = "Every chord in the Colour chosen, and nothing else.",
-        Rare = "Now and then a chord takes another colour: a sus4 or sus2, an added 2nd or 9th, a 6th (or a 6/9) - and, where the chords have sevenths, a 7sus4, a 9th, or the diminished chord on its third (G7 becomes Bm7b5). Never the first chord or the cadence. Seven-note scales only.",
+        Rare = "Now and then a chord takes another colour: a sus4 or sus2, an added 2nd or 9th, a 6th (or a 6/9) — and, where the chords have sevenths, a 7sus4, a 9th, or the diminished chord on its third (G7 becomes Bm7b5). Never the first chord or the cadence. Seven-note scales only.",
         Common = "The same colours, on about half the chords that can take one.",
       } },
     { id = "voicing", label = "Voicing", step = "Chords", values = T.VOICINGS, any = true, default = "Close",
@@ -405,31 +413,32 @@ function M.buildSettings()
       hints = {
         Close = "Every note once, inside an octave, each chord nearest the one before.",
         Open = "Spread wide: the root, the fifth, then the third an octave up and the rest above it.",
-        ["Drop 2"] = "Four notes in close position with the second from the top dropped an octave - the guitarist's and arranger's favourite.",
+        ["Drop 2"] = "Four notes in close position with the second from the top dropped an octave — the guitarist’s and arranger’s favourite.",
         ["Drop 3"] = "Four notes with the third from the top dropped an octave: a wide gap at the bottom.",
-        ["Drop 2 & 4"] = "Four notes with the second and the fourth from the top dropped an octave: wide, like a big band's saxes.",
+        ["Drop 2 & 4"] = "Four notes with the second and the fourth from the top dropped an octave: wide, like a big band’s saxes.",
         ["Drop 4"] = "Four notes in close position with the lowest dropped an octave: three close notes over a gap. (Chosen, not rolled by Any.)",
-        Shell = "The root, the third and the seventh - the notes that say what the chord is, and nothing else.",
-        Rootless = "No root - the bass has it: the third, fifth, seventh and ninth, the jazz pianist's left hand.",
-        Power = "The root, the fifth and the root an octave up - no third: the rock guitarist's power chord (C5). A chord with no perfect fifth plays its root in octaves. (Chosen, not rolled by Any.)",
+        Shell = "The root, the third and the seventh — the notes that say what the chord is, and nothing else.",
+        Rootless = "No root — the bass has it: the third, fifth, seventh and ninth, the jazz pianist’s left hand.",
+        Power = "The root, the fifth and the root an octave up — no third: the rock guitarist’s power chord (C5). A chord with no perfect fifth plays its root in octaves. (Chosen, not rolled by Any.)",
       } },
     { id = "inversions", label = "Inversions", step = "Chords", values = { "Off", "Rare", "Common" }, default = "Rare",
       when = hasChords,
       hints = {
         Off = "Every chord with its root in the bass.",
-        Rare = "Now and then a chord's third, fifth or seventh in the bass, where it makes the bass move by step - C G/B Am, a passing chord, or the I6/4 before the cadence. The bass plays it.",
+        Rare = "Now and then a chord’s third, fifth or seventh in the bass, where it makes the bass move by step — C G/B Am, a passing chord, or the I6/4 before the cadence. The bass plays it.",
         Common = "The same, on more than half the chords where an inversion does its job.",
       } },
 
     -- Added in 1.7, last for the same reason. Free is 1.6's part-writing,
     -- note for note, and draws nothing from the dice.
     { id = "partWriting", label = "Part-writing", step = "Chords", values = { "By the book", "Free" },
+      name = labelled({ ["By the book"] = "By the Book" }),
       -- (1.13: not shown - always by the book; Free is kept for the tests,
       -- which compare the two. 0025.)
       default = "By the book", when = hasChords, hidden = true,
       hints = {
         ["By the book"] = "As the harmony and orchestration books have it: an inverted chord does not double its bass note (G/B plays no B above the bass), a seventh falls a step into the next chord, a half close with Mixed is a plain V, the chords sit just under the tune, the bass no more than an octave and a fifth below the chords and never in among them, and no parallel fifths or octaves between the tune and the bass.",
-        Free = "As Good Idea did before 1.7: every chord note in every chord, the chords under the whole tune's lowest note, the bass where it falls.",
+        Free = "As Good Idea did before 1.7: every chord note in every chord, the chords under the whole tune’s lowest note, the bass where it falls.",
       } },
 
     -- Added in 1.8, last for the same reason. Off draws nothing.
@@ -437,7 +446,7 @@ function M.buildSettings()
       when = function(st) return st.kind ~= "Drums" and (st.scale == "Any" or #T.SCALES[st.scale].iv == 7) end,
       hints = {
         Off = "No chord borrowed from another key.",
-        Rare = "Now and then the chord before a major or minor chord becomes that chord's own dominant - its V (or V7), or its leading-tone chord - borrowed from the key the next chord is home in: D7 before G in C major (V7/V), E before Am (V/vi). The most common chromatic chord there is. And where the bass climbs a tone (F to G), now and then a passing diminished seventh on the note between (F F#dim7 G); and, but with Triads, a held I or V coloured by the common-tone diminished seventh (C D#dim7/C C), its root held. The window says which, and where. Seven-note scales only.",
+        Rare = "Now and then the chord before a major or minor chord becomes that chord’s own dominant — its V (or V7), or its leading-tone chord — borrowed from the key the next chord is home in: D7 before G in C major (V7/V), E before Am (V/vi). The most common chromatic chord there is. And where the bass climbs a tone (F to G), now and then a passing diminished seventh on the note between (F F#dim7 G); and, but with Triads, a held I or V coloured by the common-tone diminished seventh (C D#dim7/C C), its root held. The window says which, and where. Seven-note scales only.",
         Common = "The same, on more of the chords that can take one, and in most ideas.",
       } },
 
@@ -449,26 +458,28 @@ function M.buildSettings()
       -- (1.13: not shown; every idea walks or plays a named progression that
       -- suits its key, half and half. 0025.)
       any = true, default = "Any", anyValues = { "Walk", "Any named" }, anyWeights = { 1, 1 },
+      name = labelled({ ["Any named"] = "Any Named", ["Singer-songwriter"] = "Singer-Songwriter",
+                        ["Double plagal"] = "Double Plagal" }),
       hidden = true, when = hasChords,
       hints = {
-        Walk = "Each chord drawn from the one before, by how strongly it leads there (tonic, subdominant, dominant) - the way Good Idea has always worked. A named progression fills the chords in order, going round, and a passage that closes still ends on its cadence, and a repeated passage carries the progression on. It is heard best in a Loop, which plays nothing else.",
+        Walk = "Each chord drawn from the one before, by how strongly it leads there (tonic, subdominant, dominant) — the way Good Idea has always worked. A named progression fills the chords in order, going round, and a passage that closes still ends on its cadence, and a repeated passage carries the progression on. It is heard best in a Loop, which plays nothing else.",
         ["Any named"] = "One of the named progressions that suits the key, chosen by the idea number.",
-        ["Doo-wop"] = "I vi IV V - the '50s doo-wop progression (Open Music Theory). Major keys.",
-        ["Singer-songwriter"] = "vi IV I V in a major key, i VI III VII in a minor one - never quite sure which is home.",
-        Puff = "I iii IV I - the 'Puff' opening, the bass climbing do mi fa. Major keys.",
-        Pachelbel = "I V6 vi iii6 IV I6 IV V - Pachelbel's canon, the bass stepping down do ti la sol fa mi. Major keys.",
-        Lament = "i VII VI V - the lament (the Andalusian cadence), the bass falling do te le sol. Minor keys.",
-        Circle = "Round the circle of fifths: I IV vii iii vi ii V I, or in minor i iv VII III VI ii V i ('I Will Survive').",
-        ["Double plagal"] = "I bVII IV I - two plagal steps home (the coda of 'Hey Jude'). Major keys.",
-        Galant = "The galant schemata: a Meyer (I V4/3 V6/5 I, the bass do re ti do, the tune do ti fa mi) then a Prinner (IV I6 vii6 I, the bass fa mi re do, the tune la sol fa mi) - Gjerdingen's stock phrases. In minor, i V4/3 V6/5 i, iv i6 vii°6 i.",
-        Blues = "The 12-bar blues - I I I I IV IV I I V IV I I - and its 8- and 16-bar cousins, a chord a bar. Measures only.",
-        ["Do-Re-Mi"] = "I V6/5 I - the bass do ti do under a tune rising do re mi: the galant Do-Re-Mi.",
-        Romanesca = "I V6 vi I6 - the bass do ti la mi: the galant Romanesca. In minor, i v6 VI i6, the bass do te le me.",
-        Fonte = "V7/ii ii V7 I - a pair stepped down: the galant Fonte ('fountain'). In minor, V7/iv iv V7/III III: the minor key's ii cannot be a key, so it falls from iv to III.",
-        Monte = "V7/IV IV V7/V V - a pair stepped up: the galant Monte ('mountain'). In minor, V7/iv iv V7/V V.",
+        ["Doo-wop"] = "I vi IV V — the ’50s doo-wop progression (Open Music Theory). Major keys.",
+        ["Singer-songwriter"] = "vi IV I V in a major key, i VI III VII in a minor one — never quite sure which is home.",
+        Puff = "I iii IV I — the “Puff” opening, the bass climbing do mi fa. Major keys.",
+        Pachelbel = "I V6 vi iii6 IV I6 IV V — Pachelbel’s canon, the bass stepping down do ti la sol fa mi. Major keys.",
+        Lament = "i VII VI V — the lament (the Andalusian cadence), the bass falling do te le sol. Minor keys.",
+        Circle = "Round the circle of fifths: I IV vii iii vi ii V I, or in minor i iv VII III VI ii V i (“I Will Survive”).",
+        ["Double plagal"] = "I bVII IV I — two plagal steps home (the coda of “Hey Jude”). Major keys.",
+        Galant = "The galant schemata: a Meyer (I V4/3 V6/5 I, the bass do re ti do, the tune do ti fa mi) then a Prinner (IV I6 vii6 I, the bass fa mi re do, the tune la sol fa mi) — Gjerdingen’s stock phrases. In minor, i V4/3 V6/5 i, iv i6 vii°6 i.",
+        Blues = "The 12-bar blues — I I I I IV IV I I V IV I I — and its 8- and 16-bar cousins, a chord a bar. Measures only.",
+        ["Do-Re-Mi"] = "I V6/5 I — the bass do ti do under a tune rising do re mi: the galant Do-Re-Mi.",
+        Romanesca = "I V6 vi I6 — the bass do ti la mi: the galant Romanesca. In minor, i v6 VI i6, the bass do te le me.",
+        Fonte = "V7/ii ii V7 I — a pair stepped down: the galant Fonte (“fountain”). In minor, V7/iv iv V7/III III: the minor key’s ii cannot be a key, so it falls from iv to III.",
+        Monte = "V7/IV IV V7/V V — a pair stepped up: the galant Monte (“mountain”). In minor, V7/iv iv V7/V V.",
         Aprile = "I V4/3 V6/5 I under a tune do ti re do: the galant Aprile.",
         Pastorella = "I V7 I under a tune mi re fa mi, the V7 holding two notes of it: the galant Pastorella.",
-        Ponte = "The tonic, then V held (V7 with Sevenths or Mixed) - standing on the dominant: the galant Ponte ('bridge').",
+        Ponte = "The tonic, then V held (V7 with Sevenths or Mixed) — standing on the dominant: the galant Ponte (“bridge”).",
       } },
 
     -- Added in 1.10, last for the same reason. Off draws nothing, and the
@@ -476,27 +487,28 @@ function M.buildSettings()
     { id = "tension", label = "Tension", step = "Melody", values = { "Off", "Rare", "Common" },
       default = "Rare", when = hasMelody,
       hints = {
-        Off = "Every note on the beat is a note of the chord, as Good Idea's tunes were before 1.10.",
-        Rare = "Now and then the tune leans on the beat and falls a step to the chord: a suspension (the note before held over the chord change, then falling), an appoggiatura (leapt up to, a step above the chord's note), or, at a close, the last note arriving an eighth early (an anticipation).",
+        Off = "Every note on the beat is a note of the chord, as Good Idea’s tunes were before 1.10.",
+        Rare = "Now and then the tune leans on the beat and falls a step to the chord: a suspension (the note before held over the chord change, then falling), an appoggiatura (leapt up to, a step above the chord’s note), or, at a close, the last note arriving an eighth early (an anticipation).",
         Common = "The same, on more of the beats where one can go.",
       } },
     { id = "secondVoice", label = "Second voice", step = "Melody", values = { "Off", "Thirds", "Sixths" },
       default = "Off", when = hasMelody,
       hints = {
         Off = "The tune alone.",
-        Thirds = "A second part a third under the tune, moving with it - a fourth or a sixth under where a third would not be a note of the chord on the beat. Its own channel (or track).",
-        Sixths = "A second part a sixth under the tune, moving with it - a third or a fourth under where a sixth would not be a note of the chord on the beat. Its own channel (or track).",
+        Thirds = "A second part a third under the tune, moving with it — a fourth or a sixth under where a third would not be a note of the chord on the beat. Its own channel (or track).",
+        Sixths = "A second part a sixth under the tune, moving with it — a third or a fourth under where a sixth would not be a note of the chord on the beat. Its own channel (or track).",
       } },
 
     -- Added in 1.12, last for the same reason. None draws nothing.
     { id = "keyChange", label = "Key change", step = "Arrangement",
       values = { "None", "Step up", "Half step up", "Truck driver" }, default = "None",
+      name = labelled({ ["Step up"] = "Step Up", ["Half step up"] = "Half Step Up", ["Truck driver"] = "Truck Driver" }),
       when = function(st) return st.kind == "Measure" end,
       hints = {
         None = "One key all the way.",
-        ["Step up"] = "The last section a whole tone higher - the pop key change for a last chorus. Tune, chords and bass all go up.",
+        ["Step up"] = "The last section a whole tone higher — the pop key change for a last chorus. Tune, chords and bass all go up.",
         ["Half step up"] = "The last section a semitone higher.",
-        ["Truck driver"] = "A whole tone up, with the new key's V7 squeezed in before it (C ... A7 | D) - the 'truck-driver' gear change - into the new key's tonic: the last section that starts on it, or one made to start on it. In scales other than the seven-note ones, a plain step up.",
+        ["Truck driver"] = "A whole tone up, with the new key’s V7 squeezed in before it (C ... A7 | D) — the “truck-driver” gear change — into the new key’s tonic: the last section that starts on it, or one made to start on it. In scales other than the seven-note ones, a plain step up.",
       } },
 
     -- Added in 1.14, last for the same reason. Off draws nothing; the
@@ -504,13 +516,14 @@ function M.buildSettings()
     { id = "ghosts", label = "Ghost notes", step = "Drums", values = { "Off", "Rare", "Common" },
       default = "Rare", when = function(st) return st.kind == "Drums" end,
       hints = {
-        Off = "Only the groove's own snare.",
-        Rare = "Now and then a ghost note: the snare tapped very quietly on a sixteenth, mostly just before or after the backbeat - the funk and R&B drummer's in-between notes. The same in every bar, quiet at any Velocity.",
+        Off = "Only the groove’s own snare.",
+        Rare = "Now and then a ghost note: the snare tapped very quietly on a sixteenth, mostly just before or after the backbeat — the funk and R&B drummer’s in-between notes. The same in every bar, quiet at any Velocity.",
         Common = "The same ghost notes, and more of them.",
       } },
     -- (1.14: not shown - the engine decides, half and half, whether the
     -- bass lies back with pulled chords or holds the beat with the tune.)
     { id = "bassPull", label = "Bass pull", step = "Arrangement", values = { "On the beat", "With the chords" },
+      name = labelled({ ["On the beat"] = "On the Beat", ["With the chords"] = "With the Chords" }),
       any = true, default = "Any", hidden = true,
       when = function(st) return st.kind == "Measure" end,
       hints = {
@@ -4406,7 +4419,7 @@ function M.make(st, meter, seed)
     if r.voicing ~= "Close" then said[#said + 1] = r.voicing:lower() .. " voicing" end
     if sch then said[#said + 1] = sch.name:lower() .. " progression"
     elseif schemaWhy then said[#said + 1] = "walked (" .. schemaWhy .. ")" end
-    said[#said + 1] = M.valueName(M.BY_ID.chordPace, r.chordPace)
+    said[#said + 1] = M.valueName(M.BY_ID.chordPace, r.chordPace):lower()
     said[#said + 1] = r.chordStyle:lower() .. ((r.chordStyle == "Broken" and arpName) and (" (" .. arpName .. ")") or "")
   end
   if r.kind == "Measure" then said[#said + 1] = r.bass:lower() .. " bass" end
@@ -4482,7 +4495,7 @@ function M.make(st, meter, seed)
       text = ("%s to %s at bar %d%s"):format(
         ({ ["Step up"] = "Up a whole tone", ["Half step up"] = "Up a semitone", ["Truck driver"] = "Up a whole tone" })[r.keyChange],
         M.keyName(keyChange.key), keyChange.at // meter.bar + 1,
-        keyChange.truck and (", through its V (" .. keyChange.truck.chord.name .. ") - the truck driver") or ""),
+        keyChange.truck and (", through its V (" .. keyChange.truck.chord.name .. ") — the truck driver") or ""),
     } or nil,
     schema = sch and sch.name or nil,
   }

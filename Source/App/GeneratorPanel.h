@@ -7,6 +7,10 @@
     instrument. The settings are each generator's own, drawn from what its
     adapter says it has, so nothing here knows what Good Idea or the Catalogue
     can do - a setting added to an engine shows up here by itself.
+
+    Every list Generate makes is kept, and each is a step in Undo: an idea
+    lost to one Generate too many comes back with Cmd+Z (0049). There is no
+    More button: Generate again does the same (0051).
 */
 
 #pragma once
@@ -33,7 +37,7 @@ private:
     Controller& controller;
     juce::ComboBox generator;
     juce::Label description;
-    juce::ToggleButton followKey { "Use the score's key" };
+    juce::ToggleButton followKey { "Use the music's key" };
     SettingsList settings { controller };
     juce::TextButton generateButton { "Generate" }, moreButton { "More" }, insertButton { "Insert" }, stopButton { "Stop" };
     // The results, ringed when Tab reaches them (decision 0048).
@@ -52,6 +56,20 @@ private:
     std::string current;
     std::vector<std::string> listed;   // ids, in the order of the menu
 
+    // What each Generate listed, oldest first, and which one Undo has the
+    // list at (decision 0049). The first is the empty list before any.
+    struct Listed
+    {
+        std::vector<GeneratedResult> results;
+        std::string generator;
+        int row = -1;
+        juce::String message;
+    };
+    std::vector<Listed> history { Listed {} };
+    size_t shown = 0;
+    bool quiet = false;                // a list brought back is not auditioned
+    void showListed (int direction);
+
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
     int getNumRows() override { return static_cast<int> (found.size()); }
     void paintListBoxItem (int row, juce::Graphics&, int width, int height, bool selected) override;
@@ -62,7 +80,7 @@ private:
     juce::String getTooltipForRow (int row) override;
 
     void rebuildSettings();
-    void run (bool more);
+    void run();
     void insertSelected();
     bool needsSelection() const;
     void showMessage (const juce::String& text, bool error = false);

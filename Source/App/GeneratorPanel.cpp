@@ -8,7 +8,7 @@ namespace nt
 GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
 {
     for (auto* comp : std::initializer_list<juce::Component*> { &generator, &description, &followKey, &settings, &generateButton,
-                                                                 &moreButton, &insertButton, &stopButton, &results, &message, &target })
+                                                                 &insertButton, &stopButton, &results, &message, &target })
         addAndMakeVisible (comp);
     settings.context = [this] { return controller.generatorContext (needsSelection()); };
     settings.onChange = [this] { resized(); };
@@ -26,6 +26,7 @@ GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
         const int i = generator.getSelectedId() - 1;
         if (i < 0 || i >= static_cast<int> (listed.size())) return;
         current = listed[static_cast<size_t> (i)];
+        if (! found.empty()) history[shown].row = results.getSelectedRow();
         found.clear();
         results.updateContent();
         if (controller.lua.ok()) showMessage ("Press Generate to make some ideas, then click one to hear it.");
@@ -43,7 +44,7 @@ GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
     target.setColour (juce::Label::textColourId, theme::text);
 
     followKey.setToggleState (true, juce::dontSendNotification);
-    followKey.setTooltip ("Write in the key the score is in at the caret, rather than the generator's own setting");
+    followKey.setTooltip ("Write in the key of the music at the cursor, instead of the generator's own key setting");
     followKey.onClick = [this] { rebuildSettings(); };
 
     generateButton.setTooltip ("Make new results");
@@ -62,6 +63,7 @@ GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
     results.setTitle ("Results");
 
     controller.addChangeListener (this);
+    controller.stepResults = [this] (int direction) { showListed (direction); };
     generator.setSelectedId (1);
     theme::clicksKeepFocus (*this);
     if (! controller.lua.ok())
@@ -84,7 +86,11 @@ void GeneratorPanel::ResultsList::paintOverChildren (juce::Graphics& g)
     g.drawRect (getLocalBounds(), 2);
 }
 
-GeneratorPanel::~GeneratorPanel() { controller.removeChangeListener (this); }
+GeneratorPanel::~GeneratorPanel()
+{
+    controller.stepResults = nullptr;
+    controller.removeChangeListener (this);
+}
 
 bool GeneratorPanel::needsSelection() const
 {
@@ -116,9 +122,8 @@ void GeneratorPanel::resized()
     target.setBounds (r.removeFromTop (20));
     r.removeFromTop (4);
     auto buttons = r.removeFromTop (30);
-    const int w = (buttons.getWidth() - 12) / 4;
+    const int w = (buttons.getWidth() - 8) / 3;
     generateButton.setBounds (buttons.removeFromLeft (w)); buttons.removeFromLeft (4);
-    moreButton.setBounds (buttons.removeFromLeft (w)); buttons.removeFromLeft (4);
     insertButton.setBounds (buttons.removeFromLeft (w)); buttons.removeFromLeft (4);
     stopButton.setBounds (buttons);
     r.removeFromTop (6);
@@ -146,37 +151,45 @@ void GeneratorPanel::rebuildSettings()
 void GeneratorPanel::changeListenerCallback (juce::ChangeBroadcaster*)
 {
     // Nothing chosen: chords shared across every part from the caret's bar
-    // (0041), a single line into the caret's part (0042).
+    // (0041), a single line into the caret's part (0042) - or across the
+    // parts chosen by name, a single line to the first chosen (0050).
     juce::String into = "Into: ";
     const juce::String bar = "from bar " + juce::String (controller.score.barAt (controller.caret) + 1);
     const auto* line = controller.score.partById (controller.lineTarget());
     const juce::String lineName = line != nullptr ? juce::String (line->name) : juce::String();
-    if (controller.score.parts.size() > 1) into += bar + " - chords to every part, one line to " + lineName;
+    if (controller.score.parts.size() > 1) into += bar + ui (" — chords to ") + controller.partsText() + ", one line to " + lineName;
     else into += lineName + ", " + bar;
-    if (controller.range.active() && (! needsSelection() || current == "midi-variator"))
+    if (controller.range.active() && (! needsSelection() || current == "midi-variator") && ! controller.variesAcrossParts (current))
     {
         into = "Into: " + controller.rangeText();
-        if (! needsSelection() && controller.range.parts.size() > 1) into += " - one line to " + lineName;
+        if (! needsSelection() && controller.range.parts.size() > 1) into += ui (" — one line to ") + lineName;
         if (needsSelection())
-            into = controller.selection.empty() ? juce::String ("There is no music in the chosen bars to vary")
-                 : controller.rangeText() + "  |  the variation replaces it";
+            into = controller.selection.empty() ? juce::String ("Choose bars with music in them to vary.")
+                 : controller.rangeText() + ui (" — the variation replaces them");
+    }
+    // Vary Notes on music in several parts goes after it, across them (0052).
+    else if (needsSelection() && ! controller.selection.empty() && controller.variesAcrossParts (current))
+    {
+        const auto [a, b] = controller.selectedBars();
+        into = "Into: after bar " + juce::String (b + 1) + ", across the "
+             + juce::String (static_cast<int> (controller.partsWithSelection().size())) + " parts it varies";
     }
     else if (needsSelection())
     {
         const auto [a, b] = controller.selectedBars();
-        const juce::String bars = "bar" + juce::String (a == b ? " " : "s ") + juce::String (a + 1) + (a == b ? juce::String() : "-" + juce::String (b + 1));
-        into = controller.selection.empty() ? juce::String ("Select some music in the score for this one")
+        const juce::String bars = "bar" + juce::String (a == b ? " " : "s ") + juce::String (a + 1) + (a == b ? juce::String() : ui ("–") + juce::String (b + 1));
+        into = controller.selection.empty() ? juce::String ("Select some notes in the score to use this generator.")
              : juce::String (static_cast<int> (controller.selection.size())) + " notes in " + bars
-               + (current == "midi-variator" ? "  |  goes after them" : "  |  goes beside them");
+               + (current == "midi-variator" ? ui (" — the variation goes after them") : ui (" — ideas go beside them"));
     }
     target.setText (into, juce::dontSendNotification);
     insertButton.setEnabled (results.getSelectedRow() >= 0);
 }
 
-void GeneratorPanel::run (bool more)
+void GeneratorPanel::run()
 {
     if (current.empty()) return;
-    seed = more ? seed + 6 : static_cast<int> (juce::Random::getSystemRandom().nextInt (90000)) + 1;
+    seed = static_cast<int> (juce::Random::getSystemRandom().nextInt (90000)) + 1;
     const auto ctx = controller.generatorContext (needsSelection());
     if (followKey.getToggleState()) controller.lua.useKey (current, ctx.root, ctx.scale);
     const auto out = controller.lua.generate (current, ctx, seed, 6);
@@ -192,7 +205,42 @@ void GeneratorPanel::run (bool more)
                                      : juce::String (out.message));
     results.updateContent();
     results.repaint();
-    if (! more && ! found.empty()) results.selectRow (0, false, true);
+    if (! found.empty()) results.selectRow (0, false, true);
+
+    // Kept, and a step in Undo (decision 0049). A Generate after an Undo
+    // drops the lists that Redo would have brought back, as an edit does.
+    history.resize (shown + 1);
+    history.push_back ({ found, current, results.getSelectedRow(), message.getText() });
+    if (history.size() > 301) history.erase (history.begin());
+    shown = history.size() - 1;
+    controller.generated();
+}
+
+void GeneratorPanel::showListed (int direction)
+{
+    const int to = static_cast<int> (shown) + direction;
+    if (to < 0 || to >= static_cast<int> (history.size())) return;
+    if (! found.empty()) history[shown].row = results.getSelectedRow();
+    shown = static_cast<size_t> (to);
+    const auto& l = history[shown];
+    // The list may have come from another generator: that one is chosen again,
+    // so Insert places it as its own generator would.
+    if (! l.generator.empty() && l.generator != current)
+    {
+        current = l.generator;
+        for (size_t i = 0; i < listed.size(); ++i)
+            if (listed[i] == current) generator.setSelectedId (static_cast<int> (i) + 1, juce::dontSendNotification);
+        rebuildSettings();
+    }
+    found = l.results;
+    message.setColour (juce::Label::textColourId, theme::stepNumber);
+    message.setText (l.message, juce::dontSendNotification);
+    results.updateContent();
+    results.repaint();
+    const juce::ScopedValueSetter<bool> hush (quiet, true);
+    if (l.row >= 0 && l.row < static_cast<int> (found.size())) results.selectRow (l.row, false, true);
+    else results.deselectAllRows();
+    insertButton.setEnabled (results.getSelectedRow() >= 0);
 }
 
 void GeneratorPanel::insertSelected()
@@ -223,7 +271,7 @@ void GeneratorPanel::paintListBoxItem (int row, juce::Graphics& g, int width, in
     for (const auto& p : r.parts) notes += static_cast<int> (p.notes.size());
     juce::String sub;
     for (const auto& p : r.parts) sub += (sub.isEmpty() ? "" : ", ") + juce::String (p.name);
-    sub += "  |  " + juce::String (static_cast<double> (r.length) / PPQ, 1) + " beats, " + juce::String (notes) + " notes";
+    sub += ui ("  ·  ") + juce::String (static_cast<double> (r.length) / PPQ, 1) + " beats, " + juce::String (notes) + " notes";
     g.setColour (theme::textDim);
     g.setFont (juce::FontOptions (12.0f));
     g.drawText (sub, 10, 22, width - 16, 18, juce::Justification::centredLeft, true);
@@ -232,7 +280,7 @@ void GeneratorPanel::paintListBoxItem (int row, juce::Graphics& g, int width, in
 void GeneratorPanel::selectedRowsChanged (int row)
 {
     insertButton.setEnabled (row >= 0);
-    if (row >= 0 && row < static_cast<int> (found.size())) controller.auditionGenerated (found[static_cast<size_t> (row)], needsSelection(), current);
+    if (! quiet && row >= 0 && row < static_cast<int> (found.size())) controller.auditionGenerated (found[static_cast<size_t> (row)], needsSelection(), current);
 }
 
 void GeneratorPanel::listBoxItemDoubleClicked (int row, const juce::MouseEvent&)

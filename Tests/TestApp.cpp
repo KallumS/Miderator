@@ -9,6 +9,7 @@
 
 #include "Controller.h"
 #include "Exporter.h"
+#include "GeneratorPanel.h"
 #include "MidiFile.h"
 #include "ScaleModel.h"
 
@@ -77,7 +78,7 @@ TEST ("app: chosen bars are filled by Good Idea, across the parts chosen")
     drawLine (c, 0, 0, { 72, 74, 76, 77 });                           // bar 1, first violin
     c.selectRange (1, 4, 0, 3);                                       // bars 2-5, all four
     CHECK (c.range.active());
-    CHECK_EQ (c.rangeText(), juce::String ("Bars 2-5, Violin I to Cello"));
+    CHECK_EQ (c.rangeText(), juce::String::fromUTF8 ("Bars 2–5, Violin I to Cello"));   // an en dash (0053)
     const auto ctx = c.generatorContext (false);
     CHECK_EQ (ctx.rangeBars, 4);
     const auto out = c.lua.generate ("good-idea", ctx, 7, 3);
@@ -273,7 +274,7 @@ TEST ("app: notes drawn, dragged, copied and stretched on the roll, each one und
     CHECK_EQ (c.score.parts[0].notes[0].pitch, 67);
     c.dragSelection (-4 * PPQ, 0, false);                    // past the start: refused
     CHECK_EQ (c.score.parts[0].notes[0].start, 2 * PPQ);
-    CHECK_EQ (c.status, juce::String ("That would go past the start, or the ends of the MIDI range."));
+    CHECK_EQ (c.status, juce::String ("Nothing changed: that would take notes before the start or outside the MIDI range."));
 
     c.dragSelection (PPQ, 0, true);                          // Alt-drag: a copy
     CHECK_EQ (c.score.parts[0].notes.size(), size_t (2));
@@ -651,4 +652,267 @@ TEST ("app: clicking a part's name lets go of bars chosen in other parts, so an 
     c.selectRange (0, 1, 0, 3);
     c.choosePart (viola);
     CHECK (c.range.active());
+}
+
+TEST ("app: Escape lets go of everything, the caret's part too, so an idea goes to every part")
+{
+    Controller c (audio());
+    c.newScore ("String Quartet");
+    const auto violin = c.score.parts[0].id, viola = c.score.parts[2].id;
+    GeneratedResult tune;
+    tune.length = 4 * PPQ;
+    GeneratedPart melody;
+    melody.name = "Melody";
+    for (int i = 0; i < 4; ++i) { Note n; n.start = i * PPQ; n.length = PPQ; n.pitch = 64 + i; melody.notes.push_back (n); }
+    tune.parts = { melody };
+    GeneratedResult chords;
+    chords.length = 4 * PPQ;
+    GeneratedPart harmony;
+    harmony.name = "Chords";
+    for (int i = 0; i < 2; ++i)
+        for (int pitch : { 60, 64, 67, 72 }) { Note n; n.start = i * 2 * PPQ; n.length = 2 * PPQ; n.pitch = pitch; harmony.notes.push_back (n); }
+    chords.parts = { harmony };
+
+    // The viola chosen, bars chosen across it, notes selected.
+    c.setCaret (viola, 0);
+    c.selectRange (0, 1, 1, 2);
+    c.setCaret (viola, 0);
+    CHECK (c.range.active());
+    CHECK_EQ (c.lineTarget(), viola);
+
+    c.letGoOfEverything();                              // Escape
+    CHECK (! c.range.active());
+    CHECK (c.selection.empty());
+    CHECK (c.noPartChosen);
+    CHECK_EQ (c.lineTarget(), violin);                  // a single line: the top part
+
+    c.insertGenerated (tune, false, "good-idea");
+    CHECK_EQ (c.score.partById (violin)->notes.size(), size_t (4));
+    CHECK (c.score.partById (viola)->notes.empty());
+    CHECK (c.noPartChosen);                             // still nothing chosen for the next idea
+    c.setCaret (c.caretPart, 4 * PPQ);                  // the caret moved along the ruler: still nothing
+    CHECK (c.noPartChosen);
+
+    c.insertGenerated (chords, false, "good-idea");     // chords: every part
+    for (const auto& p : c.score.parts) CHECK (! p.notes.empty());
+    CHECK (c.noPartChosen);
+
+    // Choosing a part again ends it.
+    c.choosePart (viola);
+    CHECK (! c.noPartChosen);
+    CHECK_EQ (c.lineTarget(), viola);
+    c.letGoOfEverything();
+    c.caretToPart (1);
+    CHECK (! c.noPartChosen);
+}
+
+TEST ("app: Undo brings back the ideas a Generate replaced, and Redo the new ones, in step with edits")
+{
+    Controller c (audio());
+    c.newScore ("String Quartet");
+    GeneratorPanel panel (c);
+    juce::TextButton* generate = nullptr;
+    juce::ListBox* list = nullptr;
+    for (auto* child : panel.getChildren())
+    {
+        if (auto* b = dynamic_cast<juce::TextButton*> (child); b != nullptr && b->getButtonText() == "Generate") generate = b;
+        if (auto* l = dynamic_cast<juce::ListBox*> (child)) list = l;
+        // The tab chooses Generate Notes on its own a moment after it opens.
+        if (auto* menu = dynamic_cast<juce::ComboBox*> (child); menu != nullptr && menu->onChange) menu->onChange();
+    }
+    CHECK (generate != nullptr && list != nullptr);
+    if (generate == nullptr || list == nullptr) return;
+    // What the list shows, row by row.
+    auto shown = [list]
+    {
+        juce::StringArray rows;
+        auto* model = list->getListBoxModel();
+        for (int i = 0; i < model->getNumRows(); ++i) rows.add (model->getTooltipForRow (i));
+        return rows.joinIntoString ("|");
+    };
+    auto notes = [&c] { return c.score.parts[0].notes.size(); };
+
+    generate->onClick();
+    const auto first = shown();
+    CHECK (first.isNotEmpty());
+    list->selectRow (2);                                // the idea liked
+    c.edit ("A note", [] (Score& s) { Note n; n.start = 0; n.length = PPQ; n.pitch = 72; s.parts[0].notes.push_back (n); });
+    CHECK_EQ (notes(), size_t (1));
+    generate->onClick();                                // one Generate too many
+    const auto second = shown();
+    CHECK (second != first);
+
+    c.undo();                                           // the ideas come back, the note stays
+    CHECK (shown() == first);
+    CHECK_EQ (list->getSelectedRow(), 2);
+    CHECK_EQ (notes(), size_t (1));
+    c.undo();                                           // then the note goes
+    CHECK_EQ (notes(), size_t (0));
+    CHECK (shown() == first);
+    c.redo();
+    CHECK_EQ (notes(), size_t (1));
+    c.redo();
+    CHECK (shown() == second);
+
+    // A Generate after an Undo drops what Redo had.
+    c.undo();
+    CHECK (shown() == first);
+    generate->onClick();
+    const auto third = shown();
+    CHECK (third != first && third != second);
+    CHECK (! c.canRedo());
+    c.undo();
+    CHECK (shown() == first);
+    c.undo();
+    c.undo();                                           // back past the first Generate: an empty list
+    CHECK (shown().isEmpty());
+    CHECK (! c.canUndo());
+}
+
+TEST ("app: Cmd and Shift on names choose several parts, Cmd+A every part then every note, Cmd adds bars")
+{
+    auto chordsAndTune = [] (GeneratedResult& tune, GeneratedResult& chords)
+    {
+        tune.length = chords.length = 4 * PPQ;
+        GeneratedPart melody;
+        melody.name = "Melody";
+        for (int i = 0; i < 4; ++i) { Note n; n.start = i * PPQ; n.length = PPQ; n.pitch = 64 + i; melody.notes.push_back (n); }
+        tune.parts = { melody };
+        GeneratedPart harmony;
+        harmony.name = "Chords";
+        for (int i = 0; i < 2; ++i)
+            for (int pitch : { 60, 64, 67, 72 }) { Note n; n.start = i * 2 * PPQ; n.length = 2 * PPQ; n.pitch = pitch; harmony.notes.push_back (n); }
+        chords.parts = { harmony };
+    };
+    GeneratedResult tune, chords;
+    chordsAndTune (tune, chords);
+
+    Controller c (audio());
+    c.newScore ("String Quartet");
+    const auto violin = c.score.parts[0].id, second = c.score.parts[1].id, viola = c.score.parts[2].id, cello = c.score.parts[3].id;
+    auto has = [&c] (uint32_t id) { return ! c.score.partById (id)->notes.empty(); };
+
+    // Violin II clicked, then Viola with Cmd: those two, Violin II first.
+    c.choosePart (second);
+    c.clickPart (viola, true, false);
+    CHECK (c.chosenParts == (std::vector<uint32_t> { second, viola }));
+    CHECK (c.isPartChosen (second) && c.isPartChosen (viola) && ! c.isPartChosen (violin));
+    CHECK_EQ (c.lineTarget(), second);
+    CHECK (c.partsText() == "Violin II and Viola");
+    c.insertGenerated (chords, false, "good-idea");           // chords: those two alone
+    CHECK (! has (violin) && has (second) && has (viola) && ! has (cello));
+    c.undo();
+    c.insertGenerated (tune, false, "good-idea");             // a tune: the first chosen
+    CHECK (! has (violin) && has (second) && ! has (viola) && ! has (cello));
+    c.undo();
+
+    // Cmd on a chosen one takes it away.
+    c.clickPart (viola, true, false);
+    CHECK (c.chosenParts.empty());
+    CHECK_EQ (c.caretPart, second);
+    CHECK (c.isPartChosen (second) && ! c.isPartChosen (viola));
+
+    // Cello clicked, then Violin II with Shift: the three, Cello first.
+    c.choosePart (cello);
+    c.clickPart (second, false, true);
+    CHECK (c.chosenParts == (std::vector<uint32_t> { cello, viola, second }));
+    CHECK_EQ (c.lineTarget(), cello);
+
+    // Cmd+A with a part chosen: every part, the top one first; again: every note too.
+    c.insertGenerated (chords, false, "good-idea");
+    CHECK (! has (violin) && has (second) && has (viola) && has (cello));
+    c.choosePart (viola);
+    c.selectAll();
+    CHECK_EQ (c.chosenParts.size(), size_t (4));
+    CHECK_EQ (c.lineTarget(), violin);
+    CHECK (c.selection.empty());
+    c.selectAll();
+    size_t notes = 0;
+    for (const auto& p : c.score.parts) notes += p.notes.size();
+    CHECK_EQ (c.selection.size(), notes);
+    // Nothing chosen (Escape), then Cmd+A: every note and every part at once.
+    c.letGoOfEverything();
+    CHECK (c.chosenParts.empty() && c.selection.empty());
+    c.selectAll();
+    CHECK_EQ (c.selection.size(), notes);
+    CHECK_EQ (c.chosenParts.size(), size_t (4));
+    // A plain click on a name: that part alone again.
+    c.choosePart (viola);
+    CHECK (c.chosenParts.empty() && c.isPartChosen (viola) && ! c.isPartChosen (violin));
+
+    // Bars: bar 1 of Violin I, then bar 3 of the Cello with Cmd - each filled on its own.
+    Controller d (audio());
+    d.newScore ("String Quartet");
+    auto inBar = [&d] (size_t part, int bar)
+    {
+        const auto& ns = d.score.parts[part].notes;
+        return ! ns.empty() && std::all_of (ns.begin(), ns.end(), [&] (const Note& n)
+               { return n.start >= d.score.barStart (bar) && n.end() <= d.score.barStart (bar + 1); });
+    };
+    d.selectRange (0, 0, 0, 0);
+    d.addRange (2, 2, 3, 3);
+    CHECK_EQ (d.range.blocks().size(), size_t (2));
+    CHECK (d.rangeText() == "Bar 1, Violin I; Bar 3, Cello");
+    d.insertGenerated (chords, false, "good-idea");
+    CHECK (inBar (0, 0));
+    CHECK (inBar (3, 2));
+    CHECK (d.score.parts[1].notes.empty() && d.score.parts[2].notes.empty());
+    CHECK_EQ (d.range.blocks().size(), size_t (2));          // still chosen, for the next idea
+    // The same bar with Cmd again: let go of.
+    d.addRange (2, 2, 3, 3);
+    CHECK_EQ (d.range.blocks().size(), size_t (1));
+    // A plain click: that bar alone.
+    d.addRange (2, 2, 3, 3);
+    d.selectRange (1, 1, 1, 1);
+    CHECK_EQ (d.range.blocks().size(), size_t (1));
+}
+
+TEST ("app: Vary Notes on bars of several parts goes after them, shared across those parts")
+{
+    for (int byNotes = 0; byNotes < 2; ++byNotes)
+    {
+        Controller c (audio());
+        c.newScore ("String Quartet");
+        // Four bars of chords across the quartet.
+        GeneratedResult chords;
+        chords.length = 16 * PPQ;
+        GeneratedPart harmony;
+        harmony.name = "Chords";
+        const int roots[] = { 60, 65, 67, 60 };
+        for (int bar = 0; bar < 4; ++bar)
+            for (int i : { 0, 4, 7, 12 }) { Note n; n.start = bar * 4 * PPQ; n.length = 4 * PPQ; n.pitch = roots[bar] + i; harmony.notes.push_back (n); }
+        chords.parts = { harmony };
+        c.letGoOfEverything();
+        c.insertGenerated (chords, false, "good-idea");
+        const Tick bar5 = c.score.barStart (4);
+        std::vector<size_t> before;
+        for (const auto& p : c.score.parts) before.push_back (p.notes.size());
+        for (const auto& p : c.score.parts) CHECK (! p.notes.empty());
+
+        // Bars 1-4 of every part chosen - or every note in them selected.
+        if (byNotes != 0)
+        {
+            Selection all;
+            for (const auto& p : c.score.parts) for (const auto& n : p.notes) all.insert (n.id);
+            c.letGoOfEverything();
+            c.select (all);
+        }
+        else c.selectRange (0, 3, 0, 3);
+        CHECK (c.variesAcrossParts ("midi-variator"));
+        c.lua.reset ("midi-variator");
+        const auto out = c.lua.generate ("midi-variator", c.generatorContext (true), 7, 1);
+        CHECK (! out.results.empty());
+        if (out.results.empty()) return;
+        c.insertGenerated (out.results.front(), true, "midi-variator");
+
+        // Bars 1-4 untouched; the variation from bar 5, in more than one part.
+        int partsAfter = 0;
+        for (size_t i = 0; i < c.score.parts.size(); ++i)
+        {
+            const auto& ns = c.score.parts[i].notes;
+            CHECK_EQ (static_cast<size_t> (std::count_if (ns.begin(), ns.end(), [bar5] (const Note& n) { return n.start < bar5; })), before[i]);
+            if (std::any_of (ns.begin(), ns.end(), [bar5] (const Note& n) { return n.start >= bar5; })) ++partsAfter;
+        }
+        CHECK (partsAfter > 1);
+    }
 }

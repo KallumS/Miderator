@@ -138,8 +138,9 @@ tools/sync_from_noterator.sh ../Noterator --check
   the user chose (0019). **Where a result lands is decided in
   `Controller::place`**: chosen bars (one part takes all of it, several share
   it), a block at the caret, the selection, and with nothing chosen every
-  part from the caret's bar (0041); a single line goes to one part
-  (`lineTarget`), and chosen bars are filled once, never repeated (0042).
+  part from the caret's bar (0041) - or only the parts chosen by name
+  (0050); a single line goes to one part (`lineTarget`: the first chosen),
+  and chosen bars are filled once, never repeated (0042), block by block (0050).
   No part is ever added for a result.
 - **Every generated line is fitted to the part it lands in** (0036,
   `fitToPolyphony`, shared): no more notes at once than the instrument
@@ -162,6 +163,10 @@ tools/sync_from_noterator.sh ../Noterator --check
 - **Menu ids come in ranges** (`MainComponent.cpp`): every range check names
   its own end, or it swallows the next range's items (0038).
 - Letters in shortcuts arrive in either case: compare them upper-cased.
+- **Text on screen follows Apple's writing guidelines** (0053): title-style
+  menus, buttons and dialog titles, `…` when more input follows, sentence-style
+  messages and tooltips, "cursor" not "caret", Mac key symbols. Any literal
+  beyond ASCII goes through `ui()`; `tools/check_ui_text.py` must pass.
 - **No references into temporaries in tests**: `f().front().x` inside
   `CHECK_EQ` dangles. It passed with GCC and failed on the Mac.
 - Instrument ids are stored in files: never rename one.
