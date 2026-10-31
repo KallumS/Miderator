@@ -175,7 +175,7 @@ void PianoRollView::paint (juce::Graphics& g)
         paintRows (g, c);
         paint::grid (g, grid, timeline, controller.score, controller.grid, c, true);
 
-        // The chosen bars, where they cover this part - every block (0050).
+        // The chosen bars, where they cover this part - every block (0051).
         const auto& s = controller.score;
         for (const auto& r : controller.range.blocks())
         {
@@ -222,7 +222,7 @@ void PianoRollView::paint (juce::Graphics& g)
     g.fillRect (0, rulerHeight - 1, Timeline::left, 1);
     if (const auto* p = part())
     {
-        // Marked as chosen - unless Escape let go of it (decision 0048).
+        // Marked as chosen - unless Escape let go of it (decision 0049).
         g.setColour (theme::accent);
         if (controller.isPartChosen (controller.caretPart)) g.fillRect (0, 3, 3, rulerHeight - 6);
         g.setColour (theme::text);
@@ -581,7 +581,7 @@ void PianoRollView::mouseDown (const juce::MouseEvent& e)
         dragEnd = hit->end();
         dragPitch = hit->pitch;
         controller.caret = hit->start;
-        controller.workIn (controller.caretPart);   // a note clicked: its part is chosen (0048, 0050)
+        controller.workIn (controller.caretPart);   // a note clicked: its part is chosen (0049, 0051)
         controller.select (sel);
         controller.previewPitches ({ dragPitch }, pt->id, 0.5);
         if (sel.count (dragNote) == 0) return;   // Shift-clicked off

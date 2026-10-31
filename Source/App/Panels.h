@@ -51,7 +51,7 @@ public:
     // is large (decision 0048).
     int heightFor (int width) const;
 
-    std::function<void()> onFile, onZoomIn, onZoomOut, onStart, onEnd;
+    std::function<void()> onFile, onZoomIn, onZoomOut, onStart, onEnd, onClear;
 
 private:
     Controller& controller;

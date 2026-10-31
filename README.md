@@ -112,6 +112,7 @@ keeps working for every future version.
 | Lost an idea? | **Cmd+Z** after a **Generate** brings back the ideas listed before it; **Shift+Cmd+Z** goes forward again |
 | Several instruments | **Cmd**-click names to add or take away one; **Shift**-click to choose every one in between; **Cmd+A** chooses every instrument (press it again for every note too). An idea goes to the instruments chosen, a single melody to the first chosen |
 | Bars here and there | **Cmd**-click (or Cmd-drag) bars to add them to the chosen bars; each block is filled on its own |
+| Vary Notes | **Put it**: **After the Selection** (the original stays) or **In Place of the Selection** (the variation replaces it) |
 | Blocks | **Blocks** tab: choose a kind, click a degree to see and hear it, **Insert** at the cursor |
 | Draw notes | double-click the roll, or **D** for the Draw tool: click to draw, drag to make it longer, click a note to delete it |
 | Select | click a note; **Shift**-click for more; drag on empty space to lasso |

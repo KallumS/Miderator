@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Every C++ string literal with a character beyond ASCII - an ellipsis, a dash,
-a curly quote, a key symbol - must be read through ui() (decision 0053):
+a curly quote, a key symbol - must be read through ui() (decision 0054):
 juce::String takes a plain literal as ASCII and garbles the rest (and asserts
 in a Debug build). This finds any that are not.
 

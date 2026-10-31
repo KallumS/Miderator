@@ -36,7 +36,15 @@ for _, s in ipairs(I.SETTINGS) do
   end
 end
 
-function A.newState() return I.newState() end
+-- Good Idea starts its Voicing on Close; in the apps it starts on Any, so
+-- each idea picks its own and the chords sound different from one idea to
+-- the next (decision 0056). The engine is unchanged: only where it starts.
+function A.newState()
+  local st = I.newState()
+  st.voicing = "Any"
+  I.clampState(st)
+  return st
+end
 function A.settings(st, ctx) return C.describe(LIST, st, ctx) end
 function A.set(st, id, index, ctx)
   C.set(LIST, st, id, index, ctx)

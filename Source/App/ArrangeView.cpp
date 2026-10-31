@@ -143,7 +143,7 @@ void ArrangeView::paint (juce::Graphics& g)
             g.fillRect (static_cast<float> (timeArea.getX()), top + static_cast<float> (trackHeight) - 1.0f, static_cast<float> (timeArea.getWidth()), 1.0f);
         }
 
-        // The chosen bars: a tint with an outline (decision 0019), every block (0050).
+        // The chosen bars: a tint with an outline (decision 0019), every block (0051).
         for (const auto& r : controller.range.blocks())
         {
             const int top = s.partIndex (r.parts.front()), bottom = s.partIndex (r.parts.back());
@@ -348,7 +348,7 @@ void ArrangeView::mouseDown (const juce::MouseEvent& e)
             return;
         }
         // Cmd adds a part to those chosen, Shift every part from the one
-        // clicked before (decision 0050).
+        // clicked before (decision 0051).
         if (e.mods.isCommandDown() || e.mods.isShiftDown())
         {
             controller.clickPart (partId, e.mods.isCommandDown(), e.mods.isShiftDown());
@@ -372,7 +372,7 @@ void ArrangeView::mouseDown (const juce::MouseEvent& e)
     anchorBar = bar;
     anchorPart = index;
     selectingBars = true;
-    // Cmd adds these bars to those chosen (decision 0050).
+    // Cmd adds these bars to those chosen (decision 0051).
     addingBars = e.mods.isCommandDown();
     if (addingBars) controller.addRange (bar, bar, index, index);
     else controller.selectRange (bar, bar, index, index);

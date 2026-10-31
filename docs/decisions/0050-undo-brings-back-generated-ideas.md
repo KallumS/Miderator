@@ -1,4 +1,4 @@
-# 0049 - Undo brings back the ideas a Generate replaced
+# 0050 - Undo brings back the ideas a Generate replaced
 
 - **Date:** 2026-10-10
 - **Status:** Accepted (Noterator and Miderator alike).

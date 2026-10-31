@@ -28,7 +28,7 @@ across the instruments by section and register, a single melody to one
 instrument; chosen bars filled once; ideas auditioned on a piano before
 Insert; Follow (the view scrolls with the music); Space plays from bar 1,
 Shift+Space from the cursor; MIDI, MusicXML and WAV out, MIDI and MusicXML in.
-Added most recently (decisions 0048-0053, both apps):
+Added most recently (decisions 0049-0054, both apps):
 - Escape lets go of everything - notes, bars and the highlighted instrument -
   so the next idea goes to every instrument, a single melody to the top one.
 - Every Generate is a step in Undo: Cmd+Z brings back the ideas a Generate
@@ -88,7 +88,7 @@ docs/sessions/ (and its line in docs/sessions/README.md), add a decision
 record in docs/decisions/ (with its line in docs/decisions/README.md and
 docs/ARCHITECTURE.md) for any choice someone could reasonably make the other
 way - numbered after the highest in either app, which share one sequence
-(0053 is the latest) - update CLAUDE.md and README.md if what the app does or
+(0054 is the latest) - update CLAUDE.md and README.md if what the app does or
 a rule changed, rewrite docs/NEXT-SESSION.md, push, check that the GitHub
 Actions runs are green on both Linux and macOS (the Mac test log should say
 it rendered through Apple General MIDI), and tell me where to download both
@@ -98,10 +98,10 @@ new apps.
 ## Things worth knowing before you paste it
 
 - **Waiting to be merged:** the branch `claude/adoring-feynman-bihxp2` in
-  Noterator and Miderator holds Escape (0048), Undo for generated ideas
-  (0049), the instrument and bar shortcuts (0050), no More button (0051)
-  Vary Notes across several parts (0052)
-  and the text to Apple's writing guidelines (0053). Its last builds passed
+  Noterator and Miderator holds Escape (0049), Undo for generated ideas
+  (0050), the instrument and bar shortcuts (0051), no More button (0052)
+  Vary Notes across several parts (0053)
+  and the text to Apple's writing guidelines (0054). Its last builds passed
   on GitHub (Noterator run 65, Miderator run 42). No pull request is open for
   it yet: ask a session to open them, or open them on GitHub yourself.
 - **Already merged:** the earlier branch `ccr-ac8da7d9-3sbl5x` (up to 0047)

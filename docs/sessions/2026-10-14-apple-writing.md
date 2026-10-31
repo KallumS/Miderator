@@ -5,7 +5,7 @@
 "Review the GUI text on both Noterator and Miderator to make them in line
 with Apple's suggested guidelines" - the HIG's Writing page.
 
-## Done (0053)
+## Done (0054)
 
 - Read the Writing page and, for the Mac's specifics, the Menus, Buttons and
   Alerts pages. The developer site renders with JavaScript; its data is at

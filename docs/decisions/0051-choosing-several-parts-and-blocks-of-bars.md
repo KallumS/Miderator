@@ -1,4 +1,4 @@
-# 0050 - Choosing several parts by name, and blocks of bars with Cmd
+# 0051 - Choosing several parts by name, and blocks of bars with Cmd
 
 - **Date:** 2026-10-10
 - **Status:** Accepted (Noterator and Miderator alike). Refines 0019, 0041,
@@ -25,7 +25,7 @@ when Cmd+A chose them all at once.
   this one; the one clicked before comes first, so it takes the tune.
 - **Cmd+A** with a part chosen chooses every part, the top one first, and
   clears the selected notes. With every part already chosen, or none
-  (after Escape, 0048), it selects every note and chooses every part.
+  (after Escape, 0049), it selects every note and chooses every part.
 - An idea with several parts chosen and no bars goes to them alone, from the
   caret's bar (0041's sharing); a single line goes to the first chosen
   (`lineTarget`). The Generate tab says so: "chords to Violin II and Cello,

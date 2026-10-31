@@ -7,7 +7,7 @@ namespace nt
 
 GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
 {
-    for (auto* comp : std::initializer_list<juce::Component*> { &generator, &description, &followKey, &settings, &generateButton,
+    for (auto* comp : std::initializer_list<juce::Component*> { &generator, &description, &followKey, &placementLabel, &placement, &settings, &generateButton,
                                                                  &insertButton, &stopButton, &results, &message, &target })
         addAndMakeVisible (comp);
     settings.context = [this] { return controller.generatorContext (needsSelection()); };
@@ -146,13 +146,14 @@ void GeneratorPanel::rebuildSettings()
     // The key and scale settings are the score's while the toggle is on.
     settings.show (current, followKey.getToggleState() ? std::set<std::string> { "Key", "Scale" } : std::set<std::string> {});
     resized();
+    changeListenerCallback (nullptr);   // the Into line, for this generator
 }
 
 void GeneratorPanel::changeListenerCallback (juce::ChangeBroadcaster*)
 {
     // Nothing chosen: chords shared across every part from the caret's bar
     // (0041), a single line into the caret's part (0042) - or across the
-    // parts chosen by name, a single line to the first chosen (0050).
+    // parts chosen by name, a single line to the first chosen (0051).
     juce::String into = "Into: ";
     const juce::String bar = "from bar " + juce::String (controller.score.barAt (controller.caret) + 1);
     const auto* line = controller.score.partById (controller.lineTarget());
@@ -165,14 +166,17 @@ void GeneratorPanel::changeListenerCallback (juce::ChangeBroadcaster*)
         if (! needsSelection() && controller.range.parts.size() > 1) into += ui (" — one line to ") + lineName;
         if (needsSelection())
             into = controller.selection.empty() ? juce::String ("Choose bars with music in them to vary.")
-                 : controller.rangeText() + ui (" — the variation replaces them");
+                 : controller.rangeText() + (controller.varyReplaces ? ui (" — the variation replaces them") : ui (" — the variation goes in the bars after"));
     }
-    // Vary Notes on music in several parts goes after it, across them (0052).
+    // Vary Notes on music in several parts goes after it, across them (0053),
+    // or in its place (0055).
     else if (needsSelection() && ! controller.selection.empty() && controller.variesAcrossParts (current))
     {
         const auto [a, b] = controller.selectedBars();
-        into = "Into: after bar " + juce::String (b + 1) + ", across the "
-             + juce::String (static_cast<int> (controller.partsWithSelection().size())) + " parts it varies";
+        const juce::String parts = juce::String (static_cast<int> (controller.partsWithSelection().size())) + " parts it varies";
+        into = controller.varyReplaces ? "Into: " + juce::String (a == b ? "bar " + juce::String (a + 1) : ui ("bars ") + juce::String (a + 1) + ui ("–") + juce::String (b + 1))
+                                         + ", in place, across the " + parts
+                                       : "Into: after bar " + juce::String (b + 1) + ", across the " + parts;
     }
     else if (needsSelection())
     {
@@ -180,8 +184,10 @@ void GeneratorPanel::changeListenerCallback (juce::ChangeBroadcaster*)
         const juce::String bars = "bar" + juce::String (a == b ? " " : "s ") + juce::String (a + 1) + (a == b ? juce::String() : ui ("–") + juce::String (b + 1));
         into = controller.selection.empty() ? juce::String ("Select some notes in the score to use this generator.")
              : juce::String (static_cast<int> (controller.selection.size())) + " notes in " + bars
-               + (current == "midi-variator" ? ui (" — the variation goes after them") : ui (" — ideas go beside them"));
+               + (! varies() ? ui (" — ideas go beside them")
+                  : controller.varyReplaces ? ui (" — the variation goes in their place") : ui (" — the variation goes after them"));
     }
+    placement.setSelectedId (controller.varyReplaces ? 2 : 1, juce::dontSendNotification);
     target.setText (into, juce::dontSendNotification);
     insertButton.setEnabled (results.getSelectedRow() >= 0);
 }
@@ -207,7 +213,7 @@ void GeneratorPanel::run()
     results.repaint();
     if (! found.empty()) results.selectRow (0, false, true);
 
-    // Kept, and a step in Undo (decision 0049). A Generate after an Undo
+    // Kept, and a step in Undo (decision 0050). A Generate after an Undo
     // drops the lists that Redo would have brought back, as an edit does.
     history.resize (shown + 1);
     history.push_back ({ found, current, results.getSelectedRow(), message.getText() });

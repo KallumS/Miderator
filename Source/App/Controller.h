@@ -41,7 +41,7 @@ struct Bars
 };
 
 // The bars chosen: the block chosen last, and any chosen before it with Cmd
-// held (decision 0050). Each block is filled on its own.
+// held (decision 0051). Each block is filled on its own.
 struct BarRange : Bars
 {
     std::vector<Bars> more;
@@ -67,8 +67,8 @@ public:
     Selection selection;
     BarRange range;               // set: the selection is everything in these bars
     uint32_t caretPart = 0;       // the part the piano roll shows and writes into
-    bool noPartChosen = false;    // Escape let go of the caret's part too (decision 0048)
-    // Two or more parts chosen by name, in the order chosen (decision 0050);
+    bool noPartChosen = false;    // Escape let go of the caret's part too (decision 0049)
+    // Two or more parts chosen by name, in the order chosen (decision 0051);
     // empty: the caret's part alone, or none.
     std::vector<uint32_t> chosenParts;
     Tick caret = 0;               // where playback starts and pasting and step input go
@@ -101,7 +101,7 @@ public:
     bool canRedo() const { return ! redoStack.empty(); }
     void undo();
     void redo();
-    // A Generate is a step of its own in Undo (decision 0049): undoing it
+    // A Generate is a step of its own in Undo (decision 0050): undoing it
     // brings back the ideas listed before it, redoing it the ones after.
     // The Generate tab keeps the lists and is told to step through them.
     void generated();
@@ -122,11 +122,11 @@ public:
     void choosePart (uint32_t partId);
     // Escape: playing and note input stop, and every choice is let go -
     // the selection, chosen bars and the caret's part - so the next idea
-    // goes to every part, a single line to the top one (decision 0048).
+    // goes to every part, a single line to the top one (decision 0049).
     // Choosing a part again, by name, by click or by keys, ends it.
     void letGoOfEverything();
     // A part's name clicked with Cmd (add it, or take it away) or Shift
-    // (every part from the one clicked before) held (decision 0050). An
+    // (every part from the one clicked before) held (decision 0051). An
     // idea then goes to the parts chosen, a single line to the first chosen.
     void clickPart (uint32_t partId, bool add, bool extend);
     // The parts chosen, in the order chosen: several, the caret's, or none.
@@ -168,21 +168,21 @@ public:
     void previewSelection();
     // Bars `a` to `b` across the parts at indices `fromPart` to `toPart`,
     // in either order; the notes in them become the selection.
-    // `keepOthers`: the blocks added with Cmd stay chosen (decision 0050).
+    // `keepOthers`: the blocks added with Cmd stay chosen (decision 0051).
     void selectRange (int a, int b, int fromPart, int toPart, bool keepOthers = false);
-    // Bars added to those chosen, with Cmd held (0050). The same single bar
+    // Bars added to those chosen, with Cmd held (0051). The same single bar
     // again takes it away.
     void addRange (int a, int b, int fromPart, int toPart);
     // "Bars 2-5, Violin I to Cello", for whatever shows the range.
     // The part a single line of music goes to (decision 0042): the caret's,
     // or with bars chosen the caret's among them, else the top one - and
-    // the top one when Escape let go of every part (0048).
+    // the top one when Escape let go of every part (0049).
     uint32_t lineTarget() const;
     uint32_t lineTargetIn (const Bars& block) const;
     // The parts with notes selected, top to bottom.
     std::vector<uint32_t> partsWithSelection() const;
     // Vary Notes on music in several parts: the variation goes after it,
-    // shared across those parts as if they were chosen (decision 0052).
+    // shared across those parts as if they were chosen (decision 0053).
     bool variesAcrossParts (const std::string& generatorId) const;
     juce::String rangeText() const;
     // The bars the range or the selection covers, or the caret's bar.
@@ -203,6 +203,9 @@ public:
     void setBars (int bars);
     void insertBarsAtCaret (int count);
     void deleteSelectedBars();
+    // Every note out of every part, the parts, tempo, key and bars kept
+    // (decision 0057). One step to undo.
+    void clearAllNotes();
 
     //==========================================================================
     // Sound

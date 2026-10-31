@@ -78,7 +78,7 @@ TEST ("app: chosen bars are filled by Good Idea, across the parts chosen")
     drawLine (c, 0, 0, { 72, 74, 76, 77 });                           // bar 1, first violin
     c.selectRange (1, 4, 0, 3);                                       // bars 2-5, all four
     CHECK (c.range.active());
-    CHECK_EQ (c.rangeText(), juce::String::fromUTF8 ("Bars 2–5, Violin I to Cello"));   // an en dash (0053)
+    CHECK_EQ (c.rangeText(), juce::String::fromUTF8 ("Bars 2–5, Violin I to Cello"));   // an en dash (0054)
     const auto ctx = c.generatorContext (false);
     CHECK_EQ (ctx.rangeBars, 4);
     const auto out = c.lua.generate ("good-idea", ctx, 7, 3);
@@ -562,6 +562,153 @@ TEST ("app: a single line goes into one part, with nothing chosen or bars of sev
     d.insertGenerated (two.results.front(), false, "good-idea");
     CHECK (withNotes (d) == (std::vector<size_t> { 3 }));
     for (const auto& n : d.score.parts[3].notes) CHECK (n.end() <= d.score.barStart (2));
+}
+
+namespace
+{
+// A tune in bar 1 of the first violin, selected: four quarter notes.
+Selection tuneInBarOne (Controller& c)
+{
+    c.edit ("A tune", [] (Score& s)
+    {
+        for (int k = 0; k < 4; ++k)
+        {
+            Note n;
+            n.start = k * PPQ;
+            n.pitch = 72 + 2 * k;
+            n.id = s.newId();
+            s.parts[0].notes.push_back (n);
+        }
+    });
+    Selection sel;
+    for (const auto& n : c.score.parts[0].notes) sel.insert (n.id);
+    return sel;
+}
+
+bool anyOf (const Part& p, const Selection& ids)
+{
+    return std::any_of (p.notes.begin(), p.notes.end(), [&] (const Note& n) { return ids.count (n.id) != 0; });
+}
+} // namespace
+
+TEST ("app: Vary Notes goes after the selection, or in its place (decision 0055)")
+{
+    for (const bool inPlace : { false, true })
+    {
+        Controller c (audio());
+        c.newScore ("String Quartet");
+        c.setBars (8);
+        const auto tune = tuneInBarOne (c);
+        c.select (tune);
+        c.varyReplaces = inPlace;
+        const auto out = c.lua.generate ("midi-variator", c.generatorContext (true), 3, 1);
+        CHECK (! out.results.empty());
+        if (out.results.empty()) return;
+        c.insertGenerated (out.results.front(), true, "midi-variator");
+        const auto& violin = c.score.parts[0];
+        const Tick bar2 = c.score.barStart (1);
+        // The variation is selected, in the first violin.
+        CHECK (! c.selection.empty());
+        CHECK (anyOf (violin, c.selection));
+        for (const auto& n : violin.notes)
+            if (c.selection.count (n.id) != 0) CHECK (inPlace ? n.start < bar2 : n.start >= bar2);
+        // After: the tune is still there. In place: it is gone, and Undo brings it back.
+        CHECK_EQ (anyOf (violin, tune), ! inPlace);
+        c.undo();
+        CHECK (anyOf (c.score.parts[0], tune));
+    }
+}
+
+TEST ("app: Vary Notes on chosen bars goes after them, or in their place (decision 0055)")
+{
+    for (const bool inPlace : { false, true })
+    {
+        Controller c (audio());
+        c.newScore ("String Quartet");
+        c.setBars (8);
+        const auto tune = tuneInBarOne (c);
+        c.selectRange (0, 0, 0, 0);   // bar 1 of the first violin: its notes are the selection
+        CHECK (c.range.active());
+        c.varyReplaces = inPlace;
+        const auto out = c.lua.generate ("midi-variator", c.generatorContext (true), 3, 1);
+        CHECK (! out.results.empty());
+        if (out.results.empty()) return;
+        // Heard where it would go, for as long as the bars.
+        Tick from = 0, to = 0;
+        c.auditionScore (out.results.front(), true, "midi-variator", from, to);
+        CHECK_EQ (from, inPlace ? Tick (0) : c.score.barStart (1));
+        CHECK_EQ (to - from, c.score.barStart (1));
+        c.insertGenerated (out.results.front(), true, "midi-variator");
+        const auto& violin = c.score.parts[0];
+        CHECK_EQ (anyOf (violin, tune), ! inPlace);
+        const Tick bar2 = c.score.barStart (1), bar3 = c.score.barStart (2);
+        int inBar2 = 0;
+        for (const auto& n : violin.notes)
+            if (n.start >= bar2 && n.start < bar3) ++inBar2;
+        CHECK (inPlace ? inBar2 == 0 : inBar2 > 0);
+    }
+}
+
+TEST ("app: Vary Notes on several parts goes after them, or in their place across them (decisions 0053, 0055)")
+{
+    for (const bool inPlace : { false, true })
+    {
+        Controller c (audio());
+        c.newScore ("String Quartet");
+        c.setBars (8);
+        tuneInBarOne (c);
+        // A line for the viola in bar 1 too, so the music is in two parts.
+        c.edit ("A line", [] (Score& s)
+        {
+            for (int k = 0; k < 2; ++k)
+            {
+                Note n;
+                n.start = k * 2 * PPQ;
+                n.length = 2 * PPQ;
+                n.pitch = 60 + k;
+                n.id = s.newId();
+                s.parts[2].notes.push_back (n);
+            }
+        });
+        c.selectRange (0, 0, 0, 2);   // bar 1, Violin I to Viola
+        CHECK (c.variesAcrossParts ("midi-variator"));
+        c.varyReplaces = inPlace;
+        const auto out = c.lua.generate ("midi-variator", c.generatorContext (true), 3, 1);
+        CHECK (! out.results.empty());
+        if (out.results.empty()) return;
+        const Selection before = c.selection;
+        c.insertGenerated (out.results.front(), true, "midi-variator");
+        const Tick bar2 = c.score.barStart (1);
+        int inBar1 = 0, after = 0;
+        bool originalLeft = false;
+        for (const auto& p : c.score.parts)
+            for (const auto& n : p.notes)
+            {
+                if (before.count (n.id) != 0) originalLeft = true;
+                else if (n.start < bar2) ++inBar1;
+                else ++after;
+            }
+        // After: the original stays and the variation follows. In place: the
+        // variation takes bar 1 of those parts, the original gone.
+        CHECK_EQ (originalLeft, ! inPlace);
+        CHECK (inPlace ? (inBar1 > 0 && after == 0) : (inBar1 == 0 && after > 0));
+        CHECK (c.range.active());   // the bars stay chosen, to vary again
+    }
+}
+
+TEST ("app: Clear takes every note out and keeps the parts; Undo brings them back (decision 0057)")
+{
+    Controller c (audio());
+    c.newScore ("String Quartet");
+    const auto tune = tuneInBarOne (c);
+    c.select (tune);
+    c.clearAllNotes();
+    CHECK_EQ (c.score.parts.size(), size_t (4));
+    for (const auto& p : c.score.parts) CHECK (p.notes.empty());
+    CHECK (c.selection.empty());
+    CHECK (c.score.chordRoots.empty());
+    c.undo();
+    CHECK (anyOf (c.score.parts[0], tune));
 }
 
 int main (int argc, char** argv)

@@ -1,4 +1,4 @@
-# 0051 - No More button in the Generate tab
+# 0052 - No More button in the Generate tab
 
 - **Date:** 2026-10-10
 - **Status:** Accepted (Noterator and Miderator alike). Replaces the More
@@ -8,7 +8,7 @@
 
 The Generate tab had Generate, More, Insert and Stop. More added six more
 ideas to the list with the same settings. The user found it useless: for
-more ideas they press Generate again - and since 0049, Cmd+Z brings back the
+more ideas they press Generate again - and since 0050, Cmd+Z brings back the
 list a Generate replaced, so nothing is lost by it.
 
 ## Decision
@@ -19,4 +19,4 @@ each. Every Generate makes a fresh list with a new random seed.
 ## Consequences
 
 - A long list built up with More is no longer possible; earlier lists are
-  reached with Undo instead (0049).
+  reached with Undo instead (0050).
