@@ -45,7 +45,7 @@ void Timeline::showAt (Tick t, double fraction)
 void Timeline::follow (Tick t)
 {
     // Whole pixels, so the notes stay crisp as they move.
-    scrollTo (std::round (followScroll (static_cast<double> (t) * pixelsPerTick(), scrollX, viewWidth, controller.followStyle)));
+    scrollTo (std::round (followScroll (static_cast<double> (t) * pixelsPerTick(), scrollX, viewWidth, controller.followStyleNow())));
 }
 
 //==============================================================================

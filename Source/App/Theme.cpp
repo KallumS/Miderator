@@ -11,12 +11,41 @@ juce::Colour shade (juce::Colour c, float amount)
     return c.interpolatedWith (juce::Colours::black.withAlpha (c.getFloatAlpha()), -amount);
 }
 
+void useIncreasedContrast (bool on)
+{
+    increasedContrast = on;
+    textDim = juce::Colour (on ? 0xffDDE1E7 : 0xffB0B6C0);
+    stepNumber = juce::Colour (on ? 0xffE8EBEF : 0xffBFC5CE);
+    warnText = juce::Colour (on ? 0xffFFC2BC : 0xffFF9E96);
+    rule = juce::Colour (on ? 0xff7A828E : 0xff3A404A);
+}
+
+juce::Rectangle<float> focusRing (juce::Graphics& g, juce::Component& c, juce::Rectangle<float> r, float corner)
+{
+    if (! c.hasKeyboardFocus (true)) return r;
+    g.setColour (text);
+    g.drawRoundedRectangle (r.reduced (1.0f), corner + 2.0f, 2.0f);
+    return r.reduced (4.0f);
+}
+
+void clicksKeepFocus (juce::Component& c)
+{
+    if (dynamic_cast<juce::TextEditor*> (&c) != nullptr || dynamic_cast<juce::ListBox*> (&c) != nullptr) return;
+    // A scrolling list is not a stop of its own for Tab: what is in it is.
+    if (auto* port = dynamic_cast<juce::Viewport*> (&c)) port->setWantsKeyboardFocus (false);
+    if (dynamic_cast<juce::Button*> (&c) != nullptr || dynamic_cast<juce::ComboBox*> (&c) != nullptr
+        || dynamic_cast<juce::Slider*> (&c) != nullptr)
+        c.setMouseClickGrabsKeyboardFocus (false);
+    for (auto* child : c.getChildren()) clicksKeepFocus (*child);
+}
+
 Page darkPage()
 {
     Page p;
     p.paper = roll;
     p.ink = juce::Colour (0xffDDE1E7);
-    p.dim = juce::Colour (0xff6D7581);
+    // Bar numbers are written in it: 7.1:1 on the dark paper.
+    p.dim = juce::Colour (increasedContrast ? 0xffC0C6CF : 0xff9AA1AC);
     p.accent = accent;
     p.warn = warn;
     p.lane = juce::Colour (0xffBFC5CE);
@@ -28,7 +57,8 @@ Page lightPage()
     Page p;
     p.paper = juce::Colour (0xffFBFBFD);
     p.ink = juce::Colour (0xff14171C);
-    p.dim = juce::Colour (0xff8A919C);
+    // 6.6:1 on white (it was 3.1:1, too faint for the bar numbers).
+    p.dim = juce::Colour (increasedContrast ? 0xff3A404A : 0xff545B66);
     // A saturated yellow vanishes on white: the same accent, shaded down.
     p.accent = shade (accent, -0.45f);
     p.warn = warn;
@@ -62,6 +92,7 @@ RollColours rollColours (bool light)
         r.header = juce::Colour (0xffDDE1E7);
         r.headerActive = juce::Colour (0xffC5CBD3);
         r.headerText = juce::Colour (0xff14171C);
+        r.headerDim = juce::Colour (0xff3D434D);
     }
     else
     {
@@ -84,6 +115,7 @@ RollColours rollColours (bool light)
         r.header = frameActive;
         r.headerActive = juce::Colour (0xff3A404A);
         r.headerText = text;
+        r.headerDim = juce::Colour (0xffC3C8D0);
     }
     return r;
 }
@@ -122,7 +154,7 @@ LookAndFeel::LookAndFeel()
     setColour (juce::Slider::textBoxOutlineColourId, rule);
     setColour (juce::ToggleButton::textColourId, text);
     setColour (juce::ToggleButton::tickColourId, accent);
-    setColour (juce::ToggleButton::tickDisabledColourId, textDim);
+    setColour (juce::ToggleButton::tickDisabledColourId, textOff);
     setColour (juce::TooltipWindow::backgroundColourId, popup);
     setColour (juce::TooltipWindow::textColourId, text);
     setColour (juce::TooltipWindow::outlineColourId, rule);
@@ -142,7 +174,7 @@ LookAndFeel::LookAndFeel()
 
 void LookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& b, const juce::Colour& bg, bool highlighted, bool down)
 {
-    auto r = b.getLocalBounds().toFloat().reduced (0.5f);
+    auto r = focusRing (g, b, b.getLocalBounds().toFloat()).reduced (0.5f);
     juce::Colour fill = b.getToggleState() ? accent : bg;
     if (! b.isEnabled()) fill = fill.withAlpha (0.4f);
     else if (down) fill = b.getToggleState() ? shade (accent, -0.18f) : controlHeld;
@@ -150,7 +182,7 @@ void LookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& b, cons
     g.setColour (fill);
     g.fillRoundedRectangle (r, 3.0f);
     g.setColour (ink);
-    g.drawRoundedRectangle (r, 3.0f, 1.0f);
+    g.drawRoundedRectangle (r, 3.0f, increasedContrast ? 1.5f : 1.0f);
 }
 
 juce::Font LookAndFeel::getTextButtonFont (juce::TextButton&, int buttonHeight)
@@ -174,13 +206,14 @@ juce::Font LookAndFeel::getComboBoxFont (juce::ComboBox& box)
 
 void LookAndFeel::drawComboBox (juce::Graphics& g, int width, int height, bool down, int, int, int, int, juce::ComboBox& box)
 {
-    auto r = juce::Rectangle<float> (0, 0, static_cast<float> (width), static_cast<float> (height)).reduced (0.5f);
+    auto r = focusRing (g, box, juce::Rectangle<float> (0, 0, static_cast<float> (width), static_cast<float> (height))).reduced (0.5f);
     g.setColour (down ? controlHeld : (box.isMouseOver (true) ? controlHover : control));
+    if (! box.isEnabled()) g.setColour (control.withAlpha (0.4f));
     g.fillRoundedRectangle (r, 3.0f);
     g.setColour (ink);
-    g.drawRoundedRectangle (r, 3.0f, 1.0f);
+    g.drawRoundedRectangle (r, 3.0f, increasedContrast ? 1.5f : 1.0f);
     juce::Path arrow;
-    const float ax = static_cast<float> (width) - 12.0f, ay = static_cast<float> (height) * 0.5f;
+    const float ax = r.getRight() - 11.5f, ay = r.getCentreY();
     arrow.addTriangle (ax - 4, ay - 2, ax + 4, ay - 2, ax, ay + 3);
     g.fillPath (arrow);
 }
@@ -188,7 +221,14 @@ void LookAndFeel::drawComboBox (juce::Graphics& g, int width, int height, bool d
 void LookAndFeel::drawToggleButton (juce::Graphics& g, juce::ToggleButton& b, bool highlighted, bool)
 {
     const float h = static_cast<float> (b.getHeight());
-    auto box = juce::Rectangle<float> (2.0f, (h - 14.0f) * 0.5f, 14.0f, 14.0f);
+    if (b.hasKeyboardFocus (true))
+    {
+        // The ring goes round the box and its words, as the Mac's does.
+        const float textW = juce::GlyphArrangement::getStringWidth (juce::Font (juce::FontOptions (13.5f)), b.getButtonText());
+        g.setColour (text);
+        g.drawRoundedRectangle (juce::Rectangle<float> (1.0f, 1.0f, std::min (static_cast<float> (b.getWidth()) - 2.0f, textW + 30.0f), h - 2.0f), 5.0f, 2.0f);
+    }
+    auto box = juce::Rectangle<float> (5.0f, (h - 14.0f) * 0.5f, 14.0f, 14.0f);
     g.setColour (b.getToggleState() ? accent : (highlighted ? controlHover : control));
     g.fillRoundedRectangle (box, 2.5f);
     g.setColour (ink);
@@ -201,9 +241,9 @@ void LookAndFeel::drawToggleButton (juce::Graphics& g, juce::ToggleButton& b, bo
         tick.lineTo (box.getRight() - 3.0f, box.getY() + 3.5f);
         g.strokePath (tick, juce::PathStrokeType (1.8f));
     }
-    g.setColour (b.isEnabled() ? text : textDim);
+    g.setColour (b.isEnabled() ? text : textOff);
     g.setFont (juce::FontOptions (13.5f));
-    g.drawFittedText (b.getButtonText(), b.getLocalBounds().withTrimmedLeft (22), juce::Justification::centredLeft, 2);
+    g.drawFittedText (b.getButtonText(), b.getLocalBounds().withTrimmedLeft (25), juce::Justification::centredLeft, 2);
 }
 
 void LookAndFeel::drawScrollbar (juce::Graphics& g, juce::ScrollBar&, int x, int y, int width, int height, bool vertical,
@@ -220,7 +260,8 @@ void LookAndFeel::drawScrollbar (juce::Graphics& g, juce::ScrollBar&, int x, int
 // Tabs are buttons like any other: the chosen one in the accent, all in ink.
 void LookAndFeel::drawTabButton (juce::TabBarButton& b, juce::Graphics& g, bool over, bool)
 {
-    auto r = b.getActiveArea().toFloat().reduced (2.0f, 3.0f);
+    auto r = b.getActiveArea().toFloat().reduced (1.0f, 1.0f);
+    r = b.hasKeyboardFocus (true) ? focusRing (g, b, r) : r.reduced (1.0f, 2.0f);
     const bool front = b.isFrontTab();
     g.setColour (front ? accent : (over ? controlHover : control));
     g.fillRoundedRectangle (r, 3.0f);
@@ -228,6 +269,24 @@ void LookAndFeel::drawTabButton (juce::TabBarButton& b, juce::Graphics& g, bool 
     g.drawRoundedRectangle (r, 3.0f, 1.0f);
     g.setFont (juce::FontOptions (14.0f));
     g.drawText (b.getButtonText(), r, juce::Justification::centred);
+}
+
+void LookAndFeel::drawLinearSlider (juce::Graphics& g, int x, int y, int width, int height, float pos, float minPos, float maxPos,
+                                    juce::Slider::SliderStyle style, juce::Slider& s)
+{
+    if (s.hasKeyboardFocus (true))
+    {
+        g.setColour (text);
+        g.drawRoundedRectangle (s.getLocalBounds().toFloat().reduced (1.0f), 5.0f, 2.0f);
+    }
+    juce::LookAndFeel_V4::drawLinearSlider (g, x, y, width, height, pos, minPos, maxPos, style, s);
+}
+
+void LookAndFeel::drawTextEditorOutline (juce::Graphics& g, int width, int height, juce::TextEditor& e)
+{
+    const bool focused = e.hasKeyboardFocus (true) && ! e.isReadOnly();
+    g.setColour (focused ? text : rule);
+    g.drawRect (0, 0, width, height, focused ? 2 : 1);
 }
 
 void LookAndFeel::drawTooltip (juce::Graphics& g, const juce::String& t, int width, int height)

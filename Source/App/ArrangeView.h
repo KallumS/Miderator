@@ -27,6 +27,11 @@ class ArrangeView : public juce::Component,
 {
 public:
     ArrangeView (Controller& c, Timeline& t);
+    // One element to VoiceOver, titled and described in words (decision 0048).
+    std::unique_ptr<juce::AccessibilityHandler> createAccessibilityHandler() override
+    {
+        return std::make_unique<juce::AccessibilityHandler> (*this, juce::AccessibilityRole::group);
+    }
     ~ArrangeView() override;
 
     void paint (juce::Graphics&) override;

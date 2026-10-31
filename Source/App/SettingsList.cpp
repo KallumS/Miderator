@@ -31,6 +31,8 @@ void SettingsList::show (const std::string& generatorId, const std::set<std::str
         for (size_t i = 0; i < s.names.size(); ++i)
             box->addItem (s.names[i], static_cast<int> (i) + 1);
         box->setSelectedId (s.index + 1, juce::dontSendNotification);
+        box->setTitle (s.label);   // what VoiceOver calls it (decision 0048)
+        box->setMouseClickGrabsKeyboardFocus (false);
         juce::String tip = s.hint;
         if (s.index >= 0 && s.index < static_cast<int> (s.hints.size()) && ! s.hints[static_cast<size_t> (s.index)].empty())
             tip = (tip.isEmpty() ? juce::String() : tip + "\n") + s.hints[static_cast<size_t> (s.index)];

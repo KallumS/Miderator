@@ -61,7 +61,7 @@ Noterator's, and the two open each other's projects.
   (with all four AutoCC lanes, for sample libraries), as MusicXML for
   Dorico, Sibelius, MuseScore or Finale, or as WAV audio. Open or drop in a
   MIDI or MusicXML file to bring one in.
-- **Dark**, as a DAW is, or light if you prefer (**File** > **Light Theme**).
+- **Dark**, as a DAW is, or light if you prefer (**File** > **Light Piano Roll and Tracks**).
 
 ![The light look, with the Blocks toolbox](docs/piano-roll-light.png)
 
@@ -124,11 +124,25 @@ keeps working for every future version.
 | Follow the music | **Follow** (or **F**) scrolls along with the music as it plays, the playhead a third of the way across; switch it off to keep the view still. To turn a page at a time instead: **Play** menu, **Turn a Page at a Time** |
 | Take it out | **File** > **Export**: the song or the chosen bars as MIDI, MusicXML or WAV |
 | Undo | **Cmd+Z**, **Shift+Cmd+Z**, or **File** > **Undo** |
+| Without the mouse | **Tab** and **Shift+Tab** go through every button and menu (the one reached has a light ring), **Space** or **Return** presses it, **Esc** goes back to the roll; **Cmd+1, 2, 3** the Generate, Blocks and Parts tabs |
+| Larger | **View** > **Interface Size**: 125%, 150%, 175% or 200% |
 | All the keys | **H** |
 
 The **Parts** tab adds and removes instruments, and shows what each one can
 do. **File** > **Song Settings** sets the title, tempo, time signature, key,
 bars and sound.
+
+## Apple's guidelines
+
+The window follows Apple's Human Interface Guidelines (decision 0048): text
+clear enough to read (7:1), the Mac's **Increase Contrast** and **Reduce
+Motion** settings respected, every control reachable from the keyboard and
+named for VoiceOver, nothing important along the bottom edge of the window,
+and the Mac's own alerts. [docs/apple-hig-review.md](docs/apple-hig-review.md)
+goes through every page of the guidelines: what changed, what was already
+so, and what is not done yet.
+
+![The window: the status line under the toolbar, Play reached with the Tab key](docs/window.png)
 
 ## Where it is going
 

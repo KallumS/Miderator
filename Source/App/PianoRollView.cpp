@@ -300,9 +300,10 @@ void PianoRollView::paintNotes (juce::Graphics& g, const theme::RollColours& c)
         g.fillRoundedRectangle (r, 2.0f);
         g.setColour (c.noteEdge.withMultipliedAlpha (alpha * 0.8f));
         g.drawRoundedRectangle (r, 2.0f, 1.0f);
-        if (warn.flagged())
+        if (warn.flagged() || warn.outOfRange)
         {
-            // A red mark on what the instrument would struggle with.
+            // A red mark on what the instrument would struggle with, or
+            // cannot play: a shape as well as the colour (decision 0048).
             juce::Path mark;
             const float m = std::min (7.0f, r.getHeight());
             mark.addTriangle (r.getX(), r.getY(), r.getX() + m, r.getY(), r.getX(), r.getY() + m);

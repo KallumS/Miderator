@@ -39,8 +39,17 @@ private:
     juce::Label description;
     juce::ToggleButton followKey { "Use the music's key" };
     SettingsList settings { controller };
-    juce::TextButton generateButton { "Generate" }, insertButton { "Insert" }, stopButton { "Stop" };
-    juce::ListBox results { "Results", this };
+    juce::TextButton generateButton { "Generate" }, moreButton { "More" }, insertButton { "Insert" }, stopButton { "Stop" };
+    // The results, ringed when Tab reaches them (decision 0048).
+    struct ResultsList : public juce::ListBox
+    {
+        using juce::ListBox::ListBox;
+        void paintOverChildren (juce::Graphics&) override;
+        void focusGained (FocusChangeType) override { repaint(); }
+        void focusLost (FocusChangeType) override { repaint(); }
+        void focusOfChildComponentChanged (FocusChangeType) override { repaint(); }
+    };
+    ResultsList results { "Results", this };
     juce::Label message, target;
     std::vector<GeneratedResult> found;
     int seed = 1;
@@ -66,12 +75,15 @@ private:
     void paintListBoxItem (int row, juce::Graphics&, int width, int height, bool selected) override;
     void selectedRowsChanged (int row) override;
     void listBoxItemDoubleClicked (int row, const juce::MouseEvent&) override;
+    void returnKeyPressed (int row) override;
+    juce::String getNameForRow (int row) override;
     juce::String getTooltipForRow (int row) override;
 
     void rebuildSettings();
     void run();
     void insertSelected();
     bool needsSelection() const;
+    void showMessage (const juce::String& text, bool error = false);
 };
 
 } // namespace nt

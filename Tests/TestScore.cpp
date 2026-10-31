@@ -176,23 +176,110 @@ TEST ("file: a score survives saving and loading")
     CHECK (! loadScore ("not json").ok);
 }
 
-TEST ("autocc: a held string note swells to the preset's peak and falls back to the floor")
+namespace
+{
+// One violin part of the given notes, as { start, length } in ticks (120 bpm,
+// so PPQ is half a second), all at one velocity.
+Score violinNotes (std::vector<std::pair<Tick, Tick>> spans, int velocity = 127)
 {
     Score s;
     Part p; p.id = s.newId(); p.instrument = "vln1";
-    Note n; n.start = 0; n.length = 8 * PPQ; n.pitch = 67; n.velocity = 127; n.id = s.newId();
-    p.notes = { n };
+    for (const auto& [start, length] : spans)
+    {
+        Note n; n.start = start; n.length = length; n.pitch = 67; n.velocity = velocity; n.id = s.newId();
+        p.notes.push_back (n);
+    }
     s.parts = { p };
-    const auto events = autoCC (s, s.parts[0]);
-    CHECK (! events.empty());
-    int peak = 0, last = -1;
-    for (const auto& e : events)
-        if (e.controller == 1) { peak = std::max (peak, e.value); last = e.value; }
-    // Strings CC1: floor 0, peak 102, sustain 89, velocity scaling 35% at full velocity.
-    CHECK (peak >= 100 && peak <= 102);
-    CHECK_EQ (last, 0);
+    return s;
+}
 
-    Part piano = p;
+std::vector<CCEvent> lane (const std::vector<CCEvent>& events, int controller)
+{
+    std::vector<CCEvent> out;
+    for (const auto& e : events) if (e.controller == controller) out.push_back (e);
+    return out;
+}
+} // namespace
+
+TEST ("autocc: a held string note starts at the dynamic, swells to the preset's peak and falls back")
+{
+    auto s = violinNotes ({ { 0, 8 * PPQ } });
+    const auto cc1 = lane (autoCC (s, s.parts[0]), 1);
+    CHECK (! cc1.empty());
+    int peak = 0;
+    for (const auto& e : cc1) peak = std::max (peak, e.value);
+    // Strings CC1 (Lorne Balfe's, AutoCC 1.3): floor 85, peak 116, held.
+    CHECK_EQ (cc1.front().value, 85);
+    CHECK_EQ (peak, 116);
+    CHECK_EQ (cc1.back().value, 85);
+
+    Part piano = s.parts[0];
     piano.instrument = "pno";
     CHECK (autoCC (s, piano).empty());
+}
+
+TEST ("autocc: CC7 and CC21 are held levels, and CC11 ignores velocity")
+{
+    auto loud = violinNotes ({ { 0, 8 * PPQ } }, 127);
+    auto soft = violinNotes ({ { 0, 8 * PPQ } }, 30);
+    const auto a = autoCC (loud, loud.parts[0]), b = autoCC (soft, soft.parts[0]);
+    for (const auto& e : lane (a, 7)) CHECK_EQ (e.value, 94);
+    for (const auto& e : lane (a, 21)) CHECK_EQ (e.value, 92);
+    const auto la = lane (a, 11), lb = lane (b, 11);
+    CHECK_EQ (la.size(), lb.size());
+    for (size_t i = 0; i < std::min (la.size(), lb.size()); ++i) CHECK_EQ (la[i].value, lb[i].value);
+    // CC1 still feels velocity a little: 10% of the swell.
+    int peakSoft = 0;
+    for (const auto& e : lane (b, 1)) peakSoft = std::max (peakSoft, e.value);
+    CHECK (peakSoft >= 113 && peakSoft <= 115);
+}
+
+TEST ("autocc: a note within 0.4 s of the last key-up carries the line on; after a longer gap it swells again")
+{
+    const auto peakAfter = [] (const Score& s, Tick from)
+    {
+        int startValue = -1, peak = 0;
+        for (const auto& e : lane (autoCC (s, s.parts[0]), 1))
+        {
+            if (e.at <= from) startValue = e.value;
+            else peak = std::max (peak, e.value);
+        }
+        return std::make_pair (startValue, peak);
+    };
+    // 3 s note, 0.2 s gap, 3 s note: the second note holds where the first left off.
+    const Tick second = 6 * PPQ + 384;
+    auto close = violinNotes ({ { 0, 6 * PPQ }, { second, 6 * PPQ } });
+    const auto [heldAt, heldPeak] = peakAfter (close, second);
+    CHECK (heldPeak <= heldAt);
+    // The same with a 1 s gap: a new swell.
+    const Tick later = 6 * PPQ + 2 * PPQ;
+    auto apart = violinNotes ({ { 0, 6 * PPQ }, { later, 6 * PPQ } });
+    const auto [restartAt, restartPeak] = peakAfter (apart, later);
+    CHECK (restartPeak >= restartAt + 10);
+    // Retrigger still swells on every note.
+    AutoCCOptions retrigger;
+    retrigger.retrigger = true;
+    int retrigPeak = 0, retrigAt = -1;
+    for (const auto& e : lane (autoCC (close, close.parts[0], retrigger), 1))
+    {
+        if (e.at <= second) retrigAt = e.value;
+        else retrigPeak = std::max (retrigPeak, e.value);
+    }
+    CHECK (retrigPeak > retrigAt);
+}
+
+TEST ("autocc: Dynamic moves CC1 and CC11 together and leaves CC7 alone")
+{
+    auto s = violinNotes ({ { 0, 8 * PPQ } });
+    AutoCCOptions quiet;
+    quiet.dynamic = -40;
+    const auto e = autoCC (s, s.parts[0], quiet);
+    const auto cc1 = lane (e, 1);
+    int peak = 0;
+    for (const auto& x : cc1) peak = std::max (peak, x.value);
+    CHECK_EQ (cc1.front().value, 45);
+    CHECK_EQ (peak, 76);                       // the same +31 swell
+    const auto cc11 = lane (e, 11);
+    CHECK_EQ (cc11.front().value, 54);
+    for (const auto& x : lane (e, 7)) CHECK_EQ (x.value, 94);
 }

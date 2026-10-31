@@ -29,7 +29,7 @@ decisions; 0026 on are Miderator's.
                           v
   Source/App/       Controller (owns the score, undo, selection, caret, grid, tools)
    (JUCE)             |-- Workspace: ArrangeView (tracks) over PianoRollView, one Timeline
-                      |-- Toolbar; Generate, Blocks, Parts panels; status line
+                      |-- Toolbar, status line under it; Generate, Blocks, Parts panels
                       |-- AudioEngine (a rack of Apple GM Audio Units / built-in synths)
                       `-- Exporter (MIDI, WAV, MusicXML)
 ```
@@ -92,12 +92,8 @@ decisions; 0026 on are Miderator's.
 | [0045](decisions/0045-built-on-the-users-own-mac.md) | `build-mac.command` builds the app on the user's Mac and puts it in Applications; CI still builds and tests every push. |
 | [0046](decisions/0046-blocks-chords-keep-their-root.md) | A Blocks chord carries its root into the score; the Chords lane names it from there while its notes are unchanged. |
 | [0047](decisions/0047-blocks-offers-a-chords-real-inversions.md) | Blocks offers each chord its own inversions: two for a triad, three for a seventh, up to six for a thirteenth. |
-| [0048](decisions/0048-escape-lets-go-of-everything.md) | Escape lets go of everything - selection, chosen bars and the caret's part - so the next idea goes to every part, a single line to the top one. |
-| [0049](decisions/0049-undo-brings-back-generated-ideas.md) | A Generate is a step in Undo: Cmd+Z brings back the list of ideas from before it. |
-| [0050](decisions/0050-choosing-several-parts-and-blocks-of-bars.md) | Cmd and Shift on names choose several parts, Cmd+A every part (again: every note); Cmd on bars adds blocks, each filled on its own. |
-| [0051](decisions/0051-no-more-button.md) | No More button: Generate again makes a fresh list, and Undo brings back the last. |
-| [0052](decisions/0052-vary-notes-across-parts-goes-after.md) | Vary Notes on music in several parts puts the variation after it, shared across those parts. |
-| [0053](decisions/0053-writing-the-way-the-mac-does.md) | Text follows Apple's writing guidelines: title-style menus and buttons, … for more input, the cursor, Mac key symbols; non-ASCII through `ui()`. |
+| [0048](decisions/0048-apples-human-interface-guidelines.md) | The window follows Apple's guidelines: text 7:1, Increase Contrast and Reduce Motion, Tab through every control with a ring, a name for VoiceOver on each, nothing important along the bottom edge, Interface Size to 200%, the Mac's own alerts and title bar. Both apps. See `docs/apple-hig-review.md`. |
+| [0049](decisions/0049-autocc-follows-lorne-balfe.md) | AutoCC's curves are AutoCC 1.3's, fitted to Lorne Balfe's mock-ups: notes start at the dynamic and swell modestly, CC7 and CC21 are held, a note within 0.4 s of the last key-up carries the line on. Both apps. |
 | [0035](decisions/0035-space-plays-from-the-start.md) | Space plays from bar 1, Shift+Space and Play from the caret; |◀ and ▶| (Home, End) go to the start and the end of the music. Both apps. |
 | [0034](decisions/0034-follow-scrolls-smoothly.md) | Following scrolls smoothly by default, the playhead a third of the way across, on a steady clock read once a frame for both views; turning pages is a choice in the Play menu. |
 | [0010](decisions/0010-verify-by-rendering.md) | Drawing changes are checked by rendering them to PNG (`MideratorRender`). |

@@ -65,7 +65,7 @@ public:
 
     void paintButton (juce::Graphics& g, bool over, bool down) override
     {
-        auto r = getLocalBounds().toFloat().reduced (1.0f);
+        auto r = theme::focusRing (g, *this, getLocalBounds().toFloat()).reduced (1.0f);
         g.setColour (chosen ? theme::accent : over ? theme::controlHover : theme::control);
         if (down) g.setColour (theme::accent.darker (0.1f));
         g.fillRoundedRectangle (r, 4.0f);
@@ -151,6 +151,7 @@ BlocksPanel::BlocksPanel (Controller& c) : controller (c)
         auto* b = kinds.add (new juce::TextButton (kindList[i].shown));
         b->setTooltip (kindList[i].tip);
         b->setClickingTogglesState (false);
+        b->setRadioGroupId (2, juce::dontSendNotification);
         b->onClick = [this, i] { setKind (static_cast<int> (i)); };
         addAndMakeVisible (b);
     }
@@ -165,6 +166,8 @@ BlocksPanel::BlocksPanel (Controller& c) : controller (c)
 
     controller.addChangeListener (this);
     setKind (0);
+    theme::clicksKeepFocus (*this);
+    preview->setTitle ("Preview");
 }
 
 BlocksPanel::~BlocksPanel() { controller.removeChangeListener (this); }
@@ -214,11 +217,21 @@ void BlocksPanel::remake()
         b->numeral = title.upToFirstOccurrenceOf ("  ", false, false);
         b->name = juce::String (blocks[i].detail).upToFirstOccurrenceOf ("  ", false, false);
         b->setTooltip (title + "\n" + juce::String (blocks[i].detail).fromFirstOccurrenceOf ("  ", false, false));
+        // VoiceOver reads "ii, D", not "degree" (decision 0048).
+        b->setTitle (b->numeral + ", " + b->name);
+        b->setRadioGroupId (1, juce::dontSendNotification);
+        b->setMouseClickGrabsKeyboardFocus (false);
         b->onClick = [this, i] { choose (static_cast<int> (i), true); };
         b->onDoubleClick = [this, i] { choose (static_cast<int> (i), false); insertChosen(); };
         addAndMakeVisible (b);
     }
-    if (! out.error.empty()) key.setText ("Starting Blocks stopped with an error. Report this as a bug: " + juce::String (out.error), juce::dontSendNotification);
+    if (! out.error.empty())
+    {
+        key.setText ("No blocks came back. Try other settings; if it keeps happening, please report it: " + juce::String (out.error),
+                     juce::dontSendNotification);
+        key.setColour (juce::Label::textColourId, theme::warnText);
+    }
+    else key.setColour (juce::Label::textColourId, theme::textDim);
     choose (std::clamp (chosen, 0, std::max (0, static_cast<int> (blocks.size()) - 1)), false);
 }
 
@@ -228,6 +241,7 @@ void BlocksPanel::choose (int index, bool play)
     for (int i = 0; i < degrees.size(); ++i)
     {
         degrees[i]->chosen = i == index;
+        degrees[i]->setToggleState (i == index, juce::dontSendNotification);
         degrees[i]->repaint();
     }
     insertButton.setEnabled (index >= 0 && index < static_cast<int> (blocks.size()));
@@ -274,17 +288,20 @@ void BlocksPanel::resized()
         degrees[i]->setBounds (grid.getX() + (i % perRow) * (bw + gap), grid.getY() + (i / perRow) * 50, bw, 46);
     r.removeFromTop (8);
 
-    auto bottom = r.removeFromBottom (30);
-    const int half = (bottom.getWidth() - 4) / 2;
-    playButton.setBounds (bottom.removeFromLeft (half));
-    bottom.removeFromLeft (4);
-    insertButton.setBounds (bottom);
-    r.removeFromBottom (4);
-    target.setBounds (r.removeFromBottom (20));
-    r.removeFromBottom (6);
-    preview->setBounds (r.removeFromBottom (std::min (130, std::max (70, r.getHeight() / 2))));
-    r.removeFromBottom (8);
-    settings.setBounds (r);
+    // The settings, then where it goes and the buttons, then the preview -
+    // nothing to press along the window's bottom edge (decision 0048).
+    const int previewH = std::min (130, std::max (70, (r.getHeight() - 70) / 2));
+    settings.setBounds (r.removeFromTop (std::max (60, std::min (settings.contentHeight(), r.getHeight() - previewH - 70))));
+    r.removeFromTop (8);
+    target.setBounds (r.removeFromTop (20));
+    r.removeFromTop (4);
+    auto buttons = r.removeFromTop (30);
+    const int half = (buttons.getWidth() - 4) / 2;
+    playButton.setBounds (buttons.removeFromLeft (half));
+    buttons.removeFromLeft (4);
+    insertButton.setBounds (buttons);
+    r.removeFromTop (8);
+    preview->setBounds (r.withHeight (std::min (r.getHeight(), 130)));
 }
 
 void BlocksPanel::changeListenerCallback (juce::ChangeBroadcaster*)

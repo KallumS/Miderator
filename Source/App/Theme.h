@@ -11,6 +11,14 @@
     DAW is (decision 0031), or light on request; the chrome stays dark either
     way. The accent is spent on what is selected and what is sounding, red
     only on what an instrument cannot play.
+
+    Apple's guidelines (decision 0048): text is at least 7:1 against what it
+    sits on, secondary text included; the house red marks things but is too
+    dark to read as text on the ground, so errors are written in warnText.
+    With the Mac's Increase Contrast on, useIncreasedContrast() lifts the
+    secondary text, the rules and the outlines further. A control the
+    keyboard has reached wears a ring in the text colour (focusRing), never
+    the yellow, which means only "on".
 */
 
 #pragma once
@@ -37,16 +45,35 @@ inline const juce::Colour sunken        { 0xff1A1D23 };
 inline const juce::Colour popup         { 0xff1B1F25 };
 inline const juce::Colour frameHover    { 0xff22262D };
 inline const juce::Colour frameActive   { 0xff2A2F37 };
-inline const juce::Colour rule          { 0xff3A404A };
 inline const juce::Colour scrollGrab    { 0xff585F6B };
 inline const juce::Colour scrollHover   { 0xff6D7581 };
 inline const juce::Colour ink           { 0xff14171C };
-inline const juce::Colour text          { 0xffDDE1E7 };
-inline const juce::Colour textDim       { 0xff8A919C };
-inline const juce::Colour stepNumber    { 0xffBFC5CE };
+inline const juce::Colour text          { 0xffDDE1E7 };   // 11.4:1 on the ground
+inline const juce::Colour textOff       { 0xff8A919C };   // a control that cannot be used (no target)
 inline const juce::Colour roll          { 0xff111419 };
 inline const juce::Colour playhead      { 0xffF2F4F7 };
-inline const juce::Colour warn          { 0xffD2483F };
+inline const juce::Colour warn          { 0xffD2483F };   // marks; 3.4:1, so never text on the ground
+
+// These change with the Mac's Increase Contrast (useIncreasedContrast).
+inline juce::Colour textDim             { 0xffB0B6C0 };   // secondary text, 7.3:1 on the ground
+inline juce::Colour stepNumber          { 0xffBFC5CE };   // labels beside settings, 8.6:1
+inline juce::Colour warnText            { 0xffFF9E96 };   // an error, written: 7.5:1
+inline juce::Colour rule                { 0xff3A404A };
+inline bool increasedContrast = false;
+
+// Increase Contrast on or off; the caller repaints.
+void useIncreasedContrast (bool on);
+
+// A control reached with Tab is ringed in the text colour, inside its own
+// bounds with a gap of ground, so nothing outside it is drawn over. Returns
+// what is left for the control itself.
+juce::Rectangle<float> focusRing (juce::Graphics&, juce::Component&, juce::Rectangle<float> bounds, float corner = 4.0f);
+
+// Clicking a button, a menu or a slider leaves the keyboard with the page, as
+// on the Mac, so the score's keys keep working; Tab reaches them instead.
+// Applied to a component and everything inside it, text boxes and lists
+// excepted (they are typed in, or browsed with the arrows, once clicked).
+void clicksKeepFocus (juce::Component&);
 
 // Hover and held, derived rather than stored: 18% toward white or black.
 juce::Colour shade (juce::Colour c, float amount);
@@ -70,6 +97,7 @@ struct RollColours
     juce::Colour selected, sounding;
     juce::Colour whiteKey, blackKey, keyText;
     juce::Colour trackRow, trackRowAlt, header, headerActive, headerText;
+    juce::Colour headerDim;                    // a track's instrument, under its name: 6:1 or more (decision 0048)
 };
 
 RollColours rollColours (bool light);
@@ -88,6 +116,9 @@ public:
     void drawScrollbar (juce::Graphics&, juce::ScrollBar&, int x, int y, int width, int height, bool vertical,
                         int thumbStart, int thumbSize, bool over, bool down) override;
     void drawTooltip (juce::Graphics&, const juce::String& text, int width, int height) override;
+    void drawLinearSlider (juce::Graphics&, int x, int y, int width, int height, float pos, float minPos, float maxPos,
+                           juce::Slider::SliderStyle, juce::Slider&) override;
+    void drawTextEditorOutline (juce::Graphics&, int width, int height, juce::TextEditor&) override;
     void drawTabButton (juce::TabBarButton&, juce::Graphics&, bool isMouseOver, bool isMouseDown) override;
 };
 

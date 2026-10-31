@@ -29,14 +29,15 @@ GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
         if (! found.empty()) history[shown].row = results.getSelectedRow();
         found.clear();
         results.updateContent();
-        message.setText ({}, juce::dontSendNotification);
+        if (controller.lua.ok()) showMessage ("Press Generate to make some ideas, then click one to hear it.");
         rebuildSettings();
     };
 
+    generator.setTitle ("Generator");
     description.setFont (juce::FontOptions (13.0f));
     description.setColour (juce::Label::textColourId, theme::textDim);
     description.setJustificationType (juce::Justification::topLeft);
-    message.setFont (juce::FontOptions (12.5f));
+    message.setFont (juce::FontOptions (13.0f));
     message.setColour (juce::Label::textColourId, theme::stepNumber);
     message.setJustificationType (juce::Justification::topLeft);
     target.setFont (juce::FontOptions (13.0f));
@@ -46,10 +47,12 @@ GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
     followKey.setTooltip ("Write in the key of the music at the cursor, instead of the generator's own key setting");
     followKey.onClick = [this] { rebuildSettings(); };
 
-    generateButton.setTooltip ("Make a new list of ideas (G)");
-    insertButton.setTooltip ("Add the chosen idea to the score, where the Into line says (Return)");
-    stopButton.setTooltip ("Stop playing the idea");
-    generateButton.onClick = [this] { run(); };
+    generateButton.setTooltip ("Make new results");
+    moreButton.setTooltip ("More results with the same settings");
+    insertButton.setTooltip ("Put the chosen result in, where the Into line says (Return, or double-click it)");
+    stopButton.setTooltip ("Stop the audition (Esc)");
+    generateButton.onClick = [this] { run (false); };
+    moreButton.onClick = [this] { run (true); };
     insertButton.onClick = [this] { insertSelected(); };
     stopButton.onClick = [this] { controller.stop(); };
 
@@ -57,12 +60,30 @@ GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
     results.setColour (juce::ListBox::backgroundColourId, theme::sunken);
     results.setColour (juce::ListBox::outlineColourId, theme::rule);
     results.setOutlineThickness (1);
+    results.setTitle ("Results");
 
-    if (! controller.lua.ok())
-        message.setText (ui ("The generators couldn’t be loaded:\n") + juce::String (controller.lua.error()), juce::dontSendNotification);
     controller.addChangeListener (this);
     controller.stepResults = [this] (int direction) { showListed (direction); };
     generator.setSelectedId (1);
+    theme::clicksKeepFocus (*this);
+    if (! controller.lua.ok())
+        showMessage ("The generators did not load. Reinstall the app, and if that does not help, please report it:\n"
+                     + juce::String (controller.lua.error()), true);
+}
+
+void GeneratorPanel::showMessage (const juce::String& text, bool error)
+{
+    // An error in a red light enough to read; the house red only marks things.
+    message.setText (text, juce::dontSendNotification);
+    message.setColour (juce::Label::textColourId, error ? theme::warnText : theme::stepNumber);
+}
+
+void GeneratorPanel::ResultsList::paintOverChildren (juce::Graphics& g)
+{
+    juce::ListBox::paintOverChildren (g);
+    if (! hasKeyboardFocus (true)) return;
+    g.setColour (theme::text);
+    g.drawRect (getLocalBounds(), 2);
 }
 
 GeneratorPanel::~GeneratorPanel()
@@ -85,10 +106,17 @@ void GeneratorPanel::resized()
     auto r = getLocalBounds().reduced (10);
     generator.setBounds (r.removeFromTop (28));
     r.removeFromTop (4);
-    description.setBounds (r.removeFromTop (52));
+    // In a short panel the description gives way to the results; it is the
+    // menu's tooltip as well.
+    description.setVisible (r.getHeight() > 520);
+    if (description.isVisible()) description.setBounds (r.removeFromTop (52));
     followKey.setBounds (r.removeFromTop (24));
     r.removeFromTop (4);
-    const int settingsH = std::min (settings.contentHeight(), std::max (120, r.getHeight() / 2 - 40));
+    // The results keep room for two or three, however short the window
+    // (a large interface size makes it short): the settings scroll instead.
+    const int below = 8 + 20 + 4 + 30 + 6 + 38 + 4, minResults = 140;
+    const int settingsH = std::max (60, std::min (settings.contentHeight(), std::min (std::max (120, r.getHeight() / 2 - 40),
+                                                                                     r.getHeight() - below - minResults)));
     settings.setBounds (r.removeFromTop (settingsH));
     r.removeFromTop (8);
     target.setBounds (r.removeFromTop (20));
@@ -98,9 +126,10 @@ void GeneratorPanel::resized()
     generateButton.setBounds (buttons.removeFromLeft (w)); buttons.removeFromLeft (4);
     insertButton.setBounds (buttons.removeFromLeft (w)); buttons.removeFromLeft (4);
     stopButton.setBounds (buttons);
-    r.removeFromTop (8);
-    message.setBounds (r.removeFromBottom (54));
-    r.removeFromBottom (4);
+    r.removeFromTop (6);
+    // What happened, under the buttons that did it, above the results.
+    message.setBounds (r.removeFromTop (38));
+    r.removeFromTop (4);
     results.setBounds (r);
 }
 
@@ -109,7 +138,11 @@ void GeneratorPanel::rebuildSettings()
     const auto ctx = controller.generatorContext (needsSelection());
     if (followKey.getToggleState()) controller.lua.useKey (current, ctx.root, ctx.scale);
     for (const auto& g : controller.lua.generators())
-        if (g.id == current) description.setText (g.description, juce::dontSendNotification);
+        if (g.id == current)
+        {
+            description.setText (g.description, juce::dontSendNotification);
+            generator.setTooltip (g.description);
+        }
     // The key and scale settings are the score's while the toggle is on.
     settings.show (current, followKey.getToggleState() ? std::set<std::string> { "Key", "Scale" } : std::set<std::string> {});
     resized();
@@ -162,16 +195,14 @@ void GeneratorPanel::run()
     const auto out = controller.lua.generate (current, ctx, seed, 6);
     if (! out.error.empty())
     {
-        message.setText ("The generator stopped with an error. Report this as a bug:\n" + juce::String (out.error).upToFirstOccurrenceOf ("\n", false, false),
-                         juce::dontSendNotification);
-        message.setColour (juce::Label::textColourId, theme::warn);
+        showMessage ("Nothing came back. Try other settings; if it keeps happening, please report it: "
+                     + juce::String (out.error).upToFirstOccurrenceOf ("\n", false, false), true);
         return;
     }
-    message.setColour (juce::Label::textColourId, theme::stepNumber);
-    if (! found.empty()) history[shown].row = results.getSelectedRow();   // for Undo to come back to
-    found = out.results;
-    message.setText (out.message.empty() ? juce::String (static_cast<int> (found.size())) + " ideas. Click one to hear it, then click Insert."
-                                         : juce::String (out.message), juce::dontSendNotification);
+    if (more) found.insert (found.end(), out.results.begin(), out.results.end());
+    else found = out.results;
+    showMessage (out.message.empty() ? juce::String (static_cast<int> (found.size())) + " results. Click one to hear it; Insert puts it in."
+                                     : juce::String (out.message));
     results.updateContent();
     results.repaint();
     if (! found.empty()) results.selectRow (0, false, true);
@@ -256,6 +287,22 @@ void GeneratorPanel::listBoxItemDoubleClicked (int row, const juce::MouseEvent&)
 {
     results.selectRow (row);
     insertSelected();
+}
+
+void GeneratorPanel::returnKeyPressed (int row)
+{
+    results.selectRow (row);
+    insertSelected();
+}
+
+juce::String GeneratorPanel::getNameForRow (int row)
+{
+    // What VoiceOver reads for a result: its title and what is in it.
+    if (row < 0 || row >= static_cast<int> (found.size())) return {};
+    const auto& r = found[static_cast<size_t> (row)];
+    int notes = 0;
+    for (const auto& p : r.parts) notes += static_cast<int> (p.notes.size());
+    return juce::String (r.title) + ", " + juce::String (notes) + " notes";
 }
 
 juce::String GeneratorPanel::getTooltipForRow (int row)

@@ -61,9 +61,5 @@ piano roll changed say so at the top. 0026 on are Miderator's own.
 | [0045](0045-built-on-the-users-own-mac.md) | The Mac app can be built on the user's own Mac | Accepted |
 | [0046](0046-blocks-chords-keep-their-root.md) | Blocks chords keep the root they were made on | Accepted |
 | [0047](0047-blocks-offers-a-chords-real-inversions.md) | Blocks offers each chord the inversions it has | Accepted |
-| [0048](0048-escape-lets-go-of-everything.md) | Escape lets go of everything, the caret's part too | Accepted |
-| [0049](0049-undo-brings-back-generated-ideas.md) | Undo brings back the ideas a Generate replaced | Accepted |
-| [0050](0050-choosing-several-parts-and-blocks-of-bars.md) | Choosing several parts by name, and blocks of bars with Cmd | Accepted |
-| [0051](0051-no-more-button.md) | No More button in the Generate tab | Accepted |
-| [0052](0052-vary-notes-across-parts-goes-after.md) | Vary Notes on several parts goes after the music, across those parts | Accepted |
-| [0053](0053-writing-the-way-the-mac-does.md) | The apps' text follows Apple's writing guidelines | Accepted |
+| [0048](0048-apples-human-interface-guidelines.md) | The window follows Apple's Human Interface Guidelines | Accepted |
+| [0049](0049-autocc-follows-lorne-balfe.md) | AutoCC's curves follow Lorne Balfe's, as AutoCC 1.3 does | Accepted |
