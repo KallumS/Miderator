@@ -25,13 +25,19 @@ of 0055 still used `varyReplaces`, so it no longer compiled. The CI run on
 - AutoCC 1.3, `main`'s only new work, kept as it came: `AutoCC.*`,
   `Perform.cpp`, `TestScore.cpp` and the decision. Its entries added back to
   the docs. Its decision was numbered 0049, as the Escape decision is: it is
-  0058 now. The shared `AutoCC.h` still says "decision 0049" until Noterator
-  renumbers it and the file is synced.
+  0058 now.
+
+## Noterator
+
+The same merges there undid 0054's wording in `MainComponent.cpp` and
+`Panels.h` and 0049-0057 in its docs, without breaking its build. Mended on
+Noterator's `claude/festive-shannon-ia27mv` (`110e897`), AutoCC 1.3's
+decision renumbered 0058 there too; `AutoCC.h` synced from it.
 
 ## Not done yet
 
-- Noterator probably has the same 0049 clash (its PR #9 used 0049-0055, its
-  PR #11 AutoCC 0049): renumber there, then sync `AutoCC.h`.
+- Neither branch merged into `main` yet; nothing here tried on a Mac.
+
 - Lesson: when a merge of `main` has conflicts in files both sides changed,
   diff the result against the branch before it (`git diff <branch-before>
   <merge>`) - anything there that `main` did not mean to bring is a revert.

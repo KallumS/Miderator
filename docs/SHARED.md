@@ -36,7 +36,8 @@ update the commit below.
 | `4f67cb3` | 2026-10-15: the Generate tab and the settings list follow Apple's guidelines (0048): names for VoiceOver, clicks that leave the keyboard with the roll, a ring when Tab reaches the results, the message under the buttons, errors in `theme::warnText`, Return inserts. Both apps' `Theme.h` now carry what these use. On Noterator's branch `claude/blissful-bohr-lqwr1j` |
 | `aeb6a5a` | 2026-10-21: the Generate tab's Put it menu for Vary Notes and its Into line (0055), Good Idea's Voicing starting on Any in the adapter (0056), their test. On Noterator's branch `claude/blissful-bohr-lqwr1j` |
 | `dffa6c0` | 2026-10-21: Noterator's two lines of work merged (its PR #9 with 0049-0055): the Generate tab with no More button, Undo's lists, the parts chosen, Vary Notes across parts or in place, Apple's writing guidelines and 0048's keyboard and VoiceOver, `GeneratorPanel.*`. On Noterator's branch `claude/blissful-bohr-lqwr1j` |
-| `40e76f3` | 2026-10-22: `AutoCC.*`, the CC7 comment in `Perform.cpp` and the AutoCC tests in `TestScore.cpp` brought up to AutoCC 1.3 (0058 here; 0049 in the code's comment). On Noterator's branch `claude/autocc-balfe-presets` (PR #11) |
+| `40e76f3` | 2026-10-22: `AutoCC.*`, the CC7 comment in `Perform.cpp` and the AutoCC tests in `TestScore.cpp` brought up to AutoCC 1.3 (0049 then). On Noterator's branch `claude/autocc-balfe-presets` (PR #11) |
+| `110e897` | 2026-11-01: `AutoCC.h`'s comment names AutoCC 1.3's decision by its new number, 0058. On Noterator's branch `claude/festive-shannon-ia27mv` |
 
 ## Shared
 
