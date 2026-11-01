@@ -58,15 +58,16 @@ private:
     // New, Open, Save, Export, Undo, the score's settings, the sound, the
     // input mode and the look: one menu (decisions 0037, 0038, 0039)
     juce::TextButton fileButton { "File" };
-    IconButton startButton { "Return to Start", IconButton::Kind::start };
+    IconButton startButton { "Go to Start", IconButton::Kind::start };
     PlayButton playButton;
-    IconButton endButton { "Skip to End", IconButton::Kind::end };
+    IconButton endButton { "Go to End", IconButton::Kind::end };
     juce::TextButton followButton { "Follow" };
     juce::TextButton selectButton { "Select" }, drawButton { "Draw" };
     juce::Label gridLabel { {}, "Grid" };
     juce::ComboBox gridBox;
     juce::TextButton tripletButton { "Triplet" }, snapButton { "Snap" };
     juce::TextButton quantiseButton { "Quantise" };
+    juce::TextButton clearButton { "Clear All" };   // every note out (decision 0057)
     juce::TextButton zoomOut { juce::String::charToString (0x2212) }, zoomIn { "+" };
 
     static constexpr int rowHeight = 46;
@@ -89,7 +90,7 @@ private:
     juce::Viewport viewport;
     juce::Component rows;
     std::vector<std::unique_ptr<Row>> rowList;
-    juce::TextButton addButton { juce::String ("Add Instrument") + juce::String::charToString (0x2026) };
+    juce::TextButton addButton { ui ("Add Instrument…") };
     juce::Label info;
     size_t lastCount = 0;
 
