@@ -1,6 +1,8 @@
-# 0049 - AutoCC's curves follow Lorne Balfe's, as AutoCC 1.3 does
+# 0058 - AutoCC's curves follow Lorne Balfe's, as AutoCC 1.3 does
 
 - **Date:** 2026-10-22
+- **Number:** made as 0049 alongside another session's 0049-0057 and
+  renumbered 0058 when the two met, in Noterator too (`110e897`).
 - **Status:** Accepted (Noterator and Miderator alike). Updates 0013's
   presets; 0013's approach (computed once per part) is unchanged.
 

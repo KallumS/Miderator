@@ -47,12 +47,29 @@ GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
     followKey.setTooltip ("Write in the key of the music at the cursor, instead of the generator's own key setting");
     followKey.onClick = [this] { rebuildSettings(); };
 
-    generateButton.setTooltip ("Make new results");
-    moreButton.setTooltip ("More results with the same settings");
-    insertButton.setTooltip ("Put the chosen result in, where the Into line says (Return, or double-click it)");
-    stopButton.setTooltip ("Stop the audition (Esc)");
-    generateButton.onClick = [this] { run (false); };
-    moreButton.onClick = [this] { run (true); };
+    placement.addItem ("After the Selection", 1);
+    placement.addItem ("In Place of the Selection", 2);
+    placement.setTitle ("Put the variation");
+    placement.setTooltip ("After the selection: the original stays and the variation follows it.\n"
+                          "In place of the selection: the variation replaces the original. You can undo this.");
+    placement.setSelectedId (controller.varyReplaces ? 2 : 1, juce::dontSendNotification);
+    placement.onChange = [this]
+    {
+        controller.varyReplaces = placement.getSelectedId() == 2;
+        // Heard again where it would now go.
+        if (const int row = results.getSelectedRow(); row >= 0 && row < static_cast<int> (found.size()))
+            controller.auditionGenerated (found[static_cast<size_t> (row)], needsSelection(), current);
+        controller.viewChanged();
+    };
+    placementLabel.setFont (juce::FontOptions (13.0f));
+    placementLabel.setColour (juce::Label::textColourId, theme::stepNumber);
+    placementLabel.setTooltip (placement.getTooltip());
+
+    // (Generate has no key of its own: G writes a note.)
+    generateButton.setTooltip ("Make a new list of ideas");
+    insertButton.setTooltip ("Add the chosen idea where the Into line says (Return, or double-click it)");
+    stopButton.setTooltip ("Stop playing the idea (Esc)");
+    generateButton.onClick = [this] { run(); };
     insertButton.onClick = [this] { insertSelected(); };
     stopButton.onClick = [this] { controller.stop(); };
 
@@ -67,7 +84,7 @@ GeneratorPanel::GeneratorPanel (Controller& c) : controller (c)
     generator.setSelectedId (1);
     theme::clicksKeepFocus (*this);
     if (! controller.lua.ok())
-        showMessage ("The generators did not load. Reinstall the app, and if that does not help, please report it:\n"
+        showMessage (ui ("The generators couldn’t be loaded. Reinstall the app; if that doesn’t help, report this as a bug:\n")
                      + juce::String (controller.lua.error()), true);
 }
 
@@ -110,7 +127,19 @@ void GeneratorPanel::resized()
     // menu's tooltip as well.
     description.setVisible (r.getHeight() > 520);
     if (description.isVisible()) description.setBounds (r.removeFromTop (52));
-    followKey.setBounds (r.removeFromTop (24));
+    {
+        // The score's key for the generators that write in one; where the
+        // variation goes for Vary Notes, which hears the key in the music.
+        auto row = r.removeFromTop (26);
+        followKey.setVisible (! varies());
+        placementLabel.setVisible (varies());
+        placement.setVisible (varies());
+        followKey.setBounds (row.withHeight (24));
+        // Lined up with the settings under it.
+        const int w = row.getWidth() - getLookAndFeel().getDefaultScrollbarWidth() - 2;
+        placementLabel.setBounds (row.removeFromLeft (w * 2 / 5));
+        placement.setBounds (row.withWidth (w - w * 2 / 5));
+    }
     r.removeFromTop (4);
     // The results keep room for two or three, however short the window
     // (a large interface size makes it short): the settings scroll instead.
@@ -201,13 +230,12 @@ void GeneratorPanel::run()
     const auto out = controller.lua.generate (current, ctx, seed, 6);
     if (! out.error.empty())
     {
-        showMessage ("Nothing came back. Try other settings; if it keeps happening, please report it: "
-                     + juce::String (out.error).upToFirstOccurrenceOf ("\n", false, false), true);
+        showMessage ("The generator stopped with an error. Report this as a bug:\n" + juce::String (out.error).upToFirstOccurrenceOf ("\n", false, false), true);
         return;
     }
-    if (more) found.insert (found.end(), out.results.begin(), out.results.end());
-    else found = out.results;
-    showMessage (out.message.empty() ? juce::String (static_cast<int> (found.size())) + " results. Click one to hear it; Insert puts it in."
+    if (! found.empty()) history[shown].row = results.getSelectedRow();   // for Undo to come back to
+    found = out.results;
+    showMessage (out.message.empty() ? juce::String (static_cast<int> (found.size())) + " ideas. Click one to hear it, then click Insert."
                                      : juce::String (out.message));
     results.updateContent();
     results.repaint();

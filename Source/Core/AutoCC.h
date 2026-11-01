@@ -15,7 +15,7 @@
     docs/research/per-note-analysis.md): a note starts at the dynamic and
     swells modestly, CC11 follows CC1, CC7 and CC21 are held levels, and a note
     that follows the last key-up by less than 0.4 s carries the line on
-    instead of swelling again (decision 0049).
+    instead of swelling again (decision 0058).
 
     Which preset a part gets comes from its instrument (Instruments.h).
 */

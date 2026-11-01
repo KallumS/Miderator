@@ -78,6 +78,9 @@ public:
     bool lightTheme = false;      // dark unless the user asks for light (decision 0031)
     bool followPlayback = true;   // the view moves with the playhead (decision 0033)
     FollowStyle followStyle = FollowStyle::smooth;   // scrolling along, or a page at a time (decision 0034)
+    // Vary Notes puts its variation after the selection, or in its place
+    // (decision 0055) - the user's choice, kept between launches.
+    bool varyReplaces = false;
     bool reduceMotion = false;    // the Mac's Reduce Motion: smooth following turns pages instead (decision 0048)
     FollowStyle followStyleNow() const { return reduceMotion ? FollowStyle::page : followStyle; }
     float zoom = 32.0f;           // pixels per quarter note, across the tracks and the roll
